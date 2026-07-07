@@ -13,6 +13,8 @@ import {
   normalizePriority,
   normalizeBool,
   normalizeDate,
+  normalizeNumber,
+  normalizeProgress,
   colorForIndex,
 } from "@/lib/csvImport";
 
@@ -55,7 +57,7 @@ const TAB_CONFIG: Record<
     template: TASKS_TEMPLATE,
     filename: "tasks-template.csv",
     columns:
-      "title (required), description, project, assigned_to, status (todo/in_progress/review/done), priority (low/medium/high/urgent), start_date, due_date, is_milestone (true/false), milestone_date, parent_task (title of another row, for subtasks)",
+      "title (required), description, project, assigned_to, status (todo/in_progress/review/done), priority (low/medium/high/urgent), start_date, due_date, is_milestone (true/false), milestone_date, parent_task (title of another row, for subtasks), task_type, eid, site_name, raised_by, expected_duration_hours, actual_time_spent_hours, date_added, actual_completion, progress_percent (0-100), comments",
   },
 };
 
@@ -415,6 +417,16 @@ async function importTasks(
       due_date: normalizeDate(row.due_date),
       is_milestone: isMilestone,
       milestone_date: isMilestone ? normalizeDate(row.milestone_date) : null,
+      task_type: (row.task_type || "").trim() || null,
+      eid: (row.eid || "").trim() || null,
+      site_name: (row.site_name || "").trim() || null,
+      raised_by: (row.raised_by || "").trim() || null,
+      expected_duration_hours: normalizeNumber(row.expected_duration_hours),
+      actual_time_spent_hours: normalizeNumber(row.actual_time_spent_hours),
+      date_added: normalizeDate(row.date_added),
+      actual_completion: normalizeDate(row.actual_completion),
+      progress_percent: normalizeProgress(row.progress_percent),
+      comments: (row.comments || "").trim() || null,
     });
     tasksCreated++;
     titleToId.set(title.toLowerCase(), task.id);

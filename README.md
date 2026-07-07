@@ -90,6 +90,27 @@ lib/
 supabase/schema.sql        Database schema — run this first
 ```
 
+## Network / ops tracking fields
+
+Tasks can now also capture (all optional, shown in the task modal):
+
+- **Task type** — e.g. MRP Planning, Full Audit, Circuit Audit, Config
+  Removal, GCR_MOP (free text, with suggestions from common values)
+- **EID / circuit ID** and **Site name** — which site or circuit the task is
+  about
+- **Raised by** — who requested the task, separate from who it's assigned to
+- **Date added**, **Actual completion** — alongside the existing start/due
+  dates
+- **Expected duration (h)** and **Actual time spent (h)**
+- **Progress %** — a slider from 0–100; moving it to 100 marks the task Done,
+  moving it above 0 moves a "To do" task to "In progress"
+- **Comments** — a running-notes field, separate from the description
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_002_network_fields.sql` in the Supabase SQL editor once —
+it adds these columns to your existing `tasks` table without touching your
+data. New installs already have them via `schema.sql`.
+
 ## Bulk import via CSV
 
 Click **Import** in the top bar to bring in projects, people, or tasks in

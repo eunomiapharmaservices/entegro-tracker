@@ -31,9 +31,38 @@ export interface Task {
   is_milestone: boolean;
   milestone_date: string | null;
   position: number;
+  // Network/ops tracker fields
+  task_type: string | null;
+  eid: string | null;
+  site_name: string | null;
+  raised_by: string | null;
+  date_added: string | null;
+  actual_completion: string | null;
+  expected_duration_hours: number | null;
+  actual_time_spent_hours: number | null;
+  progress_percent: number;
+  comments: string | null;
   created_at: string;
   updated_at: string;
 }
+
+// Common task types seen in the IP Daily Task Tracker workbook — offered as
+// suggestions in the task type field, but any free text is accepted.
+export const TASK_TYPE_SUGGESTIONS = [
+  "MRP Planning",
+  "Netbuild",
+  "Full Audit",
+  "Circuit Audit",
+  "Config Removal",
+  "Config Drop",
+  "Config Generation",
+  "Transport Requirements",
+  "GCR_MOP",
+  "GCR_Support",
+  "Design",
+  "Data-cleanse",
+  "Pre-wire",
+];
 
 export interface TaskWithSubtasks extends Task {
   subtasks: Task[];

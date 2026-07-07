@@ -42,6 +42,23 @@ export default function TaskCard({
         {task.title}
       </p>
 
+      {(task.site_name || task.eid || task.task_type) && (
+        <p className="text-[11px] text-[#8a8578] mt-1 truncate">
+          {[task.task_type, task.site_name, task.eid ? `#${task.eid}` : null]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      )}
+
+      {task.progress_percent > 0 && task.progress_percent < 100 && (
+        <div className="h-1 rounded-full bg-black/[0.06] mt-2 overflow-hidden">
+          <div
+            className="h-full bg-[var(--c-green-light)]"
+            style={{ width: `${task.progress_percent}%` }}
+          />
+        </div>
+      )}
+
       <div className="flex items-center justify-between mt-3">
         <div className="flex items-center gap-2 text-xs text-[#8a8578]">
           {task.due_date && (

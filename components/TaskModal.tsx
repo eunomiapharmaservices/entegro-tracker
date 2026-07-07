@@ -11,6 +11,7 @@ import {
   STATUS_ORDER,
   Status,
   Task,
+  TASK_TYPE_SUGGESTIONS,
 } from "@/lib/types";
 import Avatar from "./Avatar";
 
@@ -54,9 +55,38 @@ export default function TaskModal({
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [savedTaskId, setSavedTaskId] = useState<string | null>(task?.id ?? null);
 
+  // Network/ops tracker fields
+  const [taskType, setTaskType] = useState(task?.task_type ?? "");
+  const [eid, setEid] = useState(task?.eid ?? "");
+  const [siteName, setSiteName] = useState(task?.site_name ?? "");
+  const [raisedBy, setRaisedBy] = useState(task?.raised_by ?? "");
+  const [dateAdded, setDateAdded] = useState(task?.date_added ?? "");
+  const [actualCompletion, setActualCompletion] = useState(task?.actual_completion ?? "");
+  const [expectedHours, setExpectedHours] = useState(
+    task?.expected_duration_hours != null ? String(task.expected_duration_hours) : ""
+  );
+  const [actualHours, setActualHours] = useState(
+    task?.actual_time_spent_hours != null ? String(task.actual_time_spent_hours) : ""
+  );
+  const [progress, setProgress] = useState(task?.progress_percent ?? 0);
+  const [comments, setComments] = useState(task?.comments ?? "");
+
   const subtasks = savedTaskId
     ? tasks.filter((t) => t.parent_task_id === savedTaskId)
     : [];
+
+  function handleProgressChange(value: number) {
+    setProgress(value);
+    if (value >= 100) setStatus("done");
+    else if (value > 0 && status === "todo") setStatus("in_progress");
+    else if (value === 0 && status === "done") setStatus("todo");
+  }
+
+  function handleStatusChange(value: Status) {
+    setStatus(value);
+    if (value === "done") setProgress(100);
+    else if (value === "todo" && progress === 100) setProgress(0);
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -80,6 +110,16 @@ export default function TaskModal({
       due_date: dueDate || null,
       is_milestone: isMilestone,
       milestone_date: isMilestone ? milestoneDate || null : null,
+      task_type: taskType.trim() || null,
+      eid: eid.trim() || null,
+      site_name: siteName.trim() || null,
+      raised_by: raisedBy.trim() || null,
+      date_added: dateAdded || null,
+      actual_completion: actualCompletion || null,
+      expected_duration_hours: expectedHours.trim() ? Number(expectedHours) : null,
+      actual_time_spent_hours: actualHours.trim() ? Number(actualHours) : null,
+      progress_percent: progress,
+      comments: comments.trim() || null,
     };
     try {
       if (savedTaskId) {
@@ -179,7 +219,7 @@ export default function TaskModal({
               <select
                 className={inputCls}
                 value={status}
-                onChange={(e) => setStatus(e.target.value as Status)}
+                onChange={(e) => handleStatusChange(e.target.value as Status)}
               >
                 {STATUS_ORDER.map((s) => (
                   <option key={s} value={s}>
@@ -274,6 +314,128 @@ export default function TaskModal({
                 placeholder="Milestone date"
               />
             )}
+          </div>
+
+          {/* Network / ops tracker fields */}
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-[#8a8578] mb-2 font-display">
+              Site &amp; task details
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Task type</label>
+                <input
+                  className={inputCls}
+                  list="task-type-suggestions"
+                  placeholder="e.g. Full Audit"
+                  value={taskType}
+                  onChange={(e) => setTaskType(e.target.value)}
+                />
+                <datalist id="task-type-suggestions">
+                  {TASK_TYPE_SUGGESTIONS.map((t) => (
+                    <option key={t} value={t} />
+                  ))}
+                </datalist>
+              </div>
+              <div>
+                <label className={labelCls}>Raised by</label>
+                <input
+                  className={inputCls}
+                  placeholder="Who requested this"
+                  value={raisedBy}
+                  onChange={(e) => setRaisedBy(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>EID / circuit ID</label>
+                <input
+                  className={inputCls}
+                  placeholder="e.g. 8232"
+                  value={eid}
+                  onChange={(e) => setEid(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Site name</label>
+                <input
+                  className={inputCls}
+                  placeholder="e.g. Boston"
+                  value={siteName}
+                  onChange={(e) => setSiteName(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Time & progress */}
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-[#8a8578] mb-2 font-display">
+              Time &amp; progress
+            </p>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className={labelCls}>Date added</label>
+                <input
+                  type="date"
+                  className={inputCls}
+                  value={dateAdded}
+                  onChange={(e) => setDateAdded(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Actual completion</label>
+                <input
+                  type="date"
+                  className={inputCls}
+                  value={actualCompletion}
+                  onChange={(e) => setActualCompletion(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Expected duration (h)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  className={inputCls}
+                  placeholder="e.g. 4"
+                  value={expectedHours}
+                  onChange={(e) => setExpectedHours(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Actual time spent (h)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  className={inputCls}
+                  placeholder="e.g. 3.5"
+                  value={actualHours}
+                  onChange={(e) => setActualHours(e.target.value)}
+                />
+              </div>
+            </div>
+            <label className={labelCls}>Progress — {progress}%</label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={progress}
+              onChange={(e) => handleProgressChange(Number(e.target.value))}
+              className="w-full accent-[var(--c-green)]"
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Comments</label>
+            <textarea
+              className={inputCls + " min-h-[50px] resize-none"}
+              placeholder="Running notes / updates (optional)"
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+            />
           </div>
 
           {/* Subtasks */}

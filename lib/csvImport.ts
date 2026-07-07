@@ -44,10 +44,9 @@ Rashmi Papneja,rashmi@entegro.com,#1F5C4A
 Kiran,kiran@entegro.com,#E07A3E
 `;
 
-export const TASKS_TEMPLATE = `title,description,project,assigned_to,status,priority,start_date,due_date,is_milestone,milestone_date,parent_task
-Draft transparency disclosure,France disclosure pack,Regulatory Filings,Rashmi Papneja,todo,high,2026-07-10,2026-07-24,false,,
-Submit to authority,,Regulatory Filings,Rashmi Papneja,todo,high,,2026-08-01,true,2026-08-01,
-Collect supporting documents,First step,Regulatory Filings,Kiran,todo,medium,2026-07-10,2026-07-15,false,,Draft transparency disclosure
+export const TASKS_TEMPLATE = `title,description,project,assigned_to,status,priority,start_date,due_date,is_milestone,milestone_date,parent_task,task_type,eid,site_name,raised_by,expected_duration_hours,actual_time_spent_hours,date_added,actual_completion,progress_percent,comments
+Complete MRP and update NAT,,Regulatory Filings,Srihari,in_progress,high,2026-07-06,2026-07-07,false,,,MRP Planning,6986,Charlotte,Gokul,4,,2026-07-07,,80,7-June: completed MRP need to review and update nat
+Complete Audit and add circuits to ISV,,Regulatory Filings,Radhika,done,high,2026-07-01,2026-07-07,false,,,Full Audit,8232,Boston,Gokul,,,2026-07-07,2026-07-07,100,
 `;
 
 export const STATUS_VALUES = ["todo", "in_progress", "review", "done"];
@@ -76,6 +75,19 @@ export function normalizeDate(v: string | undefined): string | null {
   const d = new Date(s);
   if (isNaN(d.getTime())) return null;
   return d.toISOString().slice(0, 10);
+}
+
+export function normalizeNumber(v: string | undefined): number | null {
+  const s = (v || "").trim();
+  if (!s) return null;
+  const n = Number(s);
+  return isNaN(n) ? null : n;
+}
+
+export function normalizeProgress(v: string | undefined): number {
+  const n = normalizeNumber(v);
+  if (n === null) return 0;
+  return Math.max(0, Math.min(100, Math.round(n)));
 }
 
 const PALETTE = ["#1F5C4A", "#E07A3E", "#3B6E8F", "#8A5FB0", "#C23B3B", "#7A8B84"];

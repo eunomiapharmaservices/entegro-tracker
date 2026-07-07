@@ -36,6 +36,17 @@ create table if not exists tasks (
   is_milestone boolean default false,
   milestone_date date,
   position integer default 0,
+  -- Network/ops tracker fields (from IP Daily Task Tracker Log)
+  task_type text,               -- e.g. MRP Planning, Full Audit, Config Removal, GCR_MOP...
+  eid text,                     -- circuit / equipment ID
+  site_name text,               -- site or market name
+  raised_by text,               -- who requested the task (may not be a tracked resource)
+  date_added date,              -- date the task was logged (distinct from created_at)
+  actual_completion date,       -- actual completion date (vs planned due_date)
+  expected_duration_hours numeric,
+  actual_time_spent_hours numeric,
+  progress_percent integer default 0 check (progress_percent between 0 and 100),
+  comments text,                -- running notes, separate from the description
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
