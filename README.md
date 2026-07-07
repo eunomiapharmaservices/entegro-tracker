@@ -136,23 +136,24 @@ data. New installs already have them via `schema.sql`.
   this — it's just a convenience, not access control; anyone can change it
   (including on someone else's device), and each comment box still lets you
   pick a different name for that one entry if needed.
-- **Status** now includes **On hold**, alongside To do / In progress / In
-  review / Done.
+- **Status** now includes **On hold**, alongside New / In progress / In
+  review / Completed (renamed from "To do" and "Done").
 - **Task type** now includes **Training** in the suggestions list (still free
   text, so anything else works too).
 - **Completed tasks drop off the board after 14 days.** This only ever
-  applies to tasks whose status is Done — a task that's simply overdue (still
-  To do, In progress, On hold, or In review) is never hidden by this rule, no
-  matter how old it is. The moment a task's status becomes Done, its
+  applies to tasks whose status is Completed — a task that's simply overdue
+  (still New, In progress, On hold, or In review) is never hidden by this
+  rule, no
+  matter how old it is. The moment a task's status becomes Completed, its
   completion date is stamped automatically (unless you'd already set one
-  manually). The board only shows Done tasks completed within the last 14
+  manually). The board only shows Completed tasks finished within the last 14
   days — older ones are hidden from the board but still fully there in List,
   Timeline, Calendar, and People views. A small note at the bottom of the
   board tells you how many are hidden this way.
 - **Actual completion** in the task editor is greyed out and only editable
-  once status is Done — it fills in automatically the moment you mark a task
-  Done (via the status dropdown, the progress slider, or the subtask
-  checkboxes), so you don't need to set it by hand.
+  once status is Completed — it fills in automatically the moment you mark a
+  task Completed (via the status dropdown, the progress slider, or the
+  subtask checkboxes), so you don't need to set it by hand.
 - **Task type, EID, and Expected duration are now required** when creating or
   editing a task through the editor — the Save button is disabled and a red
   note lists whatever's still missing. This only applies to the main task
@@ -166,6 +167,20 @@ data. New installs already have them via `schema.sql`.
   button right now; dragging a card between board columns or ticking a
   subtask done doesn't log a status-change comment (those still update status
   itself, just without the log entry).
+
+## Display fixes
+
+- **Timeline now shows day numbers**, not just the month, in a row under the
+  month header — weekends are lightly shaded and today is highlighted.
+- **Projects in the sidebar are sorted** (numeric-aware, so EID-prefixed
+  names like "6986 - Charlotte" sort in numeric order rather than
+  alphabetical-string order, where "10000" would otherwise sort before
+  "6986").
+- **Fixed a date bug**: due dates, milestones, and the 14-day completed-task
+  filter could show a task one day later than its actual date, depending on
+  your timezone (anything ahead of UTC, which includes the UK during BST).
+  This is fixed at the source, so it self-corrects across Calendar, Board,
+  and Timeline without needing to touch your data.
 
 If you already had the tracker deployed before this update, run
 `supabase/migration_003_status_and_comments.sql` and

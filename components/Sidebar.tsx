@@ -50,8 +50,10 @@ export default function Sidebar({
   setCurrentUser: (name: string) => void;
 }) {
   const [showArchived, setShowArchived] = useState(false);
-  const activeProjects = projects.filter((p) => !p.archived);
-  const archivedProjects = projects.filter((p) => p.archived);
+  const sortByName = (a: Project, b: Project) =>
+    a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+  const activeProjects = projects.filter((p) => !p.archived).sort(sortByName);
+  const archivedProjects = projects.filter((p) => p.archived).sort(sortByName);
 
   const navItems: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
     { key: "board", label: "Board", icon: <LayoutGrid size={17} /> },

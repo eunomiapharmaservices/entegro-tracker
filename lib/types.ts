@@ -92,11 +92,11 @@ export interface TaskWithSubtasks extends Task {
 }
 
 export const STATUS_LABELS: Record<Status, string> = {
-  todo: "To do",
+  todo: "New",
   in_progress: "In progress",
   on_hold: "On hold",
   review: "In review",
-  done: "Done",
+  done: "Completed",
 };
 
 export const STATUS_ORDER: Status[] = ["todo", "in_progress", "on_hold", "review", "done"];

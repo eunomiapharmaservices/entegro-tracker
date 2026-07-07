@@ -52,6 +52,12 @@ export default function TimelineView({
     else monthSegments.push({ label, span: 1 });
   }
 
+  // Per-day cells for the date sub-header row
+  const dayCells = Array.from({ length: days }, (_, i) => {
+    const d = addDays(rangeStart, i);
+    return { date: d, isWeekend: d.getDay() === 0 || d.getDay() === 6, isToday: isoDate(d) === isoDate(new Date()) };
+  });
+
   const resourceById = (id: string | null) => resources.find((r) => r.id === id);
 
   function barStyle(start: string | null, end: string | null) {
@@ -67,19 +73,39 @@ export default function TimelineView({
     <div className="overflow-auto h-full rounded-xl border border-[var(--c-line)] bg-white">
       <div style={{ width: 220 + days * DAY_WIDTH, minWidth: "100%" }}>
         {/* Header */}
-        <div className="flex sticky top-0 z-10 bg-white border-b border-[var(--c-line)]">
-          <div className="w-[220px] shrink-0 border-r border-[var(--c-line)] px-3 py-2 text-xs font-medium text-[#8a8578] font-display">
-            TASK
-          </div>
-          <div className="relative">
+        <div className="sticky top-0 z-10 bg-white border-b border-[var(--c-line)]">
+          <div className="flex">
+            <div className="w-[220px] shrink-0 border-r border-[var(--c-line)] px-3 py-2 text-xs font-medium text-[#8a8578] font-display">
+              TASK
+            </div>
             <div className="flex">
               {monthSegments.map((seg, i) => (
                 <div
                   key={i}
                   style={{ width: seg.span * DAY_WIDTH }}
-                  className="text-xs font-medium text-[#8a8578] px-2 py-2 border-r border-[var(--c-line)] font-display"
+                  className="text-xs font-medium text-[#8a8578] px-2 py-1.5 border-r border-[var(--c-line)] font-display"
                 >
                   {seg.label}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex border-t border-[var(--c-line)]">
+            <div className="w-[220px] shrink-0 border-r border-[var(--c-line)]" />
+            <div className="flex">
+              {dayCells.map((c, i) => (
+                <div
+                  key={i}
+                  style={{ width: DAY_WIDTH }}
+                  className={`text-[10px] text-center font-mono py-1 border-r border-[var(--c-line)]/50 ${
+                    c.isToday
+                      ? "bg-[var(--c-orange)]/10 text-[var(--c-orange)] font-semibold"
+                      : c.isWeekend
+                      ? "bg-black/[0.02] text-[#c9c2b2]"
+                      : "text-[#a39d8c]"
+                  }`}
+                >
+                  {c.date.getDate()}
                 </div>
               ))}
             </div>
@@ -88,6 +114,17 @@ export default function TimelineView({
 
         {/* Rows */}
         <div className="relative">
+          {/* Weekend column shading */}
+          {dayCells.map(
+            (c, i) =>
+              c.isWeekend && (
+                <div
+                  key={`wk-${i}`}
+                  className="absolute top-0 bottom-0 bg-black/[0.015] pointer-events-none"
+                  style={{ left: 220 + i * DAY_WIDTH, width: DAY_WIDTH }}
+                />
+              )
+          )}
           {/* Today marker */}
           {todayOffset >= 0 && todayOffset <= days && (
             <div
