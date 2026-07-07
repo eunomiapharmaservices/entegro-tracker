@@ -1,7 +1,8 @@
 "use client";
 
-import { Plus, Trash2, Download } from "lucide-react";
+import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRight } from "lucide-react";
 import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users, List } from "lucide-react";
+import { useState } from "react";
 import { Project, Resource } from "@/lib/types";
 import Avatar from "./Avatar";
 
@@ -19,7 +20,9 @@ export default function Sidebar({
   onNewTask,
   onNewProject,
   onNewResource,
-  onDeleteProject,
+  onArchiveProject,
+  onUnarchiveProject,
+  onDeleteProjectPermanently,
   onDeleteResource,
   onExportProjects,
   onExportResources,
@@ -37,13 +40,19 @@ export default function Sidebar({
   onNewTask: () => void;
   onNewProject: () => void;
   onNewResource: () => void;
-  onDeleteProject: (id: string, name: string) => void;
+  onArchiveProject: (id: string, name: string) => void;
+  onUnarchiveProject: (id: string, name: string) => void;
+  onDeleteProjectPermanently: (id: string, name: string) => void;
   onDeleteResource: (id: string, name: string) => void;
   onExportProjects: () => void;
   onExportResources: () => void;
   currentUser: string;
   setCurrentUser: (name: string) => void;
 }) {
+  const [showArchived, setShowArchived] = useState(false);
+  const activeProjects = projects.filter((p) => !p.archived);
+  const archivedProjects = projects.filter((p) => p.archived);
+
   const navItems: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
     { key: "board", label: "Board", icon: <LayoutGrid size={17} /> },
     { key: "timeline", label: "Timeline", icon: <BarChart3 size={17} /> },
@@ -120,7 +129,7 @@ export default function Sidebar({
           >
             All projects
           </button>
-          {projects.map((p) => (
+          {activeProjects.map((p) => (
             <div
               key={p.id}
               className={`group flex items-center gap-1 rounded-md ${
@@ -140,15 +149,64 @@ export default function Sidebar({
                 <span className="truncate">{p.name}</span>
               </button>
               <button
-                onClick={() => onDeleteProject(p.id, p.name)}
-                title={`Delete ${p.name}`}
-                className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[#C23B3B] transition-opacity"
+                onClick={() => onArchiveProject(p.id, p.name)}
+                title={`Archive ${p.name}`}
+                className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[var(--c-orange)] transition-opacity"
               >
-                <Trash2 size={13} />
+                <Archive size={13} />
               </button>
             </div>
           ))}
         </div>
+
+        {archivedProjects.length > 0 && (
+          <div className="mt-2">
+            <button
+              onClick={() => setShowArchived((v) => !v)}
+              className="flex items-center gap-1 text-xs text-[#a39d8c] hover:text-[#4d574f] px-2 py-1"
+            >
+              {showArchived ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              Archived ({archivedProjects.length})
+            </button>
+            {showArchived && (
+              <div className="flex flex-col gap-0.5 mt-1">
+                {archivedProjects.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`group flex items-center gap-1 rounded-md ${
+                      activeProject === p.id ? "bg-black/5" : "hover:bg-black/5"
+                    }`}
+                  >
+                    <button
+                      onClick={() => setActiveProject(p.id)}
+                      className="flex-1 min-w-0 text-left text-sm px-2 py-1.5 flex items-center gap-2 text-[#a39d8c]"
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0 opacity-50"
+                        style={{ background: p.color }}
+                      />
+                      <span className="truncate">{p.name}</span>
+                    </button>
+                    <button
+                      onClick={() => onUnarchiveProject(p.id, p.name)}
+                      title={`Restore ${p.name}`}
+                      className="shrink-0 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[var(--c-green)] transition-opacity"
+                    >
+                      <ArchiveRestore size={13} />
+                    </button>
+                    <button
+                      onClick={() => onDeleteProjectPermanently(p.id, p.name)}
+                      title={`Delete ${p.name} permanently`}
+                      className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[#C23B3B] transition-opacity"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="px-5 mt-7">

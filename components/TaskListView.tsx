@@ -2,27 +2,31 @@
 
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Download, Flag, Trash2, X } from "lucide-react";
-import { Resource, STATUS_LABELS, Task } from "@/lib/types";
+import { Resource, Project, STATUS_LABELS, Task } from "@/lib/types";
 import { fmt } from "@/lib/dateUtils";
 import { downloadCSV } from "@/lib/csvImport";
 
 type ColKey =
   | "title"
   | "assigned_to"
+  | "project"
   | "eid"
   | "site_name"
   | "task_type"
   | "status"
+  | "progress"
   | "date_added"
   | "actual_completion";
 
 const COLUMNS: { key: ColKey; label: string }[] = [
   { key: "title", label: "Task" },
   { key: "assigned_to", label: "Assigned to" },
+  { key: "project", label: "Project" },
   { key: "eid", label: "EID" },
   { key: "site_name", label: "Site name" },
   { key: "task_type", label: "Task type" },
   { key: "status", label: "Status" },
+  { key: "progress", label: "Progress" },
   { key: "date_added", label: "Date added" },
   { key: "actual_completion", label: "Date completed" },
 ];
@@ -30,11 +34,13 @@ const COLUMNS: { key: ColKey; label: string }[] = [
 export default function TaskListView({
   tasks,
   resources,
+  projects,
   onOpenTask,
   onDeleteTask,
 }: {
   tasks: Task[];
   resources: Resource[];
+  projects: Project[];
   onOpenTask: (task: Task) => void;
   onDeleteTask: (id: string) => Promise<void>;
 }) {
@@ -43,10 +49,12 @@ export default function TaskListView({
   const [filters, setFilters] = useState<Record<ColKey, string>>({
     title: "",
     assigned_to: "",
+    project: "",
     eid: "",
     site_name: "",
     task_type: "",
     status: "",
+    progress: "",
     date_added: "",
     actual_completion: "",
   });
@@ -56,10 +64,16 @@ export default function TaskListView({
     return resources.find((r) => r.id === id)?.name || "";
   }
 
+  function projectName(id: string | null) {
+    return projects.find((p) => p.id === id)?.name || "";
+  }
+
   function cellText(t: Task, key: ColKey): string {
     switch (key) {
       case "assigned_to":
         return resourceName(t.assigned_to);
+      case "project":
+        return projectName(t.project_id);
       case "eid":
         return t.eid || "";
       case "site_name":
@@ -68,6 +82,8 @@ export default function TaskListView({
         return t.task_type || "";
       case "status":
         return STATUS_LABELS[t.status];
+      case "progress":
+        return `${t.progress_percent}%`;
       case "date_added":
         return t.date_added ? fmt(t.date_added) : "";
       case "actual_completion":
@@ -80,6 +96,7 @@ export default function TaskListView({
   function sortValue(t: Task, key: ColKey): string {
     if (key === "date_added") return t.date_added || t.created_at.slice(0, 10) || "";
     if (key === "actual_completion") return t.actual_completion || "";
+    if (key === "progress") return String(t.progress_percent).padStart(3, "0");
     return cellText(t, key).toLowerCase();
   }
 
@@ -264,6 +281,12 @@ export default function TaskListView({
                   {resourceName(t.assigned_to) || "—"}
                 </td>
                 <td
+                  className="px-3 py-2.5 whitespace-nowrap text-[#4d574f]"
+                  onClick={() => onOpenTask(t)}
+                >
+                  {projectName(t.project_id) || "—"}
+                </td>
+                <td
                   className="px-3 py-2.5 whitespace-nowrap text-[#4d574f] font-mono text-xs"
                   onClick={() => onOpenTask(t)}
                 >
@@ -285,6 +308,12 @@ export default function TaskListView({
                   <span className="text-xs px-2 py-0.5 rounded-full bg-black/5 text-[#4d574f]">
                     {STATUS_LABELS[t.status]}
                   </span>
+                </td>
+                <td
+                  className="px-3 py-2.5 whitespace-nowrap text-[#8a8578] text-xs font-mono"
+                  onClick={() => onOpenTask(t)}
+                >
+                  {t.progress_percent > 0 ? `${t.progress_percent}%` : "—"}
                 </td>
                 <td
                   className="px-3 py-2.5 whitespace-nowrap text-[#8a8578] text-xs font-mono"

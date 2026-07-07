@@ -17,6 +17,7 @@ import {
 } from "@/lib/types";
 import Avatar from "./Avatar";
 import { colorForIndex } from "@/lib/csvImport";
+import { isoDate } from "@/lib/dateUtils";
 
 interface Props {
   task: Task | null; // null = creating a new top-level task
@@ -120,15 +121,24 @@ export default function TaskModal({
 
   function handleProgressChange(value: number) {
     setProgress(value);
-    if (value >= 100) setStatus("done");
-    else if (value > 0 && status === "todo") setStatus("in_progress");
-    else if (value === 0 && status === "done") setStatus("todo");
+    if (value >= 100) {
+      setStatus("done");
+      setActualCompletion((prev) => prev || isoDate(new Date()));
+    } else if (value > 0 && status === "todo") {
+      setStatus("in_progress");
+    } else if (value === 0 && status === "done") {
+      setStatus("todo");
+    }
   }
 
   function handleStatusChange(value: Status) {
     setStatus(value);
-    if (value === "done") setProgress(100);
-    else if (value === "todo" && progress === 100) setProgress(0);
+    if (value === "done") {
+      setProgress(100);
+      setActualCompletion((prev) => prev || isoDate(new Date()));
+    } else if (value === "todo" && progress === 100) {
+      setProgress(0);
+    }
   }
 
   useEffect(() => {
@@ -330,11 +340,14 @@ export default function TaskModal({
                   onChange={(e) => setProjectId(e.target.value || null)}
                 >
                   <option value="">No project</option>
-                  {knownProjects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
+                  {knownProjects
+                    .filter((p) => !p.archived || p.id === projectId)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                        {p.archived ? " (archived)" : ""}
+                      </option>
+                    ))}
                 </select>
               )}
             </div>
@@ -466,10 +479,19 @@ export default function TaskModal({
                 <label className={labelCls}>Actual completion</label>
                 <input
                   type="date"
-                  className={inputCls}
+                  disabled={status !== "done"}
+                  className={
+                    inputCls +
+                    (status !== "done" ? " bg-black/[0.04] text-[#a39d8c] cursor-not-allowed" : "")
+                  }
                   value={actualCompletion}
                   onChange={(e) => setActualCompletion(e.target.value)}
                 />
+                {status !== "done" && (
+                  <p className="text-[10px] text-[#a39d8c] mt-1">
+                    Set automatically once status is Done
+                  </p>
+                )}
               </div>
               <div>
                 <label className={labelCls}>Expected duration (h)</label>

@@ -14,6 +14,7 @@ import TaskModal from "@/components/TaskModal";
 import ProjectModal from "@/components/ProjectModal";
 import ResourceModal from "@/components/ResourceModal";
 import ImportModal from "@/components/ImportModal";
+import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import { useTaskData } from "@/lib/useTaskData";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Status, Task } from "@/lib/types";
@@ -31,6 +32,7 @@ export default function Home() {
     updateTask,
     deleteTask,
     createProject,
+    updateProject,
     createResource,
     deleteProject,
     deleteResource,
@@ -46,6 +48,14 @@ export default function Home() {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [pendingDeleteProject, setPendingDeleteProject] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [pendingDeleteResource, setPendingDeleteResource] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
@@ -84,26 +94,34 @@ export default function Home() {
     await updateTask(taskId, { status });
   }
 
-  function handleDeleteProject(id: string, name: string) {
-    if (
-      !confirm(
-        `Delete the project "${name}"? Tasks in it won't be deleted — they'll just become unassigned from any project.`
-      )
-    )
-      return;
-    if (activeProject === id) setActiveProject(null);
-    deleteProject(id);
+  function handleArchiveProject(id: string, _name: string) {
+    updateProject(id, { archived: true });
+  }
+
+  function handleUnarchiveProject(id: string, _name: string) {
+    updateProject(id, { archived: false });
+  }
+
+  function handleDeleteProjectPermanently(id: string, name: string) {
+    setPendingDeleteProject({ id, name });
+  }
+
+  function confirmDeleteProject() {
+    if (!pendingDeleteProject) return;
+    if (activeProject === pendingDeleteProject.id) setActiveProject(null);
+    deleteProject(pendingDeleteProject.id);
+    setPendingDeleteProject(null);
   }
 
   function handleDeleteResource(id: string, name: string) {
-    if (
-      !confirm(
-        `Remove "${name}" from the team? Their tasks won't be deleted — they'll just become unassigned.`
-      )
-    )
-      return;
-    if (activeResource === id) setActiveResource(null);
-    deleteResource(id);
+    setPendingDeleteResource({ id, name });
+  }
+
+  function confirmDeleteResource() {
+    if (!pendingDeleteResource) return;
+    if (activeResource === pendingDeleteResource.id) setActiveResource(null);
+    deleteResource(pendingDeleteResource.id);
+    setPendingDeleteResource(null);
   }
 
   function handleExportProjects() {
@@ -206,7 +224,9 @@ export default function Home() {
         onNewTask={() => setModalTask("new")}
         onNewProject={() => setShowProjectModal(true)}
         onNewResource={() => setShowResourceModal(true)}
-        onDeleteProject={handleDeleteProject}
+        onArchiveProject={handleArchiveProject}
+        onUnarchiveProject={handleUnarchiveProject}
+        onDeleteProjectPermanently={handleDeleteProjectPermanently}
         onDeleteResource={handleDeleteResource}
         onExportProjects={handleExportProjects}
         onExportResources={handleExportResources}
@@ -288,6 +308,7 @@ export default function Home() {
               <TaskListView
                 tasks={filteredTasks}
                 resources={resources}
+                projects={projects}
                 onOpenTask={(t) => setModalTask(t)}
                 onDeleteTask={deleteTask}
               />
@@ -333,6 +354,26 @@ export default function Home() {
           createResource={createResource}
           createTask={createTask}
           updateTask={updateTask}
+        />
+      )}
+
+      {pendingDeleteProject && (
+        <ConfirmDeleteModal
+          title="Delete project permanently"
+          message={`This deletes "${pendingDeleteProject.name}" for good. Tasks in it won't be deleted — they'll just become unassigned from any project.`}
+          confirmText={pendingDeleteProject.name}
+          onConfirm={confirmDeleteProject}
+          onCancel={() => setPendingDeleteProject(null)}
+        />
+      )}
+
+      {pendingDeleteResource && (
+        <ConfirmDeleteModal
+          title="Remove person"
+          message={`This removes "${pendingDeleteResource.name}" from the team for good. Their tasks won't be deleted — they'll just become unassigned.`}
+          confirmText={pendingDeleteResource.name}
+          onConfirm={confirmDeleteResource}
+          onCancel={() => setPendingDeleteResource(null)}
         />
       )}
     </div>

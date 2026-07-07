@@ -140,12 +140,19 @@ data. New installs already have them via `schema.sql`.
   review / Done.
 - **Task type** now includes **Training** in the suggestions list (still free
   text, so anything else works too).
-- **Completed tasks drop off the board after 14 days.** The moment a task's
-  status becomes Done, its completion date is stamped automatically (unless
-  you'd already set one manually). The board only shows Done tasks completed
-  within the last 14 days — older ones are hidden from the board but still
-  fully there in List, Timeline, Calendar, and People views. A small note at
-  the bottom of the board tells you how many are hidden this way.
+- **Completed tasks drop off the board after 14 days.** This only ever
+  applies to tasks whose status is Done — a task that's simply overdue (still
+  To do, In progress, On hold, or In review) is never hidden by this rule, no
+  matter how old it is. The moment a task's status becomes Done, its
+  completion date is stamped automatically (unless you'd already set one
+  manually). The board only shows Done tasks completed within the last 14
+  days — older ones are hidden from the board but still fully there in List,
+  Timeline, Calendar, and People views. A small note at the bottom of the
+  board tells you how many are hidden this way.
+- **Actual completion** in the task editor is greyed out and only editable
+  once status is Done — it fills in automatically the moment you mark a task
+  Done (via the status dropdown, the progress slider, or the subtask
+  checkboxes), so you don't need to set it by hand.
 
 If you already had the tracker deployed before this update, run
 `supabase/migration_003_status_and_comments.sql` and
@@ -156,8 +163,8 @@ and add the auto-completion-date trigger.
 ## List view
 
 A **List** item in the sidebar shows every task in a filterable, sortable
-table — Task, Assigned to, EID, Site name, Task type, Status, Date added,
-Date completed.
+table — Task, Assigned to, Project, EID, Site name, Task type, Status,
+Progress, Date added, Date completed.
 
 - Click any column header to sort by it (click again to reverse).
 - Each column has its own filter box right under the header — type in any of
@@ -201,14 +208,27 @@ bulk — useful for migrating an existing task list or spreadsheet in one go.
   need attention) plus a warning for any row that couldn't be matched (e.g. a
   misspelled `parent_task`).
 
-## Adding or removing people and projects
+## Adding, archiving, and removing people and projects
 
-Both are managed right from the sidebar now:
+- **People**: click the **+** next to "People" to add someone (name + a
+  colour for their avatar). Hover a person's row and click the trash icon to
+  remove them — this now requires typing their exact name to confirm (a
+  deliberate speed bump, not real access control — there's still no login, so
+  this is about preventing accidental clicks, not restricting who can do it).
+  Their tasks become unassigned rather than being deleted.
+- **Projects — archive instead of delete**: hover a project's row and click
+  the archive icon to move it out of the active list — for when you're done
+  working an EID/site and don't want it cluttering the sidebar forever, without
+  losing the history. Archived projects collapse into an "Archived (N)" section
+  further down; click to expand it, and you can still filter tasks by an
+  archived project the same way as an active one.
+  - **Restore**: click the restore icon on an archived project to bring it back
+    to the active list.
+  - **Delete permanently**: only available on archived projects, and requires
+    typing the exact project name to confirm. Tasks in a deleted project
+    become unassigned rather than being deleted themselves.
+  - The manual "Project" dropdown when editing a task hides archived projects
+    by default (so new tasks don't get pointed at closed-out sites), except
+    the one a task is already assigned to, which still shows so you can see
+    or change it.
 
-- **People**: click the **+** next to "People" to add someone (name + a colour
-  for their avatar). Hover over a person's row and click the trash icon to
-  remove them — you'll get a confirmation first, and any tasks assigned to
-  them become unassigned rather than being deleted.
-- **Projects**: click the **+** next to "Projects" to add one. Hover over a
-  project's row and click the trash icon to delete it — tasks in that project
-  become unassigned from any project rather than being deleted.

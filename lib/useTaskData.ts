@@ -101,6 +101,18 @@ export function useTaskData() {
     return data as Project;
   }, []);
 
+  const updateProject = useCallback(async (id: string, input: Partial<Project>) => {
+    const { data, error } = await supabase
+      .from("projects")
+      .update(input)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    setProjects((prev) => prev.map((p) => (p.id === id ? (data as Project) : p)));
+    return data as Project;
+  }, []);
+
   const deleteResource = useCallback(async (id: string) => {
     const { error } = await supabase.from("resources").delete().eq("id", id);
     if (error) throw error;
@@ -156,6 +168,7 @@ export function useTaskData() {
     deleteTask,
     createResource,
     createProject,
+    updateProject,
     deleteResource,
     deleteProject,
     addComment,
