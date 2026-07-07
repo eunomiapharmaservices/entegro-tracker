@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { LayoutGrid, Calendar as CalendarIcon, BarChart3 } from "lucide-react";
 import { Project, Resource } from "@/lib/types";
 import Avatar from "./Avatar";
@@ -18,6 +18,9 @@ export default function Sidebar({
   setActiveResource,
   onNewTask,
   onNewProject,
+  onNewResource,
+  onDeleteProject,
+  onDeleteResource,
 }: {
   view: ViewMode;
   setView: (v: ViewMode) => void;
@@ -29,6 +32,9 @@ export default function Sidebar({
   setActiveResource: (id: string | null) => void;
   onNewTask: () => void;
   onNewProject: () => void;
+  onNewResource: () => void;
+  onDeleteProject: (id: string, name: string) => void;
+  onDeleteResource: (id: string, name: string) => void;
 }) {
   const navItems: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
     { key: "board", label: "Board", icon: <LayoutGrid size={17} /> },
@@ -96,28 +102,50 @@ export default function Sidebar({
             All projects
           </button>
           {projects.map((p) => (
-            <button
+            <div
               key={p.id}
-              onClick={() => setActiveProject(p.id)}
-              className={`text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
-                activeProject === p.id ? "bg-black/5 font-medium" : "hover:bg-black/5 text-[#4d574f]"
+              className={`group flex items-center gap-1 rounded-md ${
+                activeProject === p.id ? "bg-black/5" : "hover:bg-black/5"
               }`}
             >
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ background: p.color }}
-              />
-              <span className="truncate">{p.name}</span>
-            </button>
+              <button
+                onClick={() => setActiveProject(p.id)}
+                className={`flex-1 min-w-0 text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
+                  activeProject === p.id ? "font-medium" : "text-[#4d574f]"
+                }`}
+              >
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ background: p.color }}
+                />
+                <span className="truncate">{p.name}</span>
+              </button>
+              <button
+                onClick={() => onDeleteProject(p.id, p.name)}
+                title={`Delete ${p.name}`}
+                className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[#C23B3B] transition-opacity"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
           ))}
         </div>
       </div>
 
       <div className="px-5 mt-7">
-        <span className="text-xs font-medium uppercase tracking-wide text-[#8a8578]">
-          People
-        </span>
-        <div className="flex flex-col gap-0.5 mt-2">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-[#8a8578]">
+            People
+          </span>
+          <button
+            onClick={onNewResource}
+            title="Add person"
+            className="text-[#8a8578] hover:text-[var(--c-ink)]"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+        <div className="flex flex-col gap-0.5">
           <button
             onClick={() => setActiveResource(null)}
             className={`text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
@@ -127,16 +155,29 @@ export default function Sidebar({
             Everyone
           </button>
           {resources.map((r) => (
-            <button
+            <div
               key={r.id}
-              onClick={() => setActiveResource(r.id)}
-              className={`text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
-                activeResource === r.id ? "bg-black/5 font-medium" : "hover:bg-black/5 text-[#4d574f]"
+              className={`group flex items-center gap-1 rounded-md ${
+                activeResource === r.id ? "bg-black/5" : "hover:bg-black/5"
               }`}
             >
-              <Avatar resource={r} size={20} />
-              <span className="truncate">{r.name}</span>
-            </button>
+              <button
+                onClick={() => setActiveResource(r.id)}
+                className={`flex-1 min-w-0 text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
+                  activeResource === r.id ? "font-medium" : "text-[#4d574f]"
+                }`}
+              >
+                <Avatar resource={r} size={20} />
+                <span className="truncate">{r.name}</span>
+              </button>
+              <button
+                onClick={() => onDeleteResource(r.id, r.name)}
+                title={`Remove ${r.name}`}
+                className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[#C23B3B] transition-opacity"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
           ))}
         </div>
       </div>

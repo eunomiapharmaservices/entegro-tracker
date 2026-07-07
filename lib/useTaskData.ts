@@ -93,6 +93,28 @@ export function useTaskData() {
     return data as Project;
   }, []);
 
+  const deleteResource = useCallback(async (id: string) => {
+    const { error } = await supabase.from("resources").delete().eq("id", id);
+    if (error) throw error;
+    setResources((prev) => prev.filter((r) => r.id !== id));
+    // Tasks assigned to this resource are unassigned server-side (FK is
+    // ON DELETE SET NULL), so mirror that in local state too.
+    setTasks((prev) =>
+      prev.map((t) => (t.assigned_to === id ? { ...t, assigned_to: null } : t))
+    );
+  }, []);
+
+  const deleteProject = useCallback(async (id: string) => {
+    const { error } = await supabase.from("projects").delete().eq("id", id);
+    if (error) throw error;
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    // Tasks in this project are detached rather than deleted (FK is
+    // ON DELETE SET NULL), so mirror that in local state too.
+    setTasks((prev) =>
+      prev.map((t) => (t.project_id === id ? { ...t, project_id: null } : t))
+    );
+  }, []);
+
   return {
     tasks,
     resources,
@@ -105,5 +127,7 @@ export function useTaskData() {
     deleteTask,
     createResource,
     createProject,
+    deleteResource,
+    deleteProject,
   };
 }

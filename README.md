@@ -90,9 +90,14 @@ lib/
 supabase/schema.sql        Database schema — run this first
 ```
 
-## Adding people or projects
+## Adding or removing people and projects
 
-- **People (resources)**: currently added via SQL (`insert into resources...`)
-  or you can wire up a small settings page later. For now, add rows directly
-  in Supabase's **Table Editor → resources**.
-- **Projects**: use the **+** next to "Projects" in the sidebar.
+Both are managed right from the sidebar now:
+
+- **People**: click the **+** next to "People" to add someone (name + a colour
+  for their avatar). Hover over a person's row and click the trash icon to
+  remove them — you'll get a confirmation first, and any tasks assigned to
+  them become unassigned rather than being deleted.
+- **Projects**: click the **+** next to "Projects" to add one. Hover over a
+  project's row and click the trash icon to delete it — tasks in that project
+  become unassigned from any project rather than being deleted.

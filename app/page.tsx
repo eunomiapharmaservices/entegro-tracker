@@ -10,6 +10,7 @@ import TimelineView from "@/components/TimelineView";
 import CalendarView from "@/components/CalendarView";
 import TaskModal from "@/components/TaskModal";
 import ProjectModal from "@/components/ProjectModal";
+import ResourceModal from "@/components/ResourceModal";
 import { useTaskData } from "@/lib/useTaskData";
 import { Status, Task } from "@/lib/types";
 
@@ -24,6 +25,9 @@ export default function Home() {
     updateTask,
     deleteTask,
     createProject,
+    createResource,
+    deleteProject,
+    deleteResource,
   } = useTaskData();
 
   const [view, setView] = useState<ViewMode>("board");
@@ -32,6 +36,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [modalTask, setModalTask] = useState<Task | null | "new">(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showResourceModal, setShowResourceModal] = useState(false);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
@@ -68,6 +73,28 @@ export default function Home() {
     await updateTask(taskId, { status });
   }
 
+  function handleDeleteProject(id: string, name: string) {
+    if (
+      !confirm(
+        `Delete the project "${name}"? Tasks in it won't be deleted — they'll just become unassigned from any project.`
+      )
+    )
+      return;
+    if (activeProject === id) setActiveProject(null);
+    deleteProject(id);
+  }
+
+  function handleDeleteResource(id: string, name: string) {
+    if (
+      !confirm(
+        `Remove "${name}" from the team? Their tasks won't be deleted — they'll just become unassigned.`
+      )
+    )
+      return;
+    if (activeResource === id) setActiveResource(null);
+    deleteResource(id);
+  }
+
   if (error) {
     return (
       <div className="h-screen flex items-center justify-center flex-col gap-2 px-6 text-center">
@@ -94,6 +121,9 @@ export default function Home() {
         setActiveResource={setActiveResource}
         onNewTask={() => setModalTask("new")}
         onNewProject={() => setShowProjectModal(true)}
+        onNewResource={() => setShowResourceModal(true)}
+        onDeleteProject={handleDeleteProject}
+        onDeleteResource={handleDeleteResource}
       />
 
       <main className="flex-1 p-7 flex flex-col min-w-0">
@@ -158,6 +188,10 @@ export default function Home() {
 
       {showProjectModal && (
         <ProjectModal onClose={() => setShowProjectModal(false)} onCreate={createProject} />
+      )}
+
+      {showResourceModal && (
+        <ResourceModal onClose={() => setShowResourceModal(false)} onCreate={createResource} />
       )}
     </div>
   );
