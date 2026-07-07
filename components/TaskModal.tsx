@@ -12,8 +12,10 @@ import {
   Status,
   Task,
   TASK_TYPE_SUGGESTIONS,
+  projectNameForSite,
 } from "@/lib/types";
 import Avatar from "./Avatar";
+import { colorForIndex } from "@/lib/csvImport";
 
 interface Props {
   task: Task | null; // null = creating a new top-level task
@@ -25,6 +27,7 @@ interface Props {
   onCreate: (input: Partial<Task>) => Promise<Task>;
   onUpdate: (id: string, input: Partial<Task>) => Promise<Task>;
   onDelete: (id: string) => Promise<void>;
+  createProject: (name: string, color: string) => Promise<Project>;
 }
 
 export default function TaskModal({
@@ -37,6 +40,7 @@ export default function TaskModal({
   onCreate,
   onUpdate,
   onDelete,
+  createProject,
 }: Props) {
   const isNew = !task;
   const [title, setTitle] = useState(task?.title ?? "");
@@ -71,6 +75,34 @@ export default function TaskModal({
   const [progress, setProgress] = useState(task?.progress_percent ?? 0);
   const [comments, setComments] = useState(task?.comments ?? "");
 
+  // Tracks projects created during this modal session (e.g. auto-created
+  // site projects) so repeated lookups don't create duplicates before the
+  // parent's own project list has refreshed.
+  const [knownProjects, setKnownProjects] = useState<Project[]>(projects);
+  const [resolvingProject, setResolvingProject] = useState(false);
+
+  const autoProjectName = projectNameForSite(eid, siteName);
+
+  async function resolveProjectId(): Promise<string | null> {
+    if (!autoProjectName) return projectId;
+    const match = knownProjects.find(
+      (p) => p.name.trim().toLowerCase() === autoProjectName.toLowerCase()
+    );
+    if (match) {
+      if (projectId !== match.id) setProjectId(match.id);
+      return match.id;
+    }
+    setResolvingProject(true);
+    try {
+      const created = await createProject(autoProjectName, colorForIndex(knownProjects.length));
+      setKnownProjects((prev) => [...prev, created]);
+      setProjectId(created.id);
+      return created.id;
+    } finally {
+      setResolvingProject(false);
+    }
+  }
+
   const subtasks = savedTaskId
     ? tasks.filter((t) => t.parent_task_id === savedTaskId)
     : [];
@@ -99,10 +131,11 @@ export default function TaskModal({
   async function handleSave() {
     if (!title.trim()) return;
     setSaving(true);
+    const resolvedProjectId = await resolveProjectId();
     const payload: Partial<Task> = {
       title: title.trim(),
       description: description.trim() || null,
-      project_id: projectId,
+      project_id: resolvedProjectId,
       assigned_to: assignedTo,
       status,
       priority,
@@ -138,10 +171,11 @@ export default function TaskModal({
     let parentId = savedTaskId;
     if (!parentId) {
       // Auto-save parent first so the subtask has something to attach to
+      const resolvedProjectId = await resolveProjectId();
       const created = await onCreate({
         title: title.trim() || "Untitled task",
         description: description.trim() || null,
-        project_id: projectId,
+        project_id: resolvedProjectId,
         assigned_to: assignedTo,
         status,
         priority,
@@ -260,18 +294,27 @@ export default function TaskModal({
             </div>
             <div>
               <label className={labelCls}>Project</label>
-              <select
-                className={inputCls}
-                value={projectId ?? ""}
-                onChange={(e) => setProjectId(e.target.value || null)}
-              >
-                <option value="">No project</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              {autoProjectName ? (
+                <div className="w-full rounded-lg border border-dashed border-[var(--c-line)] px-3 py-2 text-sm bg-black/[0.02] text-[#4d574f]">
+                  {resolvingProject ? "Setting up…" : autoProjectName}
+                  <span className="block text-[10px] text-[#a39d8c] mt-0.5">
+                    Auto-set from EID — clear the EID to choose manually
+                  </span>
+                </div>
+              ) : (
+                <select
+                  className={inputCls}
+                  value={projectId ?? ""}
+                  onChange={(e) => setProjectId(e.target.value || null)}
+                >
+                  <option value="">No project</option>
+                  {knownProjects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
@@ -365,6 +408,12 @@ export default function TaskModal({
                 />
               </div>
             </div>
+            {autoProjectName && (
+              <p className="text-[11px] text-[#a39d8c] mt-1.5">
+                This task's project will be <span className="font-medium">{autoProjectName}</span>{" "}
+                — created automatically if it doesn't exist yet.
+              </p>
+            )}
           </div>
 
           {/* Time & progress */}

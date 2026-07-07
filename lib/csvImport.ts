@@ -45,8 +45,9 @@ Kiran,kiran@entegro.com,#E07A3E
 `;
 
 export const TASKS_TEMPLATE = `title,description,project,assigned_to,status,priority,start_date,due_date,is_milestone,milestone_date,parent_task,task_type,eid,site_name,raised_by,expected_duration_hours,actual_time_spent_hours,date_added,actual_completion,progress_percent,comments
-Complete MRP and update NAT,,Regulatory Filings,Srihari,in_progress,high,2026-07-06,2026-07-07,false,,,MRP Planning,6986,Charlotte,Gokul,4,,2026-07-07,,80,7-June: completed MRP need to review and update nat
-Complete Audit and add circuits to ISV,,Regulatory Filings,Radhika,done,high,2026-07-01,2026-07-07,false,,,Full Audit,8232,Boston,Gokul,,,2026-07-07,2026-07-07,100,
+Complete MRP and update NAT,,,Srihari,in_progress,high,2026-07-06,2026-07-07,false,,,MRP Planning,6986,Charlotte,Gokul,4,,2026-07-07,,80,7-June: completed MRP need to review and update nat
+Complete Audit and add circuits to ISV,,,Radhika,done,high,2026-07-01,2026-07-07,false,,,Full Audit,8232,Boston,Gokul,,,2026-07-07,2026-07-07,100,
+Draft transparency disclosure,France disclosure pack,Regulatory Filings,Rashmi Papneja,todo,high,2026-07-10,2026-07-24,false,,,,,,,,,,,0,
 `;
 
 export const STATUS_VALUES = ["todo", "in_progress", "review", "done"];

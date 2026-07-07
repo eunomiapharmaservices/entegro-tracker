@@ -64,6 +64,20 @@ export const TASK_TYPE_SUGGESTIONS = [
   "Pre-wire",
 ];
 
+// When a task has an EID (circuit/site ID), its project is derived from that
+// rather than picked manually — matching the "EID - Site" naming convention
+// used in the source tracker (e.g. "8232 - Boston"). Returns null if there's
+// no EID to build a name from.
+export function projectNameForSite(
+  eid: string | null | undefined,
+  siteName: string | null | undefined
+): string | null {
+  const e = (eid || "").trim();
+  if (!e) return null;
+  const s = (siteName || "").trim();
+  return s ? `${e} - ${s}` : e;
+}
+
 export interface TaskWithSubtasks extends Task {
   subtasks: Task[];
 }

@@ -194,6 +194,7 @@ export default function Home() {
           onCreate={createTask}
           onUpdate={updateTask}
           onDelete={deleteTask}
+          createProject={createProject}
         />
       )}
 

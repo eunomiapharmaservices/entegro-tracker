@@ -106,6 +106,13 @@ Tasks can now also capture (all optional, shown in the task modal):
   moving it above 0 moves a "To do" task to "In progress"
 - **Comments** — a running-notes field, separate from the description
 
+- **EID → Project**: if a task has an EID set, its project is automatically
+  "EID - Site name" (e.g. "8232 - Boston"), created on the fly if it doesn't
+  exist yet — matching the naming convention from the source workbook. The
+  manual project picker only applies when there's no EID. This applies both
+  in the task editor and during CSV import (the `project` column in a CSV row
+  is ignored whenever that row has an `eid`).
+
 If you already had the tracker deployed before this update, run
 `supabase/migration_002_network_fields.sql` in the Supabase SQL editor once —
 it adds these columns to your existing `tasks` table without touching your

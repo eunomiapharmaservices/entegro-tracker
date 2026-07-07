@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Download, Upload, X, CheckCircle2, AlertTriangle } from "lucide-react";
-import { Project, Resource, Task } from "@/lib/types";
+import { Project, Resource, Task, projectNameForSite } from "@/lib/types";
 import {
   parseCSVFile,
   downloadCSV,
@@ -57,7 +57,7 @@ const TAB_CONFIG: Record<
     template: TASKS_TEMPLATE,
     filename: "tasks-template.csv",
     columns:
-      "title (required), description, project, assigned_to, status (todo/in_progress/review/done), priority (low/medium/high/urgent), start_date, due_date, is_milestone (true/false), milestone_date, parent_task (title of another row, for subtasks), task_type, eid, site_name, raised_by, expected_duration_hours, actual_time_spent_hours, date_added, actual_completion, progress_percent (0-100), comments",
+      "title (required), description, project (ignored if eid is set — see below), assigned_to, status (todo/in_progress/review/done), priority (low/medium/high/urgent), start_date, due_date, is_milestone (true/false), milestone_date, parent_task (title of another row, for subtasks), task_type, eid, site_name, raised_by, expected_duration_hours, actual_time_spent_hours, date_added, actual_completion, progress_percent (0-100), comments. If eid is set, the task's project is automatically \"EID - Site name\" (created if needed), overriding the project column.",
   },
 };
 
@@ -378,7 +378,10 @@ async function importTasks(
     }
 
     let projectId: string | null = null;
-    const projectName = (row.project || "").trim();
+    const eidValue = (row.eid || "").trim();
+    const siteValue = (row.site_name || "").trim();
+    const autoName = projectNameForSite(eidValue, siteValue);
+    const projectName = autoName || (row.project || "").trim();
     if (projectName) {
       const key = projectName.toLowerCase();
       if (projectMap.has(key)) {
