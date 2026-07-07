@@ -110,6 +110,11 @@ export default function PeopleDashboard({
                               />
                             )}
                             <span className="truncate flex-1">{t.title}</span>
+                            {t.progress_percent > 0 && t.progress_percent < 100 && (
+                              <span className="text-[11px] text-[#8a8578] font-mono shrink-0">
+                                {t.progress_percent}%
+                              </span>
+                            )}
                             {t.due_date && (
                               <span
                                 className={`text-[11px] shrink-0 ${

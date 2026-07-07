@@ -44,6 +44,11 @@ export function isOverdue(dueDate: string | null, status: string): boolean {
   return dueDate < today;
 }
 
+// Used to hide tasks completed more than N days ago from the board.
+export function daysSince(dateStr: string): number {
+  return daysBetween(dateStr, isoDate(new Date()));
+}
+
 export const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",

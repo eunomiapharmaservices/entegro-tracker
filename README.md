@@ -14,7 +14,10 @@ and Proofreader tools — deploys the same way, to Vercel.
 - **Calendar view** — Month, Week, or Day view, highlighting milestone dates
   and task due dates, with a CSV export of what's currently displayed.
 - **People dashboard** — one card per person showing their tasks grouped by
-  project, with status, due dates, and an overdue count at a glance.
+  project, with status, progress %, due dates, and an overdue count at a
+  glance.
+- **List view** — every task in a sortable table (Task, Assigned to, EID,
+  Site name, Task type, Status, Date added, Date completed).
 - **Tasks** — title, description, project, assignee, priority, status, start
   and due dates, an optional milestone flag + milestone date, subtasks (each
   subtask is its own task with `parent_task_id` set), and a timestamped
@@ -125,24 +128,43 @@ data. New installs already have them via `schema.sql`.
 
 - **Raised by** is now a dropdown of your People list, instead of free text
   (still shows the existing value even if that person isn't in People yet).
-- **Comments** are now a timestamped log rather than a single field — each
-  entry is saved with the date/time it was added, so you can see a running
-  history on a task. Anything imported into the old single `comments` column
-  still shows at the top as an "Imported note".
+- **Comments** are a timestamped log — each entry records who posted it and
+  when (date + time), with a "Commenting as" dropdown and a **Post** button
+  next to the comment box. Your last-used name is remembered in the browser
+  so you don't have to reselect it every time. Anything imported into the old
+  single `comments` column still shows at the top as an "Imported note".
 - **Status** now includes **On hold**, alongside To do / In progress / In
   review / Done.
 - **Task type** now includes **Training** in the suggestions list (still free
   text, so anything else works too).
+- **Completed tasks drop off the board after 14 days.** The moment a task's
+  status becomes Done, its completion date is stamped automatically (unless
+  you'd already set one manually). The board only shows Done tasks completed
+  within the last 14 days — older ones are hidden from the board but still
+  fully there in List, Timeline, Calendar, and People views. A small note at
+  the bottom of the board tells you how many are hidden this way.
 
 If you already had the tracker deployed before this update, run
-`supabase/migration_003_status_and_comments.sql` in the Supabase SQL editor —
-it widens the status field and adds the comments log table.
+`supabase/migration_003_status_and_comments.sql` and
+`supabase/migration_004_auto_completion_date.sql` in the Supabase SQL editor
+(in that order) — they widen the status field, add the comments log table,
+and add the auto-completion-date trigger.
 
-## Exporting people and projects
+## List view
 
-Click the small download icon next to "Projects" or "People" in the sidebar
-to export either list as a CSV — the mirror image of the import templates, so
-round-tripping data (export, edit in a spreadsheet, re-import) works cleanly.
+A new **List** item in the sidebar shows every task in a sortable table —
+Task, Assigned to, EID, Site name, Task type, Status, Date added, Date
+completed. Click any column header to sort by it (click again to reverse).
+Subtasks are shown indented under their parent with a ↳ marker.
+
+## Exporting people, projects, and tasks
+
+- Click the small download icon next to "Projects" or "People" in the
+  sidebar to export either list as CSV — the mirror image of the import
+  templates, so round-tripping (export, edit, re-import) works cleanly.
+- Click **Export tasks** in the top bar to export every task in the database
+  as CSV, in the same column format the bulk importer expects — regardless of
+  any project/person filter or search currently applied in the sidebar.
 
 ## Bulk import via CSV
 

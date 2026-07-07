@@ -3,12 +3,13 @@
 export const dynamic = "force-dynamic";
 
 import { useMemo, useState } from "react";
-import { Search, Upload } from "lucide-react";
+import { Search, Upload, Download } from "lucide-react";
 import Sidebar, { ViewMode } from "@/components/Sidebar";
 import KanbanBoard from "@/components/KanbanBoard";
 import TimelineView from "@/components/TimelineView";
 import CalendarView from "@/components/CalendarView";
 import PeopleDashboard from "@/components/PeopleDashboard";
+import TaskListView from "@/components/TaskListView";
 import TaskModal from "@/components/TaskModal";
 import ProjectModal from "@/components/ProjectModal";
 import ResourceModal from "@/components/ResourceModal";
@@ -74,6 +75,7 @@ export default function Home() {
     timeline: "Timeline",
     calendar: "Calendar",
     people: "People",
+    list: "List",
   };
 
   async function handleMoveStatus(taskId: string, status: Status) {
@@ -115,6 +117,64 @@ export default function Home() {
       ...resources.map((r) => `${esc(r.name)},${esc(r.email || "")},${r.color}`),
     ];
     downloadCSV("people-export.csv", rows.join("\n"));
+  }
+
+  function handleExportAllTasks() {
+    const esc = (s: string) => `"${(s || "").replace(/"/g, '""')}"`;
+    const projectName = (id: string | null) => projects.find((p) => p.id === id)?.name || "";
+    const resourceName = (id: string | null) => resources.find((r) => r.id === id)?.name || "";
+    const parentTitle = (id: string | null) => tasks.find((t) => t.id === id)?.title || "";
+
+    const cols = [
+      "title",
+      "description",
+      "project",
+      "assigned_to",
+      "status",
+      "priority",
+      "start_date",
+      "due_date",
+      "is_milestone",
+      "milestone_date",
+      "parent_task",
+      "task_type",
+      "eid",
+      "site_name",
+      "raised_by",
+      "expected_duration_hours",
+      "actual_time_spent_hours",
+      "date_added",
+      "actual_completion",
+      "progress_percent",
+    ];
+    const rows = [
+      cols.join(","),
+      ...tasks.map((t) =>
+        [
+          esc(t.title),
+          esc(t.description || ""),
+          esc(projectName(t.project_id)),
+          esc(resourceName(t.assigned_to)),
+          t.status,
+          t.priority,
+          t.start_date || "",
+          t.due_date || "",
+          t.is_milestone ? "true" : "false",
+          t.milestone_date || "",
+          esc(parentTitle(t.parent_task_id)),
+          esc(t.task_type || ""),
+          esc(t.eid || ""),
+          esc(t.site_name || ""),
+          esc(t.raised_by || ""),
+          t.expected_duration_hours ?? "",
+          t.actual_time_spent_hours ?? "",
+          t.date_added || "",
+          t.actual_completion || "",
+          t.progress_percent,
+        ].join(",")
+      ),
+    ];
+    downloadCSV(`tasks-export-${new Date().toISOString().slice(0, 10)}.csv`, rows.join("\n"));
   }
 
   if (error) {
@@ -160,6 +220,13 @@ export default function Home() {
             >
               <Upload size={14} />
               Import
+            </button>
+            <button
+              onClick={handleExportAllTasks}
+              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-[var(--c-line)] bg-white hover:bg-black/5"
+            >
+              <Download size={14} />
+              Export tasks
             </button>
             <div className="relative">
               <Search
@@ -210,6 +277,13 @@ export default function Home() {
                 resources={resources}
                 projects={projects}
                 tasks={tasks}
+                onOpenTask={(t) => setModalTask(t)}
+              />
+            )}
+            {view === "list" && (
+              <TaskListView
+                tasks={filteredTasks}
+                resources={resources}
                 onOpenTask={(t) => setModalTask(t)}
               />
             )}

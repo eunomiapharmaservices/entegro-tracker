@@ -79,7 +79,15 @@ export default function TaskModal({
   );
   const [progress, setProgress] = useState(task?.progress_percent ?? 0);
   const [newCommentText, setNewCommentText] = useState("");
+  const [commentAuthor, setCommentAuthor] = useState("");
   const [postingComment, setPostingComment] = useState(false);
+
+  // Remember who was last commenting on this browser, as a convenience —
+  // there's no login, so this just saves re-selecting the same name each time.
+  useEffect(() => {
+    const saved = window.localStorage.getItem("entegro-comment-author");
+    if (saved) setCommentAuthor(saved);
+  }, []);
 
   // Tracks projects created during this modal session (e.g. auto-created
   // site projects) so repeated lookups don't create duplicates before the
@@ -175,7 +183,8 @@ export default function TaskModal({
     if (!newCommentText.trim() || !savedTaskId) return;
     setPostingComment(true);
     try {
-      await addComment(savedTaskId, newCommentText.trim());
+      await addComment(savedTaskId, newCommentText.trim(), commentAuthor || null);
+      if (commentAuthor) window.localStorage.setItem("entegro-comment-author", commentAuthor);
       setNewCommentText("");
     } finally {
       setPostingComment(false);
@@ -523,6 +532,7 @@ export default function TaskModal({
                         className="bg-white border border-[var(--c-line)] rounded-lg px-3 py-2"
                       >
                         <p className="text-[10px] text-[#a39d8c] font-mono mb-0.5">
+                          {c.author ? `${c.author} · ` : ""}
                           {new Date(c.created_at).toLocaleString("en-GB", {
                             day: "numeric",
                             month: "short",
@@ -539,9 +549,22 @@ export default function TaskModal({
                   )}
                 </div>
                 <div className="flex gap-2">
+                  <select
+                    className={inputCls + " w-auto shrink-0"}
+                    value={commentAuthor}
+                    onChange={(e) => setCommentAuthor(e.target.value)}
+                    title="Commenting as"
+                  >
+                    <option value="">Who's commenting?</option>
+                    {resources.map((r) => (
+                      <option key={r.id} value={r.name}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
                   <input
                     className={inputCls}
-                    placeholder="Add a comment and press Enter"
+                    placeholder="Add a comment"
                     value={newCommentText}
                     onChange={(e) => setNewCommentText(e.target.value)}
                     onKeyDown={(e) => {
@@ -554,9 +577,9 @@ export default function TaskModal({
                   <button
                     onClick={handlePostComment}
                     disabled={postingComment || !newCommentText.trim()}
-                    className="shrink-0 rounded-lg border border-[var(--c-line)] px-3 hover:bg-black/5 disabled:opacity-50"
+                    className="shrink-0 rounded-lg bg-[var(--c-green)] text-white text-sm font-medium px-4 hover:bg-[#194a3b] disabled:opacity-50"
                   >
-                    <Plus size={15} />
+                    {postingComment ? "Posting…" : "Post"}
                   </button>
                 </div>
               </>

@@ -1,11 +1,11 @@
 "use client";
 
 import { Plus, Trash2, Download } from "lucide-react";
-import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users } from "lucide-react";
+import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users, List } from "lucide-react";
 import { Project, Resource } from "@/lib/types";
 import Avatar from "./Avatar";
 
-export type ViewMode = "board" | "timeline" | "calendar" | "people";
+export type ViewMode = "board" | "timeline" | "calendar" | "people" | "list";
 
 export default function Sidebar({
   view,
@@ -44,6 +44,7 @@ export default function Sidebar({
     { key: "board", label: "Board", icon: <LayoutGrid size={17} /> },
     { key: "timeline", label: "Timeline", icon: <BarChart3 size={17} /> },
     { key: "calendar", label: "Calendar", icon: <CalendarIcon size={17} /> },
+    { key: "list", label: "List", icon: <List size={17} /> },
     { key: "people", label: "People", icon: <Users size={17} /> },
   ];
 

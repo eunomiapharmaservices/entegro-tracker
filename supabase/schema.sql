@@ -82,6 +82,24 @@ create trigger trg_tasks_updated_at
 before update on tasks
 for each row execute function set_updated_at();
 
+-- Auto-stamp actual_completion the moment a task becomes 'done', unless it
+-- was already set explicitly (e.g. via CSV import or manual entry). This
+-- gives the board a reliable date to filter "recently completed" tasks by.
+create or replace function set_actual_completion()
+returns trigger as $$
+begin
+  if new.status = 'done' and new.actual_completion is null then
+    new.actual_completion := current_date;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_tasks_actual_completion on tasks;
+create trigger trg_tasks_actual_completion
+before insert or update on tasks
+for each row execute function set_actual_completion();
+
 -- Open access (no login) — RLS enabled but permissive, since this is an
 -- internal tool anyone with the link can use. Tighten later if you add auth.
 alter table resources enable row level security;
