@@ -8,18 +8,21 @@ import Sidebar, { ViewMode } from "@/components/Sidebar";
 import KanbanBoard from "@/components/KanbanBoard";
 import TimelineView from "@/components/TimelineView";
 import CalendarView from "@/components/CalendarView";
+import PeopleDashboard from "@/components/PeopleDashboard";
 import TaskModal from "@/components/TaskModal";
 import ProjectModal from "@/components/ProjectModal";
 import ResourceModal from "@/components/ResourceModal";
 import ImportModal from "@/components/ImportModal";
 import { useTaskData } from "@/lib/useTaskData";
 import { Status, Task } from "@/lib/types";
+import { downloadCSV } from "@/lib/csvImport";
 
 export default function Home() {
   const {
     tasks,
     resources,
     projects,
+    taskComments,
     loading,
     error,
     createTask,
@@ -29,6 +32,7 @@ export default function Home() {
     createResource,
     deleteProject,
     deleteResource,
+    addComment,
   } = useTaskData();
 
   const [view, setView] = useState<ViewMode>("board");
@@ -69,6 +73,7 @@ export default function Home() {
     board: "Board",
     timeline: "Timeline",
     calendar: "Calendar",
+    people: "People",
   };
 
   async function handleMoveStatus(taskId: string, status: Status) {
@@ -95,6 +100,21 @@ export default function Home() {
       return;
     if (activeResource === id) setActiveResource(null);
     deleteResource(id);
+  }
+
+  function handleExportProjects() {
+    const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    const rows = ["name,color", ...projects.map((p) => `${esc(p.name)},${p.color}`)];
+    downloadCSV("projects-export.csv", rows.join("\n"));
+  }
+
+  function handleExportResources() {
+    const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    const rows = [
+      "name,email,color",
+      ...resources.map((r) => `${esc(r.name)},${esc(r.email || "")},${r.color}`),
+    ];
+    downloadCSV("people-export.csv", rows.join("\n"));
   }
 
   if (error) {
@@ -126,6 +146,8 @@ export default function Home() {
         onNewResource={() => setShowResourceModal(true)}
         onDeleteProject={handleDeleteProject}
         onDeleteResource={handleDeleteResource}
+        onExportProjects={handleExportProjects}
+        onExportResources={handleExportResources}
       />
 
       <main className="flex-1 p-7 flex flex-col min-w-0">
@@ -177,7 +199,19 @@ export default function Home() {
               />
             )}
             {view === "calendar" && (
-              <CalendarView tasks={filteredTasks} onOpenTask={(t) => setModalTask(t)} />
+              <CalendarView
+                tasks={filteredTasks}
+                resources={resources}
+                onOpenTask={(t) => setModalTask(t)}
+              />
+            )}
+            {view === "people" && (
+              <PeopleDashboard
+                resources={resources}
+                projects={projects}
+                tasks={tasks}
+                onOpenTask={(t) => setModalTask(t)}
+              />
             )}
           </div>
         )}
@@ -190,11 +224,13 @@ export default function Home() {
           tasks={tasks}
           resources={resources}
           projects={projects}
+          taskComments={taskComments}
           onClose={() => setModalTask(null)}
           onCreate={createTask}
           onUpdate={updateTask}
           onDelete={deleteTask}
           createProject={createProject}
+          addComment={addComment}
         />
       )}
 

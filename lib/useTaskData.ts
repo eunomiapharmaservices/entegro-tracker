@@ -2,22 +2,24 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
-import { Project, Resource, Task } from "./types";
+import { Project, Resource, Task, TaskComment } from "./types";
 
 export function useTaskData() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [taskComments, setTaskComments] = useState<TaskComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [tasksRes, resourcesRes, projectsRes] = await Promise.all([
+    const [tasksRes, resourcesRes, projectsRes, commentsRes] = await Promise.all([
       supabase.from("tasks").select("*").order("position", { ascending: true }),
       supabase.from("resources").select("*").order("created_at", { ascending: true }),
       supabase.from("projects").select("*").order("created_at", { ascending: true }),
+      supabase.from("task_comments").select("*").order("created_at", { ascending: true }),
     ]);
 
     if (tasksRes.error || resourcesRes.error || projectsRes.error) {
@@ -31,6 +33,9 @@ export function useTaskData() {
       setTasks(tasksRes.data as Task[]);
       setResources(resourcesRes.data as Resource[]);
       setProjects(projectsRes.data as Project[]);
+      // Comment log table may not exist yet if the migration hasn't been run —
+      // don't fail the whole load over it, just show no comment history.
+      setTaskComments(commentsRes.error ? [] : (commentsRes.data as TaskComment[]));
     }
     setLoading(false);
   }, []);
@@ -118,10 +123,31 @@ export function useTaskData() {
     );
   }, []);
 
+  const addComment = useCallback(
+    async (taskId: string, body: string, author?: string | null) => {
+      const { data, error } = await supabase
+        .from("task_comments")
+        .insert({ task_id: taskId, body, author: author || null })
+        .select()
+        .single();
+      if (error) throw error;
+      setTaskComments((prev) => [...prev, data as TaskComment]);
+      return data as TaskComment;
+    },
+    []
+  );
+
+  const deleteComment = useCallback(async (id: string) => {
+    const { error } = await supabase.from("task_comments").delete().eq("id", id);
+    if (error) throw error;
+    setTaskComments((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
   return {
     tasks,
     resources,
     projects,
+    taskComments,
     loading,
     error,
     reload,
@@ -132,5 +158,7 @@ export function useTaskData() {
     createProject,
     deleteResource,
     deleteProject,
+    addComment,
+    deleteComment,
   };
 }

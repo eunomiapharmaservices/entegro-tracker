@@ -50,7 +50,7 @@ Complete Audit and add circuits to ISV,,,Radhika,done,high,2026-07-01,2026-07-07
 Draft transparency disclosure,France disclosure pack,Regulatory Filings,Rashmi Papneja,todo,high,2026-07-10,2026-07-24,false,,,,,,,,,,,0,
 `;
 
-export const STATUS_VALUES = ["todo", "in_progress", "review", "done"];
+export const STATUS_VALUES = ["todo", "in_progress", "on_hold", "review", "done"];
 export const PRIORITY_VALUES = ["low", "medium", "high", "urgent"];
 
 export function normalizeStatus(v: string | undefined): string {

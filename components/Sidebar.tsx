@@ -1,11 +1,11 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
-import { LayoutGrid, Calendar as CalendarIcon, BarChart3 } from "lucide-react";
+import { Plus, Trash2, Download } from "lucide-react";
+import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users } from "lucide-react";
 import { Project, Resource } from "@/lib/types";
 import Avatar from "./Avatar";
 
-export type ViewMode = "board" | "timeline" | "calendar";
+export type ViewMode = "board" | "timeline" | "calendar" | "people";
 
 export default function Sidebar({
   view,
@@ -21,6 +21,8 @@ export default function Sidebar({
   onNewResource,
   onDeleteProject,
   onDeleteResource,
+  onExportProjects,
+  onExportResources,
 }: {
   view: ViewMode;
   setView: (v: ViewMode) => void;
@@ -35,11 +37,14 @@ export default function Sidebar({
   onNewResource: () => void;
   onDeleteProject: (id: string, name: string) => void;
   onDeleteResource: (id: string, name: string) => void;
+  onExportProjects: () => void;
+  onExportResources: () => void;
 }) {
   const navItems: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
     { key: "board", label: "Board", icon: <LayoutGrid size={17} /> },
     { key: "timeline", label: "Timeline", icon: <BarChart3 size={17} /> },
     { key: "calendar", label: "Calendar", icon: <CalendarIcon size={17} /> },
+    { key: "people", label: "People", icon: <Users size={17} /> },
   ];
 
   return (
@@ -84,13 +89,22 @@ export default function Sidebar({
           <span className="text-xs font-medium uppercase tracking-wide text-[#8a8578]">
             Projects
           </span>
-          <button
-            onClick={onNewProject}
-            title="Add project"
-            className="text-[#8a8578] hover:text-[var(--c-ink)]"
-          >
-            <Plus size={14} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onExportProjects}
+              title="Export projects as CSV"
+              className="text-[#8a8578] hover:text-[var(--c-ink)]"
+            >
+              <Download size={13} />
+            </button>
+            <button
+              onClick={onNewProject}
+              title="Add project"
+              className="text-[#8a8578] hover:text-[var(--c-ink)]"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
         </div>
         <div className="flex flex-col gap-0.5">
           <button
@@ -137,13 +151,22 @@ export default function Sidebar({
           <span className="text-xs font-medium uppercase tracking-wide text-[#8a8578]">
             People
           </span>
-          <button
-            onClick={onNewResource}
-            title="Add person"
-            className="text-[#8a8578] hover:text-[var(--c-ink)]"
-          >
-            <Plus size={14} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onExportResources}
+              title="Export people as CSV"
+              className="text-[#8a8578] hover:text-[var(--c-ink)]"
+            >
+              <Download size={13} />
+            </button>
+            <button
+              onClick={onNewResource}
+              title="Add person"
+              className="text-[#8a8578] hover:text-[var(--c-ink)]"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
         </div>
         <div className="flex flex-col gap-0.5">
           <button

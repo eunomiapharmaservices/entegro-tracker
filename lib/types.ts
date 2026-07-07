@@ -1,4 +1,4 @@
-export type Status = "todo" | "in_progress" | "review" | "done";
+export type Status = "todo" | "in_progress" | "on_hold" | "review" | "done";
 export type Priority = "low" | "medium" | "high" | "urgent";
 
 export interface Resource {
@@ -62,6 +62,7 @@ export const TASK_TYPE_SUGGESTIONS = [
   "Design",
   "Data-cleanse",
   "Pre-wire",
+  "Training",
 ];
 
 // When a task has an EID (circuit/site ID), its project is derived from that
@@ -78,6 +79,14 @@ export function projectNameForSite(
   return s ? `${e} - ${s}` : e;
 }
 
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  body: string;
+  author: string | null;
+  created_at: string;
+}
+
 export interface TaskWithSubtasks extends Task {
   subtasks: Task[];
 }
@@ -85,11 +94,12 @@ export interface TaskWithSubtasks extends Task {
 export const STATUS_LABELS: Record<Status, string> = {
   todo: "To do",
   in_progress: "In progress",
+  on_hold: "On hold",
   review: "In review",
   done: "Done",
 };
 
-export const STATUS_ORDER: Status[] = ["todo", "in_progress", "review", "done"];
+export const STATUS_ORDER: Status[] = ["todo", "in_progress", "on_hold", "review", "done"];
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
   low: "Low",

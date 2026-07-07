@@ -7,15 +7,18 @@ and Proofreader tools — deploys the same way, to Vercel.
 
 ## What it does
 
-- **Board view** — tasks by status (To do / In progress / In review / Done),
-  drag cards between columns.
+- **Board view** — tasks by status (To do / In progress / On hold / In review
+  / Done), drag cards between columns.
 - **Timeline view** — Gantt-style bars from start date to due date, subtasks
   nested under their parent, milestones shown as diamond markers.
-- **Calendar view** — month grid highlighting milestone dates and task due
-  dates.
+- **Calendar view** — Month, Week, or Day view, highlighting milestone dates
+  and task due dates, with a CSV export of what's currently displayed.
+- **People dashboard** — one card per person showing their tasks grouped by
+  project, with status, due dates, and an overdue count at a glance.
 - **Tasks** — title, description, project, assignee, priority, status, start
-  and due dates, an optional milestone flag + milestone date, and subtasks
-  (each subtask is its own task with `parent_task_id` set).
+  and due dates, an optional milestone flag + milestone date, subtasks (each
+  subtask is its own task with `parent_task_id` set), and a timestamped
+  comment log.
 - No login — anyone with the link can use it, matching how you described the
   intended use. See the "Locking it down later" note below if you want to add
   auth down the line.
@@ -117,6 +120,29 @@ If you already had the tracker deployed before this update, run
 `supabase/migration_002_network_fields.sql` in the Supabase SQL editor once —
 it adds these columns to your existing `tasks` table without touching your
 data. New installs already have them via `schema.sql`.
+
+## Comments, status, and task type updates
+
+- **Raised by** is now a dropdown of your People list, instead of free text
+  (still shows the existing value even if that person isn't in People yet).
+- **Comments** are now a timestamped log rather than a single field — each
+  entry is saved with the date/time it was added, so you can see a running
+  history on a task. Anything imported into the old single `comments` column
+  still shows at the top as an "Imported note".
+- **Status** now includes **On hold**, alongside To do / In progress / In
+  review / Done.
+- **Task type** now includes **Training** in the suggestions list (still free
+  text, so anything else works too).
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_003_status_and_comments.sql` in the Supabase SQL editor —
+it widens the status field and adds the comments log table.
+
+## Exporting people and projects
+
+Click the small download icon next to "Projects" or "People" in the sidebar
+to export either list as a CSV — the mirror image of the import templates, so
+round-tripping data (export, edit in a spreadsheet, re-import) works cleanly.
 
 ## Bulk import via CSV
 

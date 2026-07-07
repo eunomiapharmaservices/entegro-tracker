@@ -11,6 +11,7 @@ import {
   STATUS_ORDER,
   Status,
   Task,
+  TaskComment,
   TASK_TYPE_SUGGESTIONS,
   projectNameForSite,
 } from "@/lib/types";
@@ -23,11 +24,13 @@ interface Props {
   tasks: Task[];
   resources: Resource[];
   projects: Project[];
+  taskComments: TaskComment[];
   onClose: () => void;
   onCreate: (input: Partial<Task>) => Promise<Task>;
   onUpdate: (id: string, input: Partial<Task>) => Promise<Task>;
   onDelete: (id: string) => Promise<void>;
   createProject: (name: string, color: string) => Promise<Project>;
+  addComment: (taskId: string, body: string, author?: string | null) => Promise<TaskComment>;
 }
 
 export default function TaskModal({
@@ -36,11 +39,13 @@ export default function TaskModal({
   tasks,
   resources,
   projects,
+  taskComments,
   onClose,
   onCreate,
   onUpdate,
   onDelete,
   createProject,
+  addComment,
 }: Props) {
   const isNew = !task;
   const [title, setTitle] = useState(task?.title ?? "");
@@ -73,7 +78,8 @@ export default function TaskModal({
     task?.actual_time_spent_hours != null ? String(task.actual_time_spent_hours) : ""
   );
   const [progress, setProgress] = useState(task?.progress_percent ?? 0);
-  const [comments, setComments] = useState(task?.comments ?? "");
+  const [newCommentText, setNewCommentText] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
 
   // Tracks projects created during this modal session (e.g. auto-created
   // site projects) so repeated lookups don't create duplicates before the
@@ -152,7 +158,6 @@ export default function TaskModal({
       expected_duration_hours: expectedHours.trim() ? Number(expectedHours) : null,
       actual_time_spent_hours: actualHours.trim() ? Number(actualHours) : null,
       progress_percent: progress,
-      comments: comments.trim() || null,
     };
     try {
       if (savedTaskId) {
@@ -163,6 +168,17 @@ export default function TaskModal({
       }
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handlePostComment() {
+    if (!newCommentText.trim() || !savedTaskId) return;
+    setPostingComment(true);
+    try {
+      await addComment(savedTaskId, newCommentText.trim());
+      setNewCommentText("");
+    } finally {
+      setPostingComment(false);
     }
   }
 
@@ -382,12 +398,21 @@ export default function TaskModal({
               </div>
               <div>
                 <label className={labelCls}>Raised by</label>
-                <input
+                <select
                   className={inputCls}
-                  placeholder="Who requested this"
                   value={raisedBy}
                   onChange={(e) => setRaisedBy(e.target.value)}
-                />
+                >
+                  <option value="">Unspecified</option>
+                  {raisedBy && !resources.some((r) => r.name === raisedBy) && (
+                    <option value={raisedBy}>{raisedBy} (not in People)</option>
+                  )}
+                  {resources.map((r) => (
+                    <option key={r.id} value={r.name}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className={labelCls}>EID / circuit ID</label>
@@ -479,12 +504,67 @@ export default function TaskModal({
 
           <div>
             <label className={labelCls}>Comments</label>
-            <textarea
-              className={inputCls + " min-h-[50px] resize-none"}
-              placeholder="Running notes / updates (optional)"
-              value={comments}
-              onChange={(e) => setComments(e.target.value)}
-            />
+            {task?.comments && (
+              <div className="bg-black/[0.03] rounded-lg px-3 py-2 mb-2 text-sm text-[#6b7570]">
+                <p className="text-[10px] uppercase tracking-wide text-[#a39d8c] mb-0.5">
+                  Imported note
+                </p>
+                {task.comments}
+              </div>
+            )}
+            {savedTaskId ? (
+              <>
+                <div className="flex flex-col gap-2 mb-2 max-h-48 overflow-y-auto">
+                  {taskComments
+                    .filter((c) => c.task_id === savedTaskId)
+                    .map((c) => (
+                      <div
+                        key={c.id}
+                        className="bg-white border border-[var(--c-line)] rounded-lg px-3 py-2"
+                      >
+                        <p className="text-[10px] text-[#a39d8c] font-mono mb-0.5">
+                          {new Date(c.created_at).toLocaleString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                        <p className="text-sm">{c.body}</p>
+                      </div>
+                    ))}
+                  {taskComments.filter((c) => c.task_id === savedTaskId).length === 0 && (
+                    <p className="text-xs text-[#c9c2b2] px-1">No comments yet.</p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    className={inputCls}
+                    placeholder="Add a comment and press Enter"
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handlePostComment();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={handlePostComment}
+                    disabled={postingComment || !newCommentText.trim()}
+                    className="shrink-0 rounded-lg border border-[var(--c-line)] px-3 hover:bg-black/5 disabled:opacity-50"
+                  >
+                    <Plus size={15} />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-[#c9c2b2]">
+                Save the task first, then you can add timestamped comments here.
+              </p>
+            )}
           </div>
 
           {/* Subtasks */}
