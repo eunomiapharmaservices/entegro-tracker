@@ -550,7 +550,7 @@ export default function TaskModal({
                 </div>
                 <div className="flex gap-2">
                   <select
-                    className={inputCls + " w-auto shrink-0"}
+                    className="rounded-lg border border-[var(--c-line)] px-2 py-2 text-sm bg-white focus:border-[var(--c-green)] outline-none shrink-0 max-w-[140px]"
                     value={commentAuthor}
                     onChange={(e) => setCommentAuthor(e.target.value)}
                     title="Commenting as"
@@ -563,7 +563,7 @@ export default function TaskModal({
                     ))}
                   </select>
                   <input
-                    className={inputCls}
+                    className={inputCls + " flex-1 min-w-0"}
                     placeholder="Add a comment"
                     value={newCommentText}
                     onChange={(e) => setNewCommentText(e.target.value)}
