@@ -90,6 +90,31 @@ lib/
 supabase/schema.sql        Database schema — run this first
 ```
 
+## Bulk import via CSV
+
+Click **Import** in the top bar to bring in projects, people, or tasks in
+bulk — useful for migrating an existing task list or spreadsheet in one go.
+
+- Pick the tab for what you're importing, download the template CSV to see
+  the expected columns, fill it in (in Excel, Numbers, Google Sheets — export
+  as CSV), then upload it.
+- **Projects**: `name`, `color` (optional).
+- **People**: `name`, `email` (optional), `color` (optional).
+- **Tasks**: `title`, `description`, `project`, `assigned_to`, `status`,
+  `priority`, `start_date`, `due_date`, `is_milestone`, `milestone_date`,
+  `parent_task`.
+  - `project` and `assigned_to` are matched by name against what's already in
+    the tracker — if a name doesn't exist yet, it's created automatically
+    (e.g. importing a task assigned to someone new adds them as a person too).
+  - `parent_task` should exactly match the `title` of another row in the same
+    file, to import a subtask under its parent — order in the file doesn't
+    matter, a task can reference a parent listed further down.
+  - Rows that already exist by name (for Projects/People) are skipped rather
+    than duplicated.
+- You'll get a summary after each import (how many were created, skipped, or
+  need attention) plus a warning for any row that couldn't be matched (e.g. a
+  misspelled `parent_task`).
+
 ## Adding or removing people and projects
 
 Both are managed right from the sidebar now:

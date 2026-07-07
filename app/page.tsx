@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Upload } from "lucide-react";
 import Sidebar, { ViewMode } from "@/components/Sidebar";
 import KanbanBoard from "@/components/KanbanBoard";
 import TimelineView from "@/components/TimelineView";
@@ -11,6 +11,7 @@ import CalendarView from "@/components/CalendarView";
 import TaskModal from "@/components/TaskModal";
 import ProjectModal from "@/components/ProjectModal";
 import ResourceModal from "@/components/ResourceModal";
+import ImportModal from "@/components/ImportModal";
 import { useTaskData } from "@/lib/useTaskData";
 import { Status, Task } from "@/lib/types";
 
@@ -37,6 +38,7 @@ export default function Home() {
   const [modalTask, setModalTask] = useState<Task | null | "new">(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showResourceModal, setShowResourceModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
@@ -129,17 +131,26 @@ export default function Home() {
       <main className="flex-1 p-7 flex flex-col min-w-0">
         <div className="flex items-center justify-between mb-6 shrink-0">
           <h1 className="font-display font-semibold text-2xl">{viewTitles[view]}</h1>
-          <div className="relative">
-            <Search
-              size={15}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a39d8c]"
-            />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search tasks…"
-              className="pl-8 pr-3 py-2 rounded-lg border border-[var(--c-line)] bg-white text-sm w-56 outline-none focus:border-[var(--c-green)]"
-            />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-[var(--c-line)] bg-white hover:bg-black/5"
+            >
+              <Upload size={14} />
+              Import
+            </button>
+            <div className="relative">
+              <Search
+                size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a39d8c]"
+              />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search tasks…"
+                className="pl-8 pr-3 py-2 rounded-lg border border-[var(--c-line)] bg-white text-sm w-56 outline-none focus:border-[var(--c-green)]"
+              />
+            </div>
           </div>
         </div>
 
@@ -192,6 +203,19 @@ export default function Home() {
 
       {showResourceModal && (
         <ResourceModal onClose={() => setShowResourceModal(false)} onCreate={createResource} />
+      )}
+
+      {showImportModal && (
+        <ImportModal
+          projects={projects}
+          resources={resources}
+          tasks={tasks}
+          onClose={() => setShowImportModal(false)}
+          createProject={createProject}
+          createResource={createResource}
+          createTask={createTask}
+          updateTask={updateTask}
+        />
       )}
     </div>
   );

@@ -71,16 +71,19 @@ export function useTaskData() {
     setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_task_id !== id));
   }, []);
 
-  const createResource = useCallback(async (name: string, color: string) => {
-    const { data, error } = await supabase
-      .from("resources")
-      .insert({ name, color })
-      .select()
-      .single();
-    if (error) throw error;
-    setResources((prev) => [...prev, data as Resource]);
-    return data as Resource;
-  }, []);
+  const createResource = useCallback(
+    async (name: string, color: string, email?: string | null) => {
+      const { data, error } = await supabase
+        .from("resources")
+        .insert({ name, color, email: email || null })
+        .select()
+        .single();
+      if (error) throw error;
+      setResources((prev) => [...prev, data as Resource]);
+      return data as Resource;
+    },
+    []
+  );
 
   const createProject = useCallback(async (name: string, color: string) => {
     const { data, error } = await supabase
