@@ -153,6 +153,19 @@ data. New installs already have them via `schema.sql`.
   once status is Done — it fills in automatically the moment you mark a task
   Done (via the status dropdown, the progress slider, or the subtask
   checkboxes), so you don't need to set it by hand.
+- **Task type, EID, and Expected duration are now required** when creating or
+  editing a task through the editor — the Save button is disabled and a red
+  note lists whatever's still missing. This only applies to the main task
+  editor; quick subtask entries and CSV bulk import stay flexible (a subtask
+  is meant to be a lightweight checklist item, and an import may come from a
+  source that doesn't track hours or EIDs).
+- **Status changes are logged automatically.** Change a task's status and hit
+  Save (or Create task), and a comment gets added to that task's log —
+  `Status changed from "X" to "Y"` — attributed to whoever's set as
+  "Commenting as" at the time. This only fires from the task editor's Save
+  button right now; dragging a card between board columns or ticking a
+  subtask done doesn't log a status-change comment (those still update status
+  itself, just without the log entry).
 
 If you already had the tracker deployed before this update, run
 `supabase/migration_003_status_and_comments.sql` and

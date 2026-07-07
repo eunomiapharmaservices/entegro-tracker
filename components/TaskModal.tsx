@@ -83,6 +83,7 @@ export default function TaskModal({
     task?.actual_time_spent_hours != null ? String(task.actual_time_spent_hours) : ""
   );
   const [progress, setProgress] = useState(task?.progress_percent ?? 0);
+  const [lastSavedStatus, setLastSavedStatus] = useState<Status | null>(task?.status ?? null);
   const [newCommentText, setNewCommentText] = useState("");
   const [commentAuthor, setCommentAuthor] = useState(currentUser);
   const [postingComment, setPostingComment] = useState(false);
@@ -119,6 +120,13 @@ export default function TaskModal({
     ? tasks.filter((t) => t.parent_task_id === savedTaskId)
     : [];
 
+  const missingFields: string[] = [];
+  if (!title.trim()) missingFields.push("Title");
+  if (!taskType.trim()) missingFields.push("Task type");
+  if (!eid.trim()) missingFields.push("EID");
+  if (!expectedHours.trim()) missingFields.push("Expected duration");
+  const isValid = missingFields.length === 0;
+
   function handleProgressChange(value: number) {
     setProgress(value);
     if (value >= 100) {
@@ -150,7 +158,7 @@ export default function TaskModal({
   }, [onClose]);
 
   async function handleSave() {
-    if (!title.trim()) return;
+    if (!isValid) return;
     setSaving(true);
     const resolvedProjectId = await resolveProjectId();
     const payload: Partial<Task> = {
@@ -177,9 +185,18 @@ export default function TaskModal({
     try {
       if (savedTaskId) {
         await onUpdate(savedTaskId, payload);
+        if (lastSavedStatus && lastSavedStatus !== status) {
+          await addComment(
+            savedTaskId,
+            `Status changed from "${STATUS_LABELS[lastSavedStatus]}" to "${STATUS_LABELS[status]}"`,
+            currentUser || null
+          );
+        }
+        setLastSavedStatus(status);
       } else {
         const created = await onCreate(payload);
         setSavedTaskId(created.id);
+        setLastSavedStatus(status);
       }
     } finally {
       setSaving(false);
@@ -202,10 +219,16 @@ export default function TaskModal({
     if (!newSubtaskTitle.trim()) return;
     let parentId = savedTaskId;
     if (!parentId) {
+      if (!isValid) {
+        alert(
+          `Fill in ${missingFields.join(", ")} on the main task before adding subtasks.`
+        );
+        return;
+      }
       // Auto-save parent first so the subtask has something to attach to
       const resolvedProjectId = await resolveProjectId();
       const created = await onCreate({
-        title: title.trim() || "Untitled task",
+        title: title.trim(),
         description: description.trim() || null,
         project_id: resolvedProjectId,
         assigned_to: assignedTo,
@@ -215,9 +238,19 @@ export default function TaskModal({
         due_date: dueDate || null,
         is_milestone: isMilestone,
         milestone_date: isMilestone ? milestoneDate || null : null,
+        task_type: taskType.trim() || null,
+        eid: eid.trim() || null,
+        site_name: siteName.trim() || null,
+        raised_by: raisedBy.trim() || null,
+        date_added: dateAdded || null,
+        actual_completion: actualCompletion || null,
+        expected_duration_hours: expectedHours.trim() ? Number(expectedHours) : null,
+        actual_time_spent_hours: actualHours.trim() ? Number(actualHours) : null,
+        progress_percent: progress,
       });
       parentId = created.id;
       setSavedTaskId(created.id);
+      setLastSavedStatus(status);
     }
     await onCreate({
       title: newSubtaskTitle.trim(),
@@ -401,7 +434,9 @@ export default function TaskModal({
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Task type</label>
+                <label className={labelCls}>
+                  Task type <span className="text-[#C23B3B]">*</span>
+                </label>
                 <input
                   className={inputCls}
                   list="task-type-suggestions"
@@ -434,7 +469,9 @@ export default function TaskModal({
                 </select>
               </div>
               <div>
-                <label className={labelCls}>EID / circuit ID</label>
+                <label className={labelCls}>
+                  EID / circuit ID <span className="text-[#C23B3B]">*</span>
+                </label>
                 <input
                   className={inputCls}
                   placeholder="e.g. 8232"
@@ -494,7 +531,9 @@ export default function TaskModal({
                 )}
               </div>
               <div>
-                <label className={labelCls}>Expected duration (h)</label>
+                <label className={labelCls}>
+                  Expected duration (h) <span className="text-[#C23B3B]">*</span>
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -665,31 +704,38 @@ export default function TaskModal({
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between pt-2 gap-3">
             <button
               onClick={handleDelete}
-              className="text-sm text-[#C23B3B] hover:underline flex items-center gap-1"
+              className="text-sm text-[#C23B3B] hover:underline flex items-center gap-1 shrink-0"
             >
               <Trash2 size={13} />
               Delete task
             </button>
-            <div className="flex gap-2">
-              <button
-                onClick={onClose}
-                className="text-sm px-4 py-2 rounded-lg hover:bg-black/5"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  await handleSave();
-                  onClose();
-                }}
-                disabled={saving || !title.trim()}
-                className="text-sm px-4 py-2 rounded-lg bg-[var(--c-green)] text-white font-medium hover:bg-[#194a3b] disabled:opacity-50"
-              >
-                {saving ? "Saving…" : isNew ? "Create task" : "Save changes"}
-              </button>
+            <div className="flex items-center gap-3">
+              {!isValid && (
+                <p className="text-[11px] text-[#C23B3B] text-right">
+                  Required: {missingFields.join(", ")}
+                </p>
+              )}
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={onClose}
+                  className="text-sm px-4 py-2 rounded-lg hover:bg-black/5"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    await handleSave();
+                    onClose();
+                  }}
+                  disabled={saving || !isValid}
+                  className="text-sm px-4 py-2 rounded-lg bg-[var(--c-green)] text-white font-medium hover:bg-[#194a3b] disabled:opacity-50"
+                >
+                  {saving ? "Saving…" : isNew ? "Create task" : "Save changes"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
