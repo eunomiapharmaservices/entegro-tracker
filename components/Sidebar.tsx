@@ -23,6 +23,8 @@ export default function Sidebar({
   onDeleteResource,
   onExportProjects,
   onExportResources,
+  currentUser,
+  setCurrentUser,
 }: {
   view: ViewMode;
   setView: (v: ViewMode) => void;
@@ -39,6 +41,8 @@ export default function Sidebar({
   onDeleteResource: (id: string, name: string) => void;
   onExportProjects: () => void;
   onExportResources: () => void;
+  currentUser: string;
+  setCurrentUser: (name: string) => void;
 }) {
   const navItems: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
     { key: "board", label: "Board", icon: <LayoutGrid size={17} /> },
@@ -206,8 +210,26 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div className="mt-auto px-5 py-5 text-xs text-[#a39d8c]">
-        Entegro
+      <div className="mt-auto px-5 py-4 border-t border-[var(--c-line)]">
+        <label className="text-[10px] font-medium uppercase tracking-wide text-[#8a8578] mb-1.5 flex items-center gap-1.5">
+          Commenting as
+        </label>
+        <div className="flex items-center gap-2">
+          <Avatar resource={resources.find((r) => r.name === currentUser)} size={22} />
+          <select
+            value={currentUser}
+            onChange={(e) => setCurrentUser(e.target.value)}
+            className="flex-1 min-w-0 text-sm rounded-lg border border-[var(--c-line)] px-2 py-1.5 bg-white outline-none focus:border-[var(--c-green)]"
+          >
+            <option value="">Not set</option>
+            {resources.map((r) => (
+              <option key={r.id} value={r.name}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="text-[10px] text-[#a39d8c] mt-3">Entegro</p>
       </div>
     </aside>
   );

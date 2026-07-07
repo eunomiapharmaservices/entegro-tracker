@@ -31,6 +31,8 @@ interface Props {
   onDelete: (id: string) => Promise<void>;
   createProject: (name: string, color: string) => Promise<Project>;
   addComment: (taskId: string, body: string, author?: string | null) => Promise<TaskComment>;
+  currentUser: string;
+  setCurrentUser: (name: string) => void;
 }
 
 export default function TaskModal({
@@ -46,6 +48,8 @@ export default function TaskModal({
   onDelete,
   createProject,
   addComment,
+  currentUser,
+  setCurrentUser,
 }: Props) {
   const isNew = !task;
   const [title, setTitle] = useState(task?.title ?? "");
@@ -79,15 +83,8 @@ export default function TaskModal({
   );
   const [progress, setProgress] = useState(task?.progress_percent ?? 0);
   const [newCommentText, setNewCommentText] = useState("");
-  const [commentAuthor, setCommentAuthor] = useState("");
+  const [commentAuthor, setCommentAuthor] = useState(currentUser);
   const [postingComment, setPostingComment] = useState(false);
-
-  // Remember who was last commenting on this browser, as a convenience —
-  // there's no login, so this just saves re-selecting the same name each time.
-  useEffect(() => {
-    const saved = window.localStorage.getItem("entegro-comment-author");
-    if (saved) setCommentAuthor(saved);
-  }, []);
 
   // Tracks projects created during this modal session (e.g. auto-created
   // site projects) so repeated lookups don't create duplicates before the
@@ -184,7 +181,7 @@ export default function TaskModal({
     setPostingComment(true);
     try {
       await addComment(savedTaskId, newCommentText.trim(), commentAuthor || null);
-      if (commentAuthor) window.localStorage.setItem("entegro-comment-author", commentAuthor);
+      if (commentAuthor && commentAuthor !== currentUser) setCurrentUser(commentAuthor);
       setNewCommentText("");
     } finally {
       setPostingComment(false);

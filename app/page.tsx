@@ -15,6 +15,7 @@ import ProjectModal from "@/components/ProjectModal";
 import ResourceModal from "@/components/ResourceModal";
 import ImportModal from "@/components/ImportModal";
 import { useTaskData } from "@/lib/useTaskData";
+import { useCurrentUser } from "@/lib/useCurrentUser";
 import { Status, Task } from "@/lib/types";
 import { downloadCSV } from "@/lib/csvImport";
 
@@ -35,6 +36,7 @@ export default function Home() {
     deleteResource,
     addComment,
   } = useTaskData();
+  const { currentUser, setCurrentUser } = useCurrentUser();
 
   const [view, setView] = useState<ViewMode>("board");
   const [activeProject, setActiveProject] = useState<string | null>(null);
@@ -208,6 +210,8 @@ export default function Home() {
         onDeleteResource={handleDeleteResource}
         onExportProjects={handleExportProjects}
         onExportResources={handleExportResources}
+        currentUser={currentUser}
+        setCurrentUser={setCurrentUser}
       />
 
       <main className="flex-1 p-7 flex flex-col min-w-0">
@@ -285,6 +289,7 @@ export default function Home() {
                 tasks={filteredTasks}
                 resources={resources}
                 onOpenTask={(t) => setModalTask(t)}
+                onDeleteTask={deleteTask}
               />
             )}
           </div>
@@ -305,6 +310,8 @@ export default function Home() {
           onDelete={deleteTask}
           createProject={createProject}
           addComment={addComment}
+          currentUser={currentUser}
+          setCurrentUser={setCurrentUser}
         />
       )}
 

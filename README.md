@@ -129,10 +129,13 @@ data. New installs already have them via `schema.sql`.
 - **Raised by** is now a dropdown of your People list, instead of free text
   (still shows the existing value even if that person isn't in People yet).
 - **Comments** are a timestamped log — each entry records who posted it and
-  when (date + time), with a "Commenting as" dropdown and a **Post** button
-  next to the comment box. Your last-used name is remembered in the browser
-  so you don't have to reselect it every time. Anything imported into the old
-  single `comments` column still shows at the top as an "Imported note".
+  when (date + time), with a "Post" button next to the comment box.
+- **Commenting as** — set your name once at the bottom of the sidebar and
+  it's remembered on that browser/device, so comments get attributed to you
+  automatically without reselecting every time. There's no login behind
+  this — it's just a convenience, not access control; anyone can change it
+  (including on someone else's device), and each comment box still lets you
+  pick a different name for that one entry if needed.
 - **Status** now includes **On hold**, alongside To do / In progress / In
   review / Done.
 - **Task type** now includes **Training** in the suggestions list (still free
@@ -152,10 +155,17 @@ and add the auto-completion-date trigger.
 
 ## List view
 
-A new **List** item in the sidebar shows every task in a sortable table —
-Task, Assigned to, EID, Site name, Task type, Status, Date added, Date
-completed. Click any column header to sort by it (click again to reverse).
-Subtasks are shown indented under their parent with a ↳ marker.
+A **List** item in the sidebar shows every task in a filterable, sortable
+table — Task, Assigned to, EID, Site name, Task type, Status, Date added,
+Date completed.
+
+- Click any column header to sort by it (click again to reverse).
+- Each column has its own filter box right under the header — type in any of
+  them to narrow the list; filters combine (all active ones apply together).
+- Select rows with the checkboxes (or the header checkbox for all currently
+  filtered rows) to **export just the selected rows** or **delete them in
+  bulk**, both from a small toolbar that appears above the table.
+- Subtasks are shown indented under their parent with a ↳ marker.
 
 ## Exporting people, projects, and tasks
 
