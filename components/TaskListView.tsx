@@ -15,7 +15,7 @@ type ColKey =
   | "task_type"
   | "status"
   | "progress"
-  | "date_added"
+  | "due_date"
   | "actual_completion";
 
 const COLUMNS: { key: ColKey; label: string }[] = [
@@ -27,7 +27,7 @@ const COLUMNS: { key: ColKey; label: string }[] = [
   { key: "task_type", label: "Task type" },
   { key: "status", label: "Status" },
   { key: "progress", label: "Progress" },
-  { key: "date_added", label: "Date added" },
+  { key: "due_date", label: "Due date" },
   { key: "actual_completion", label: "Date completed" },
 ];
 
@@ -44,7 +44,7 @@ export default function TaskListView({
   onOpenTask: (task: Task) => void;
   onDeleteTask: (id: string) => Promise<void>;
 }) {
-  const [sortKey, setSortKey] = useState<ColKey>("date_added");
+  const [sortKey, setSortKey] = useState<ColKey>("due_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [filters, setFilters] = useState<Record<ColKey, string>>({
     title: "",
@@ -55,7 +55,7 @@ export default function TaskListView({
     task_type: "",
     status: "",
     progress: "",
-    date_added: "",
+    due_date: "",
     actual_completion: "",
   });
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -84,8 +84,8 @@ export default function TaskListView({
         return STATUS_LABELS[t.status];
       case "progress":
         return `${t.progress_percent}%`;
-      case "date_added":
-        return t.date_added ? fmt(t.date_added) : "";
+      case "due_date":
+        return t.due_date ? fmt(t.due_date) : "";
       case "actual_completion":
         return t.actual_completion ? fmt(t.actual_completion) : "";
       default:
@@ -94,7 +94,7 @@ export default function TaskListView({
   }
 
   function sortValue(t: Task, key: ColKey): string {
-    if (key === "date_added") return t.date_added || t.created_at.slice(0, 10) || "";
+    if (key === "due_date") return t.due_date || "";
     if (key === "actual_completion") return t.actual_completion || "";
     if (key === "progress") return String(t.progress_percent).padStart(3, "0");
     return cellText(t, key).toLowerCase();
@@ -319,7 +319,7 @@ export default function TaskListView({
                   className="px-3 py-2.5 whitespace-nowrap text-[#8a8578] text-xs font-mono"
                   onClick={() => onOpenTask(t)}
                 >
-                  {t.date_added ? fmt(t.date_added) : "—"}
+                  {t.due_date ? fmt(t.due_date) : "—"}
                 </td>
                 <td
                   className="px-3 py-2.5 whitespace-nowrap text-[#8a8578] text-xs font-mono"

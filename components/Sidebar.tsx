@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRight, LogOut } from "lucide-react";
+import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRight, LogOut, ShieldCheck } from "lucide-react";
 import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users, List } from "lucide-react";
 import { useState } from "react";
 import { Project, Resource } from "@/lib/types";
@@ -18,17 +18,14 @@ export default function Sidebar({
   activeResource,
   setActiveResource,
   onNewTask,
-  onNewProject,
-  onNewResource,
   onArchiveProject,
   onUnarchiveProject,
-  onDeleteProjectPermanently,
-  onDeleteResource,
   onExportProjects,
   onExportResources,
   currentUser,
   setCurrentUser,
   onSignOut,
+  onManageAccess,
 }: {
   view: ViewMode;
   setView: (v: ViewMode) => void;
@@ -39,17 +36,14 @@ export default function Sidebar({
   activeResource: string | null;
   setActiveResource: (id: string | null) => void;
   onNewTask: () => void;
-  onNewProject: () => void;
-  onNewResource: () => void;
   onArchiveProject: (id: string, name: string) => void;
   onUnarchiveProject: (id: string, name: string) => void;
-  onDeleteProjectPermanently: (id: string, name: string) => void;
-  onDeleteResource: (id: string, name: string) => void;
   onExportProjects: () => void;
   onExportResources: () => void;
   currentUser: string;
   setCurrentUser: (name: string) => void;
   onSignOut: () => void;
+  onManageAccess: () => void;
 }) {
   const [showArchived, setShowArchived] = useState(false);
   const sortByName = (a: Project, b: Project) =>
@@ -114,13 +108,6 @@ export default function Sidebar({
               className="text-[#8a8578] hover:text-[var(--c-ink)]"
             >
               <Download size={13} />
-            </button>
-            <button
-              onClick={onNewProject}
-              title="Add project"
-              className="text-[#8a8578] hover:text-[var(--c-ink)]"
-            >
-              <Plus size={14} />
             </button>
           </div>
         </div>
@@ -194,16 +181,9 @@ export default function Sidebar({
                     <button
                       onClick={() => onUnarchiveProject(p.id, p.name)}
                       title={`Restore ${p.name}`}
-                      className="shrink-0 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[var(--c-green)] transition-opacity"
+                      className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[var(--c-green)] transition-opacity"
                     >
                       <ArchiveRestore size={13} />
-                    </button>
-                    <button
-                      onClick={() => onDeleteProjectPermanently(p.id, p.name)}
-                      title={`Delete ${p.name} permanently`}
-                      className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[#C23B3B] transition-opacity"
-                    >
-                      <Trash2 size={13} />
                     </button>
                   </div>
                 ))}
@@ -226,13 +206,6 @@ export default function Sidebar({
             >
               <Download size={13} />
             </button>
-            <button
-              onClick={onNewResource}
-              title="Add person"
-              className="text-[#8a8578] hover:text-[var(--c-ink)]"
-            >
-              <Plus size={14} />
-            </button>
           </div>
         </div>
         <div className="flex flex-col gap-0.5">
@@ -245,29 +218,16 @@ export default function Sidebar({
             Everyone
           </button>
           {resources.map((r) => (
-            <div
+            <button
               key={r.id}
-              className={`group flex items-center gap-1 rounded-md ${
-                activeResource === r.id ? "bg-black/5" : "hover:bg-black/5"
+              onClick={() => setActiveResource(r.id)}
+              className={`text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
+                activeResource === r.id ? "bg-black/5 font-medium" : "hover:bg-black/5 text-[#4d574f]"
               }`}
             >
-              <button
-                onClick={() => setActiveResource(r.id)}
-                className={`flex-1 min-w-0 text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
-                  activeResource === r.id ? "font-medium" : "text-[#4d574f]"
-                }`}
-              >
-                <Avatar resource={r} size={20} />
-                <span className="truncate">{r.name}</span>
-              </button>
-              <button
-                onClick={() => onDeleteResource(r.id, r.name)}
-                title={`Remove ${r.name}`}
-                className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[#C23B3B] transition-opacity"
-              >
-                <Trash2 size={13} />
-              </button>
-            </div>
+              <Avatar resource={r} size={20} />
+              <span className="truncate">{r.name}</span>
+            </button>
           ))}
         </div>
       </div>
@@ -292,7 +252,13 @@ export default function Sidebar({
           </select>
         </div>
         <div className="flex items-center justify-between mt-3">
-          <p className="text-[10px] text-[#a39d8c]">Entegro</p>
+          <button
+            onClick={onManageAccess}
+            className="flex items-center gap-1 text-[10px] text-[#8a8578] hover:text-[var(--c-ink)]"
+          >
+            <ShieldCheck size={11} />
+            Manage access
+          </button>
           <button
             onClick={onSignOut}
             className="flex items-center gap-1 text-[10px] text-[#8a8578] hover:text-[#C23B3B]"

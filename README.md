@@ -80,22 +80,31 @@ works the same way; Vercel redeploys on every push.
 
 ## Login and registration
 
-- Go to `/register` to create an account. Registration is limited to
-  `@lumen.com` email addresses (checked in the browser) — change this in
-  `lib/auth.ts` (`ALLOWED_EMAIL_DOMAIN`) if the domain is ever different.
+- Go to `/register` to create an account. Registration requires **both**:
+  - An `@lumen.com` email address (change the domain in `lib/auth.ts` —
+    `ALLOWED_EMAIL_DOMAIN` — if that's ever different), and
+  - Being on the **allowed emails list** — a specific set of pre-approved
+    addresses, not just anyone on the domain. Manage this list via **Manage
+    access** at the bottom of the sidebar once you're signed in: add an email
+    (with an optional note) before that person can register: attempting to
+    register with an address that isn't listed is blocked with a clear
+    message.
 - Password policy: at least 8 characters, one uppercase letter, one
   lowercase letter, one number. Shown live on the registration form.
 - Once signed in, every page requires a valid session — there's no more
   "anyone with the link" access. Sign out from the bottom of the sidebar.
-- **Worth knowing**: the `@lumen.com` domain check happens in the browser,
-  which stops normal sign-ups from other domains but wouldn't stop someone
-  deliberately calling the Supabase Auth API directly with a different
-  email. `supabase/migration_005_auth.sql` has an optional note on closing
-  that gap server-side via a Supabase Auth Hook, if that level of hardening
-  matters for your use case.
 - If you already had the tracker deployed before this update, run
+  `supabase/migration_006_allowed_emails.sql`, then add at least one allowed
+  email (via **Manage access** once you can sign in, or directly in SQL) —
+  otherwise no one new can register at all.
+- **Worth knowing**: the domain and allowlist checks happen in the browser,
+  which stops normal sign-ups but wouldn't stop someone deliberately calling
+  the Supabase Auth API directly. `supabase/migration_005_auth.sql` has an
+  optional note on closing that gap server-side via a Supabase Auth Hook, if
+  that level of hardening matters for your use case.
+- If you already had the tracker deployed before the *previous* update, run
   `supabase/migration_005_auth.sql` in the Supabase SQL editor — it switches
-  every table's access policy from "anyone" to "must be signed in". Do this
+  every table's access policy from "anyone" to "must be signed in." Do this
   only after you've registered at least one account, or you'll lock
   yourself out of the data (you can still register/sign in either way, just
   the data screens would show empty/error until an account exists).
@@ -256,11 +265,40 @@ If you already had the tracker deployed before this update, run
 (in that order) — they widen the status field, add the comments log table,
 and add the auto-completion-date trigger.
 
+## Task editor refinements
+
+- **Date added** now defaults to today automatically for new tasks — no need
+  to pick it, though you still can if it should be backdated.
+- **Picking an existing project auto-fills EID and site name.** Project
+  names created from an EID follow the pattern "EID - Site" (e.g.
+  "6986 - Charlotte") — selecting one of those from the Project dropdown now
+  parses that back out and fills the EID/site fields, so the mandatory EID
+  requirement is satisfied without retyping something you just picked.
+- **Project dropdown is now sorted** the same numeric-aware way as the
+  sidebar, so EID-prefixed project names are easy to scan in order.
+
+## Calendar refinements
+
+- **Completed tasks no longer appear** on the calendar in any view — once a
+  task is Completed, it's done, so it drops off Month/Week/Day (it's still
+  fully visible in List, Timeline, Board, and People).
+- **Only due dates are shown, not start dates.** Day view previously also
+  listed tasks starting that day; that's been removed everywhere for
+  consistency — the calendar now shows exactly two things: a task's due date
+  and any milestone date, matching Month and Week view.
+
+## Keeping data in sync
+
+The app now refreshes data from the database every 60 seconds in the
+background, so changes made by someone else on a different device show up
+without needing a manual page reload. Your own edits still feel instant —
+they update on-screen immediately and don't wait for the next refresh cycle.
+
 ## List view
 
 A **List** item in the sidebar shows every task in a filterable, sortable
 table — Task, Assigned to, Project, EID, Site name, Task type, Status,
-Progress, Date added, Date completed.
+Progress, Due date, Date completed.
 
 - Click any column header to sort by it (click again to reverse).
 - Each column has its own filter box right under the header — type in any of
@@ -304,27 +342,28 @@ bulk — useful for migrating an existing task list or spreadsheet in one go.
   need attention) plus a warning for any row that couldn't be matched (e.g. a
   misspelled `parent_task`).
 
-## Adding, archiving, and removing people and projects
+## Projects and people — archive only, no add/delete in the UI
 
-- **People**: click the **+** next to "People" to add someone (name + a
-  colour for their avatar). Hover a person's row and click the trash icon to
-  remove them — this now requires typing their exact name to confirm (a
-  deliberate speed bump, not real access control — there's still no login, so
-  this is about preventing accidental clicks, not restricting who can do it).
-  Their tasks become unassigned rather than being deleted.
-- **Projects — archive instead of delete**: hover a project's row and click
-  the archive icon to move it out of the active list — for when you're done
-  working an EID/site and don't want it cluttering the sidebar forever, without
-  losing the history. Archived projects collapse into an "Archived (N)" section
-  further down; click to expand it, and you can still filter tasks by an
-  archived project the same way as an active one.
-  - **Restore**: click the restore icon on an archived project to bring it back
-    to the active list.
-  - **Delete permanently**: only available on archived projects, and requires
-    typing the exact project name to confirm. Tasks in a deleted project
-    become unassigned rather than being deleted themselves.
-  - The manual "Project" dropdown when editing a task hides archived projects
-    by default (so new tasks don't get pointed at closed-out sites), except
-    the one a task is already assigned to, which still shows so you can see
-    or change it.
+To keep this from being a free-for-all, the sidebar no longer has "+" buttons
+to add projects or people, or trash icons to delete them:
+
+- **Projects can still be archived and restored** — hover a project, click
+  the archive icon to move it out of the active list (for closed-out
+  EIDs/sites you don't want cluttering the sidebar forever). Archived
+  projects collapse into an "Archived (N)" section; click to expand, restore
+  with the icon there, and you can still filter tasks by an archived project
+  the same as an active one. There's no "delete permanently" option anymore
+  — archiving is as final as it gets from the UI.
+- **New projects and people** now come from two places instead of a sidebar
+  button:
+  - **CSV import** (the Import button in the top bar) — importing tasks that
+    reference a new project/person name, or a new EID/site, creates them
+    automatically. Importing directly on the People or Projects tabs works
+    too.
+  - **Directly in Supabase** — Table Editor → `projects` or `resources`, for
+    one-off additions without a CSV.
+- If this is more restrictive than you wanted (e.g. you'd like a
+  designated "admin" role that still gets add/delete buttons in the UI while
+  everyone else doesn't), that would need a proper roles system — let me
+  know if that's worth building out.
 

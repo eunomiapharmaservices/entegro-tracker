@@ -20,7 +20,7 @@ function startOfWeek(d: Date): Date {
   return addDays(d, -day);
 }
 
-type TasksOnDayFn = (iso: string) => { milestones: Task[]; due: Task[]; starting: Task[] };
+type TasksOnDayFn = (iso: string) => { milestones: Task[]; due: Task[] };
 
 export default function CalendarView({
   tasks,
@@ -35,11 +35,13 @@ export default function CalendarView({
   const [mode, setMode] = useState<CalMode>("month");
   const today = isoDate(new Date());
 
+  // Completed tasks don't need a calendar spot — they're done.
+  const activeTasks = tasks.filter((t) => t.status !== "done");
+
   function tasksOnDay(iso: string) {
-    const milestones = tasks.filter((t) => t.is_milestone && t.milestone_date === iso);
-    const due = tasks.filter((t) => !t.is_milestone && t.due_date === iso);
-    const starting = tasks.filter((t) => !t.is_milestone && t.start_date === iso);
-    return { milestones, due, starting };
+    const milestones = activeTasks.filter((t) => t.is_milestone && t.milestone_date === iso);
+    const due = activeTasks.filter((t) => !t.is_milestone && t.due_date === iso);
+    return { milestones, due };
   }
 
   function resourceName(id: string | null) {
@@ -344,12 +346,11 @@ function DayAgenda({
   resourceName: (id: string | null) => string | null;
 }) {
   const iso = isoDate(cursor);
-  const { milestones, due, starting } = tasksOnDay(iso);
+  const { milestones, due } = tasksOnDay(iso);
   const isToday = iso === today;
   const rows: { task: Task; kind: string }[] = [
     ...milestones.map((task) => ({ task, kind: "Milestone" })),
     ...due.map((task) => ({ task, kind: "Due" })),
-    ...starting.map((task) => ({ task, kind: "Starts" })),
   ];
 
   return (

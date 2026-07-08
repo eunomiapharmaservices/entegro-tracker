@@ -37,6 +37,21 @@ export default function RegisterPage() {
     }
 
     setSubmitting(true);
+
+    const { data: allowed, error: rpcError } = await supabase.rpc("is_email_allowed", {
+      check_email: email.trim(),
+    });
+    if (rpcError) {
+      setSubmitting(false);
+      setError("Couldn't verify access right now — try again in a moment.");
+      return;
+    }
+    if (!allowed) {
+      setSubmitting(false);
+      setError("This email hasn't been approved for registration. Ask an admin to add it first.");
+      return;
+    }
+
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
@@ -71,7 +86,8 @@ export default function RegisterPage() {
         <div className="bg-white rounded-2xl border border-[var(--c-line)] p-6">
           <h1 className="font-display font-semibold text-lg mb-1">Create an account</h1>
           <p className="text-sm text-[#8a8578] mb-5">
-            Registration is limited to @{ALLOWED_EMAIL_DOMAIN} email addresses.
+            Registration is limited to approved @{ALLOWED_EMAIL_DOMAIN} addresses.
+            Ask an admin to add yours first if you haven't been invited.
           </p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">

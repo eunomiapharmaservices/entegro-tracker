@@ -11,10 +11,8 @@ import CalendarView from "@/components/CalendarView";
 import PeopleDashboard from "@/components/PeopleDashboard";
 import TaskListView from "@/components/TaskListView";
 import TaskModal from "@/components/TaskModal";
-import ProjectModal from "@/components/ProjectModal";
-import ResourceModal from "@/components/ResourceModal";
 import ImportModal from "@/components/ImportModal";
-import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import AllowedEmailsModal from "@/components/AllowedEmailsModal";
 import AuthGate from "@/components/AuthGate";
 import { useTaskData } from "@/lib/useTaskData";
 import { useCurrentUser } from "@/lib/useCurrentUser";
@@ -44,8 +42,6 @@ function HomeContent() {
     createProject,
     updateProject,
     createResource,
-    deleteProject,
-    deleteResource,
     addComment,
   } = useTaskData();
   const { currentUser, setCurrentUser } = useCurrentUser();
@@ -55,17 +51,8 @@ function HomeContent() {
   const [activeResource, setActiveResource] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [modalTask, setModalTask] = useState<Task | null | "new">(null);
-  const [showProjectModal, setShowProjectModal] = useState(false);
-  const [showResourceModal, setShowResourceModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [pendingDeleteProject, setPendingDeleteProject] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-  const [pendingDeleteResource, setPendingDeleteResource] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
+  const [showAllowedEmailsModal, setShowAllowedEmailsModal] = useState(false);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
@@ -110,28 +97,6 @@ function HomeContent() {
 
   function handleUnarchiveProject(id: string, _name: string) {
     updateProject(id, { archived: false });
-  }
-
-  function handleDeleteProjectPermanently(id: string, name: string) {
-    setPendingDeleteProject({ id, name });
-  }
-
-  function confirmDeleteProject() {
-    if (!pendingDeleteProject) return;
-    if (activeProject === pendingDeleteProject.id) setActiveProject(null);
-    deleteProject(pendingDeleteProject.id);
-    setPendingDeleteProject(null);
-  }
-
-  function handleDeleteResource(id: string, name: string) {
-    setPendingDeleteResource({ id, name });
-  }
-
-  function confirmDeleteResource() {
-    if (!pendingDeleteResource) return;
-    if (activeResource === pendingDeleteResource.id) setActiveResource(null);
-    deleteResource(pendingDeleteResource.id);
-    setPendingDeleteResource(null);
   }
 
   async function handleSignOut() {
@@ -236,17 +201,14 @@ function HomeContent() {
         activeResource={activeResource}
         setActiveResource={setActiveResource}
         onNewTask={() => setModalTask("new")}
-        onNewProject={() => setShowProjectModal(true)}
-        onNewResource={() => setShowResourceModal(true)}
         onArchiveProject={handleArchiveProject}
         onUnarchiveProject={handleUnarchiveProject}
-        onDeleteProjectPermanently={handleDeleteProjectPermanently}
-        onDeleteResource={handleDeleteResource}
         onExportProjects={handleExportProjects}
         onExportResources={handleExportResources}
         currentUser={currentUser}
         setCurrentUser={setCurrentUser}
         onSignOut={handleSignOut}
+        onManageAccess={() => setShowAllowedEmailsModal(true)}
       />
 
       <main className="flex-1 p-7 flex flex-col min-w-0">
@@ -351,14 +313,6 @@ function HomeContent() {
         />
       )}
 
-      {showProjectModal && (
-        <ProjectModal onClose={() => setShowProjectModal(false)} onCreate={createProject} />
-      )}
-
-      {showResourceModal && (
-        <ResourceModal onClose={() => setShowResourceModal(false)} onCreate={createResource} />
-      )}
-
       {showImportModal && (
         <ImportModal
           projects={projects}
@@ -372,24 +326,8 @@ function HomeContent() {
         />
       )}
 
-      {pendingDeleteProject && (
-        <ConfirmDeleteModal
-          title="Delete project permanently"
-          message={`This deletes "${pendingDeleteProject.name}" for good. Tasks in it won't be deleted — they'll just become unassigned from any project.`}
-          confirmText={pendingDeleteProject.name}
-          onConfirm={confirmDeleteProject}
-          onCancel={() => setPendingDeleteProject(null)}
-        />
-      )}
-
-      {pendingDeleteResource && (
-        <ConfirmDeleteModal
-          title="Remove person"
-          message={`This removes "${pendingDeleteResource.name}" from the team for good. Their tasks won't be deleted — they'll just become unassigned.`}
-          confirmText={pendingDeleteResource.name}
-          onConfirm={confirmDeleteResource}
-          onCancel={() => setPendingDeleteResource(null)}
-        />
+      {showAllowedEmailsModal && (
+        <AllowedEmailsModal onClose={() => setShowAllowedEmailsModal(false)} />
       )}
     </div>
   );

@@ -74,7 +74,7 @@ export default function TaskModal({
   const [eid, setEid] = useState(task?.eid ?? "");
   const [siteName, setSiteName] = useState(task?.site_name ?? "");
   const [raisedBy, setRaisedBy] = useState(task?.raised_by ?? "");
-  const [dateAdded, setDateAdded] = useState(task?.date_added ?? "");
+  const [dateAdded, setDateAdded] = useState(task?.date_added ?? (task ? "" : isoDate(new Date())));
   const [actualCompletion, setActualCompletion] = useState(task?.actual_completion ?? "");
   const [expectedHours, setExpectedHours] = useState(
     task?.expected_duration_hours != null ? String(task.expected_duration_hours) : ""
@@ -370,11 +370,26 @@ export default function TaskModal({
                 <select
                   className={inputCls}
                   value={projectId ?? ""}
-                  onChange={(e) => setProjectId(e.target.value || null)}
+                  onChange={(e) => {
+                    const id = e.target.value || null;
+                    setProjectId(id);
+                    if (id) {
+                      const p = knownProjects.find((pp) => pp.id === id);
+                      // Existing site projects are named "EID - Site" — parse
+                      // that back out so EID/site don't need retyping, and the
+                      // mandatory EID field is satisfied by picking the project.
+                      const match = p?.name.match(/^(\S+)\s*-\s*(.+)$/);
+                      if (match) {
+                        if (!eid.trim()) setEid(match[1]);
+                        if (!siteName.trim()) setSiteName(match[2]);
+                      }
+                    }
+                  }}
                 >
                   <option value="">No project</option>
                   {knownProjects
                     .filter((p) => !p.archived || p.id === projectId)
+                    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
                     .map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}

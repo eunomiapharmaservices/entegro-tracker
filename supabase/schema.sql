@@ -68,6 +68,40 @@ create table if not exists task_comments (
 
 create index if not exists idx_task_comments_task on task_comments(task_id);
 
+-- Allowed emails: registration is gated to specific pre-approved addresses,
+-- not just a domain. Managed by signed-in users; checked (via the function
+-- below) by the registration page before anyone can sign up.
+create table if not exists allowed_emails (
+  email text primary key,
+  note text,
+  created_at timestamptz default now()
+);
+
+alter table allowed_emails enable row level security;
+
+drop policy if exists "authenticated_all_allowed_emails" on allowed_emails;
+create policy "authenticated_all_allowed_emails" on allowed_emails for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- Callable by anyone (including signed-out visitors on the register page),
+-- but only ever returns true/false — never exposes the list itself.
+create or replace function is_email_allowed(check_email text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from allowed_emails where lower(email) = lower(check_email)
+  );
+$$;
+
+grant execute on function is_email_allowed(text) to anon, authenticated;
+
+-- No rows seeded here on purpose — add at least one allowed email before
+-- anyone can register, e.g.:
+-- insert into allowed_emails (email, note) values ('you@lumen.com', 'First admin');
+
 -- Keep updated_at fresh
 create or replace function set_updated_at()
 returns trigger as $$

@@ -45,6 +45,16 @@ export function useTaskData() {
     reload();
   }, [reload]);
 
+  // Poll for changes made by other people every 60 seconds. Local edits
+  // still feel instant since they update state directly (see below); this
+  // just catches up on anything someone else changed in the meantime.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      reload();
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [reload]);
+
   const createTask = useCallback(
     async (input: Partial<Task>) => {
       const { data, error } = await supabase
