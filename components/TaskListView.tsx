@@ -37,12 +37,14 @@ export default function TaskListView({
   projects,
   onOpenTask,
   onDeleteTask,
+  canDelete,
 }: {
   tasks: Task[];
   resources: Resource[];
   projects: Project[];
   onOpenTask: (task: Task) => void;
   onDeleteTask: (id: string) => Promise<void>;
+  canDelete: boolean;
 }) {
   const [sortKey, setSortKey] = useState<ColKey>("due_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -178,13 +180,15 @@ export default function TaskListView({
             <Download size={12} />
             Export selected
           </button>
-          <button
-            onClick={handleDeleteSelected}
-            className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md bg-white border border-[var(--c-line)] text-[#C23B3B] hover:bg-black/5"
-          >
-            <Trash2 size={12} />
-            Delete selected
-          </button>
+          {canDelete && (
+            <button
+              onClick={handleDeleteSelected}
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md bg-white border border-[var(--c-line)] text-[#C23B3B] hover:bg-black/5"
+            >
+              <Trash2 size={12} />
+              Delete selected
+            </button>
+          )}
           <button
             onClick={() => setSelected(new Set())}
             className="ml-auto text-[#8a8578] hover:text-[var(--c-ink)]"

@@ -34,6 +34,7 @@ interface Props {
   addComment: (taskId: string, body: string, author?: string | null) => Promise<TaskComment>;
   currentUser: string;
   setCurrentUser: (name: string) => void;
+  canDelete: boolean;
 }
 
 export default function TaskModal({
@@ -51,6 +52,7 @@ export default function TaskModal({
   addComment,
   currentUser,
   setCurrentUser,
+  canDelete,
 }: Props) {
   const isNew = !task;
   const [title, setTitle] = useState(task?.title ?? "");
@@ -688,12 +690,14 @@ export default function TaskModal({
                     {st.title}
                   </span>
                   <Avatar resource={resources.find((r) => r.id === st.assigned_to)} size={20} />
-                  <button
-                    onClick={() => onDelete(st.id)}
-                    className="text-[#c9c2b2] hover:text-[#C23B3B]"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  {canDelete && (
+                    <button
+                      onClick={() => onDelete(st.id)}
+                      className="text-[#c9c2b2] hover:text-[#C23B3B]"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -720,13 +724,17 @@ export default function TaskModal({
           </div>
 
           <div className="flex items-center justify-between pt-2 gap-3">
-            <button
-              onClick={handleDelete}
-              className="text-sm text-[#C23B3B] hover:underline flex items-center gap-1 shrink-0"
-            >
-              <Trash2 size={13} />
-              Delete task
-            </button>
+            {canDelete ? (
+              <button
+                onClick={handleDelete}
+                className="text-sm text-[#C23B3B] hover:underline flex items-center gap-1 shrink-0"
+              >
+                <Trash2 size={13} />
+                Delete task
+              </button>
+            ) : (
+              <span />
+            )}
             <div className="flex items-center gap-3">
               {!isValid && (
                 <p className="text-[11px] text-[#C23B3B] text-right">

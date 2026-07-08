@@ -12,10 +12,12 @@ import PeopleDashboard from "@/components/PeopleDashboard";
 import TaskListView from "@/components/TaskListView";
 import TaskModal from "@/components/TaskModal";
 import ImportModal from "@/components/ImportModal";
-import AllowedEmailsModal from "@/components/AllowedEmailsModal";
+import ProjectModal from "@/components/ProjectModal";
+import ManageUsersModal from "@/components/ManageUsersModal";
 import AuthGate from "@/components/AuthGate";
 import { useTaskData } from "@/lib/useTaskData";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { useUserRole } from "@/lib/useUserRole";
 import { supabase } from "@/lib/supabaseClient";
 import { Status, Task } from "@/lib/types";
 import { downloadCSV } from "@/lib/csvImport";
@@ -45,6 +47,7 @@ function HomeContent() {
     addComment,
   } = useTaskData();
   const { currentUser, setCurrentUser } = useCurrentUser();
+  const { userId, isAdminOrAbove } = useUserRole();
 
   const [view, setView] = useState<ViewMode>("board");
   const [activeProject, setActiveProject] = useState<string | null>(null);
@@ -52,7 +55,8 @@ function HomeContent() {
   const [search, setSearch] = useState("");
   const [modalTask, setModalTask] = useState<Task | null | "new">(null);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [showAllowedEmailsModal, setShowAllowedEmailsModal] = useState(false);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showManageUsersModal, setShowManageUsersModal] = useState(false);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
@@ -201,6 +205,7 @@ function HomeContent() {
         activeResource={activeResource}
         setActiveResource={setActiveResource}
         onNewTask={() => setModalTask("new")}
+        onNewProject={() => setShowProjectModal(true)}
         onArchiveProject={handleArchiveProject}
         onUnarchiveProject={handleUnarchiveProject}
         onExportProjects={handleExportProjects}
@@ -208,20 +213,23 @@ function HomeContent() {
         currentUser={currentUser}
         setCurrentUser={setCurrentUser}
         onSignOut={handleSignOut}
-        onManageAccess={() => setShowAllowedEmailsModal(true)}
+        onManageAccess={() => setShowManageUsersModal(true)}
+        isAdminOrAbove={isAdminOrAbove}
       />
 
       <main className="flex-1 p-7 flex flex-col min-w-0">
         <div className="flex items-center justify-between mb-6 shrink-0">
           <h1 className="font-display font-semibold text-2xl">{viewTitles[view]}</h1>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-[var(--c-line)] bg-white hover:bg-black/5"
-            >
-              <Upload size={14} />
-              Import
-            </button>
+            {isAdminOrAbove && (
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-[var(--c-line)] bg-white hover:bg-black/5"
+              >
+                <Upload size={14} />
+                Import
+              </button>
+            )}
             <button
               onClick={handleExportAllTasks}
               className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-[var(--c-line)] bg-white hover:bg-black/5"
@@ -288,6 +296,7 @@ function HomeContent() {
                 projects={projects}
                 onOpenTask={(t) => setModalTask(t)}
                 onDeleteTask={deleteTask}
+                canDelete={isAdminOrAbove}
               />
             )}
           </div>
@@ -310,10 +319,11 @@ function HomeContent() {
           addComment={addComment}
           currentUser={currentUser}
           setCurrentUser={setCurrentUser}
+          canDelete={isAdminOrAbove}
         />
       )}
 
-      {showImportModal && (
+      {showImportModal && isAdminOrAbove && (
         <ImportModal
           projects={projects}
           resources={resources}
@@ -326,8 +336,12 @@ function HomeContent() {
         />
       )}
 
-      {showAllowedEmailsModal && (
-        <AllowedEmailsModal onClose={() => setShowAllowedEmailsModal(false)} />
+      {showProjectModal && isAdminOrAbove && (
+        <ProjectModal onClose={() => setShowProjectModal(false)} onCreate={createProject} />
+      )}
+
+      {showManageUsersModal && isAdminOrAbove && (
+        <ManageUsersModal onClose={() => setShowManageUsersModal(false)} currentUserId={userId} />
       )}
     </div>
   );

@@ -18,6 +18,7 @@ export default function Sidebar({
   activeResource,
   setActiveResource,
   onNewTask,
+  onNewProject,
   onArchiveProject,
   onUnarchiveProject,
   onExportProjects,
@@ -26,6 +27,7 @@ export default function Sidebar({
   setCurrentUser,
   onSignOut,
   onManageAccess,
+  isAdminOrAbove,
 }: {
   view: ViewMode;
   setView: (v: ViewMode) => void;
@@ -36,6 +38,7 @@ export default function Sidebar({
   activeResource: string | null;
   setActiveResource: (id: string | null) => void;
   onNewTask: () => void;
+  onNewProject: () => void;
   onArchiveProject: (id: string, name: string) => void;
   onUnarchiveProject: (id: string, name: string) => void;
   onExportProjects: () => void;
@@ -44,6 +47,7 @@ export default function Sidebar({
   setCurrentUser: (name: string) => void;
   onSignOut: () => void;
   onManageAccess: () => void;
+  isAdminOrAbove: boolean;
 }) {
   const [showArchived, setShowArchived] = useState(false);
   const sortByName = (a: Project, b: Project) =>
@@ -109,6 +113,15 @@ export default function Sidebar({
             >
               <Download size={13} />
             </button>
+            {isAdminOrAbove && (
+              <button
+                onClick={onNewProject}
+                title="Add project"
+                className="text-[#8a8578] hover:text-[var(--c-ink)]"
+              >
+                <Plus size={14} />
+              </button>
+            )}
           </div>
         </div>
         <div className="flex flex-col gap-0.5">
@@ -139,18 +152,20 @@ export default function Sidebar({
                 />
                 <span className="truncate">{p.name}</span>
               </button>
-              <button
-                onClick={() => onArchiveProject(p.id, p.name)}
-                title={`Archive ${p.name}`}
-                className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[var(--c-orange)] transition-opacity"
-              >
-                <Archive size={13} />
-              </button>
+              {isAdminOrAbove && (
+                <button
+                  onClick={() => onArchiveProject(p.id, p.name)}
+                  title={`Archive ${p.name}`}
+                  className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[var(--c-orange)] transition-opacity"
+                >
+                  <Archive size={13} />
+                </button>
+              )}
             </div>
           ))}
         </div>
 
-        {archivedProjects.length > 0 && (
+        {isAdminOrAbove && archivedProjects.length > 0 && (
           <div className="mt-2">
             <button
               onClick={() => setShowArchived((v) => !v)}
@@ -252,13 +267,17 @@ export default function Sidebar({
           </select>
         </div>
         <div className="flex items-center justify-between mt-3">
-          <button
-            onClick={onManageAccess}
-            className="flex items-center gap-1 text-[10px] text-[#8a8578] hover:text-[var(--c-ink)]"
-          >
-            <ShieldCheck size={11} />
-            Manage access
-          </button>
+          {isAdminOrAbove ? (
+            <button
+              onClick={onManageAccess}
+              className="flex items-center gap-1 text-[10px] text-[#8a8578] hover:text-[var(--c-ink)]"
+            >
+              <ShieldCheck size={11} />
+              Manage users
+            </button>
+          ) : (
+            <span />
+          )}
           <button
             onClick={onSignOut}
             className="flex items-center gap-1 text-[10px] text-[#8a8578] hover:text-[#C23B3B]"

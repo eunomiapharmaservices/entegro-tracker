@@ -139,34 +139,96 @@ sending anything.
 Only re-assignment triggers an email — editing other fields on an
 already-assigned task doesn't re-send it.
 
-## Locking it down further
+## Roles: Super User, Admin, Normal User
 
-Login now covers "who can get into the app at all." If you later want
-per-person permissions (e.g. only certain people can delete projects or
-edit others' tasks), that would mean moving beyond the current "any signed-in
-user can do anything" model into role-based policies — a bigger change than
-what's here now. Ask if that becomes a priority.
+Every account has one of three roles, set when they're invited (and changeable
+later by an Admin or Super User):
+
+| | Super User | Admin | Normal User |
+|---|---|---|---|
+| View Board / Timeline / Calendar / List / People | ✓ | ✓ | ✓ |
+| Add / edit tasks | ✓ | ✓ | ✓ |
+| Export (people, projects, tasks) | ✓ | ✓ | ✓ |
+| **Import** (CSV) | ✓ | ✓ | ✗ |
+| **Delete tasks** (editor, or bulk in List) | ✓ | ✓ | ✗ |
+| **Manage projects** (add, archive/restore) | ✓ | ✓ | ✗ (view/select only) |
+| **Manage users** (invite, change roles, delete accounts) | ✓ | ✓ | ✗ |
+
+There's no functional difference between Super and Admin in this build — the
+distinction exists so you have a designated "owner" role name (Super) versus
+"can also do admin things" (Admin), in case that matters later for optics or
+future features. Both currently unlock the same set of admin actions.
+
+**Setting it up:**
+
+1. Run `supabase/migration_007_roles.sql` (after `migration_005_auth.sql` and
+   `migration_006_allowed_emails.sql`, if you haven't already run those).
+2. **Bootstrap your first Super User directly in SQL** — the in-app "Manage
+   users" panel itself requires being an Admin/Super to see, so the very
+   first one has to be set up outside the app:
+   ```sql
+   insert into allowed_emails (email, role) values ('sulabh@lumen.com', 'super')
+   on conflict (email) do update set role = 'super';
+   ```
+   Then have that person register normally at `/register` — their account
+   automatically gets the Super role from the allowlist entry.
+3. Once signed in as Super/Admin, use **Manage users** (bottom of the
+   sidebar) for everyone else: invite an email with a role, or change an
+   existing account's role, or delete an account entirely.
+4. If people had already registered *before* this migration, back-fill their
+   roles once via SQL (the migration file has commented-out examples ready
+   to edit with your real emails):
+   ```sql
+   update profiles set role = 'super' where lower(email) = lower('sulabh@lumen.com');
+   update profiles set role = 'admin' where lower(email) in
+     (lower('dharmeshkumar.mehta@lumen.com'), lower('gokul@lumen.com'));
+   ```
+
+**Deleting a user account** needs one more piece of setup: a
+`SUPABASE_SERVICE_ROLE_KEY` environment variable (Project Settings → API →
+`service_role` key in Supabase). This key bypasses all security rules, so:
+
+- **Never** prefix it with `NEXT_PUBLIC_` — it must only exist server-side.
+- It's used exclusively by `/api/admin/delete-user`, which independently
+  re-checks the caller's role server-side before deleting anything — a
+  Normal user calling that endpoint directly would still be rejected, even
+  with a valid session.
+- Without this key set, role changes still work fine (that's a normal
+  database update) — only the "delete this account entirely" button will
+  fail with a clear error until it's configured.
+
+**What "Manage projects" restriction actually covers**: Normal users can
+still view, filter by, and select projects — including having a new one
+auto-created behind the scenes when they type a brand-new EID while creating
+a task (that's core to how normal task creation works for the network-ops
+side of the tracker). What they can't do is use the sidebar's manual "add
+project" button, or archive/restore an existing one — those stay Admin/Super
+only.
 
 ## Project structure
 
 ```
 app/page.tsx            Main dashboard (view switching, filters, search)
 app/login/page.tsx       Sign in
-app/register/page.tsx    Registration (domain + password checks)
+app/register/page.tsx    Registration (allowlist + password checks)
 app/api/notify-assignment/route.ts   Sends assignment emails via Resend
+app/api/admin/delete-user/route.ts   Deletes a user account (Admin/Super only)
 components/
   AuthGate.tsx           Redirects to /login if not signed in
+  ManageUsersModal.tsx    Invite/role/delete accounts (Admin/Super only)
   Sidebar.tsx            Nav, project filter, people filter, sign out
   KanbanBoard.tsx         Board view with drag-and-drop
   TimelineView.tsx        Gantt-style timeline
-  CalendarView.tsx        Month calendar with milestones
+  CalendarView.tsx        Month/Week/Day calendar with milestones
   TaskModal.tsx           Create/edit task, subtasks, milestone toggle
-  ProjectModal.tsx        Create a new project
+  ProjectModal.tsx        Create a new project (Admin/Super only)
   Avatar.tsx              Resource avatar (initials + colour)
 lib/
   types.ts                Shared TypeScript types
   supabaseClient.ts        Supabase client
   auth.ts                  Email domain + password validation
+  useUserRole.ts           Current user's role (super/admin/normal)
+  useManageUsers.ts        Allowlist + profile management for admins
   notifyAssignment.ts      Client helper for assignment emails
   useTaskData.ts           Data loading + create/update/delete
   dateUtils.ts             Date formatting helpers
@@ -342,28 +404,21 @@ bulk — useful for migrating an existing task list or spreadsheet in one go.
   need attention) plus a warning for any row that couldn't be matched (e.g. a
   misspelled `parent_task`).
 
-## Projects and people — archive only, no add/delete in the UI
+## Projects — who can add/archive/delete
 
-To keep this from being a free-for-all, the sidebar no longer has "+" buttons
-to add projects or people, or trash icons to delete them:
+This is now governed by the role system above rather than being universally
+locked down:
 
-- **Projects can still be archived and restored** — hover a project, click
-  the archive icon to move it out of the active list (for closed-out
-  EIDs/sites you don't want cluttering the sidebar forever). Archived
-  projects collapse into an "Archived (N)" section; click to expand, restore
-  with the icon there, and you can still filter tasks by an archived project
-  the same as an active one. There's no "delete permanently" option anymore
-  — archiving is as final as it gets from the UI.
-- **New projects and people** now come from two places instead of a sidebar
-  button:
-  - **CSV import** (the Import button in the top bar) — importing tasks that
-    reference a new project/person name, or a new EID/site, creates them
-    automatically. Importing directly on the People or Projects tabs works
-    too.
-  - **Directly in Supabase** — Table Editor → `projects` or `resources`, for
-    one-off additions without a CSV.
-- If this is more restrictive than you wanted (e.g. you'd like a
-  designated "admin" role that still gets add/delete buttons in the UI while
-  everyone else doesn't), that would need a proper roles system — let me
-  know if that's worth building out.
+- **Admin/Super** see a "+" next to "Projects" in the sidebar to add one, and
+  an archive icon on hover to move a project out of the active list (for
+  closed-out EIDs/sites) — with a matching restore icon in the collapsed
+  "Archived (N)" section. There's no "delete permanently" for projects;
+  archiving is as final as it gets from the UI.
+- **Normal users** don't see any of those controls — they can still view,
+  filter by, and select any active project, and new projects still get
+  auto-created behind the scenes when they enter a new EID on a task (that
+  keeps working regardless of role, since it's core to normal task entry).
+- **People** still have no add/delete UI for any role — new ones come from
+  CSV import (Admin/Super only) or directly in Supabase's Table Editor
+  (`resources` table).
 
