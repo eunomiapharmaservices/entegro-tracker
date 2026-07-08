@@ -2,6 +2,28 @@
 -- Run this in Supabase SQL Editor if you already had the tracker deployed
 -- before this update. Safe to run more than once.
 
+-- 0. Make sure allowed_emails exists — in case migration_006 was skipped
+create table if not exists allowed_emails (
+  email text primary key,
+  note text,
+  created_at timestamptz default now()
+);
+
+alter table allowed_emails enable row level security;
+
+create or replace function is_email_allowed(check_email text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from allowed_emails where lower(email) = lower(check_email)
+  );
+$$;
+
+grant execute on function is_email_allowed(text) to anon, authenticated;
+
 -- 1. Add role to the allowlist (defaults everyone existing to 'normal')
 alter table allowed_emails add column if not exists role text not null default 'normal'
   check (role in ('super','admin','normal'));

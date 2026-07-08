@@ -19,8 +19,10 @@ export default function Sidebar({
   setActiveResource,
   onNewTask,
   onNewProject,
+  onNewResource,
   onArchiveProject,
   onUnarchiveProject,
+  onDeleteResource,
   onExportProjects,
   onExportResources,
   currentUser,
@@ -39,8 +41,10 @@ export default function Sidebar({
   setActiveResource: (id: string | null) => void;
   onNewTask: () => void;
   onNewProject: () => void;
+  onNewResource: () => void;
   onArchiveProject: (id: string, name: string) => void;
   onUnarchiveProject: (id: string, name: string) => void;
+  onDeleteResource: (id: string, name: string) => void;
   onExportProjects: () => void;
   onExportResources: () => void;
   currentUser: string;
@@ -221,6 +225,15 @@ export default function Sidebar({
             >
               <Download size={13} />
             </button>
+            {isAdminOrAbove && (
+              <button
+                onClick={onNewResource}
+                title="Add person"
+                className="text-[#8a8578] hover:text-[var(--c-ink)]"
+              >
+                <Plus size={14} />
+              </button>
+            )}
           </div>
         </div>
         <div className="flex flex-col gap-0.5">
@@ -233,16 +246,31 @@ export default function Sidebar({
             Everyone
           </button>
           {resources.map((r) => (
-            <button
+            <div
               key={r.id}
-              onClick={() => setActiveResource(r.id)}
-              className={`text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
-                activeResource === r.id ? "bg-black/5 font-medium" : "hover:bg-black/5 text-[#4d574f]"
+              className={`group flex items-center gap-1 rounded-md ${
+                activeResource === r.id ? "bg-black/5" : "hover:bg-black/5"
               }`}
             >
-              <Avatar resource={r} size={20} />
-              <span className="truncate">{r.name}</span>
-            </button>
+              <button
+                onClick={() => setActiveResource(r.id)}
+                className={`flex-1 min-w-0 text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
+                  activeResource === r.id ? "font-medium" : "text-[#4d574f]"
+                }`}
+              >
+                <Avatar resource={r} size={20} />
+                <span className="truncate">{r.name}</span>
+              </button>
+              {isAdminOrAbove && (
+                <button
+                  onClick={() => onDeleteResource(r.id, r.name)}
+                  title={`Remove ${r.name}`}
+                  className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[#C23B3B] transition-opacity"
+                >
+                  <Trash2 size={13} />
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </div>

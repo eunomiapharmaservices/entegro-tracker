@@ -13,6 +13,7 @@ import TaskListView from "@/components/TaskListView";
 import TaskModal from "@/components/TaskModal";
 import ImportModal from "@/components/ImportModal";
 import ProjectModal from "@/components/ProjectModal";
+import ResourceModal from "@/components/ResourceModal";
 import ManageUsersModal from "@/components/ManageUsersModal";
 import AuthGate from "@/components/AuthGate";
 import { useTaskData } from "@/lib/useTaskData";
@@ -44,6 +45,7 @@ function HomeContent() {
     createProject,
     updateProject,
     createResource,
+    deleteResource,
     addComment,
   } = useTaskData();
   const { currentUser, setCurrentUser } = useCurrentUser();
@@ -56,6 +58,7 @@ function HomeContent() {
   const [modalTask, setModalTask] = useState<Task | null | "new">(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showResourceModal, setShowResourceModal] = useState(false);
   const [showManageUsersModal, setShowManageUsersModal] = useState(false);
 
   const filteredTasks = useMemo(() => {
@@ -101,6 +104,12 @@ function HomeContent() {
 
   function handleUnarchiveProject(id: string, _name: string) {
     updateProject(id, { archived: false });
+  }
+
+  function handleDeleteResource(id: string, name: string) {
+    if (!confirm(`Remove ${name}? Their tasks will just become unassigned, not deleted.`)) return;
+    deleteResource(id);
+    if (activeResource === id) setActiveResource(null);
   }
 
   async function handleSignOut() {
@@ -206,8 +215,10 @@ function HomeContent() {
         setActiveResource={setActiveResource}
         onNewTask={() => setModalTask("new")}
         onNewProject={() => setShowProjectModal(true)}
+        onNewResource={() => setShowResourceModal(true)}
         onArchiveProject={handleArchiveProject}
         onUnarchiveProject={handleUnarchiveProject}
+        onDeleteResource={handleDeleteResource}
         onExportProjects={handleExportProjects}
         onExportResources={handleExportResources}
         currentUser={currentUser}
@@ -338,6 +349,10 @@ function HomeContent() {
 
       {showProjectModal && isAdminOrAbove && (
         <ProjectModal onClose={() => setShowProjectModal(false)} onCreate={createProject} />
+      )}
+
+      {showResourceModal && isAdminOrAbove && (
+        <ResourceModal onClose={() => setShowResourceModal(false)} onCreate={createResource} />
       )}
 
       {showManageUsersModal && isAdminOrAbove && (

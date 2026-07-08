@@ -418,7 +418,8 @@ locked down:
   filter by, and select any active project, and new projects still get
   auto-created behind the scenes when they enter a new EID on a task (that
   keeps working regardless of role, since it's core to normal task entry).
-- **People** still have no add/delete UI for any role — new ones come from
-  CSV import (Admin/Super only) or directly in Supabase's Table Editor
-  (`resources` table).
+- **People** now have the same treatment as Projects: Admin/Super see a "+"
+  to add someone and a trash icon on hover to remove them (their tasks
+  become unassigned, not deleted). Normal users can still view, filter by,
+  and select any person — same pattern as Projects.
 
