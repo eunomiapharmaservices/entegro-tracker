@@ -15,12 +15,22 @@ import ProjectModal from "@/components/ProjectModal";
 import ResourceModal from "@/components/ResourceModal";
 import ImportModal from "@/components/ImportModal";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import AuthGate from "@/components/AuthGate";
 import { useTaskData } from "@/lib/useTaskData";
 import { useCurrentUser } from "@/lib/useCurrentUser";
+import { supabase } from "@/lib/supabaseClient";
 import { Status, Task } from "@/lib/types";
 import { downloadCSV } from "@/lib/csvImport";
 
 export default function Home() {
+  return (
+    <AuthGate>
+      <HomeContent />
+    </AuthGate>
+  );
+}
+
+function HomeContent() {
   const {
     tasks,
     resources,
@@ -122,6 +132,10 @@ export default function Home() {
     if (activeResource === pendingDeleteResource.id) setActiveResource(null);
     deleteResource(pendingDeleteResource.id);
     setPendingDeleteResource(null);
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
   }
 
   function handleExportProjects() {
@@ -232,6 +246,7 @@ export default function Home() {
         onExportResources={handleExportResources}
         currentUser={currentUser}
         setCurrentUser={setCurrentUser}
+        onSignOut={handleSignOut}
       />
 
       <main className="flex-1 p-7 flex flex-col min-w-0">

@@ -108,16 +108,24 @@ alter table tasks enable row level security;
 alter table task_comments enable row level security;
 
 drop policy if exists "public_all_resources" on resources;
-create policy "public_all_resources" on resources for all using (true) with check (true);
+drop policy if exists "authenticated_all_resources" on resources;
+create policy "authenticated_all_resources" on resources for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 drop policy if exists "public_all_projects" on projects;
-create policy "public_all_projects" on projects for all using (true) with check (true);
+drop policy if exists "authenticated_all_projects" on projects;
+create policy "authenticated_all_projects" on projects for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 drop policy if exists "public_all_tasks" on tasks;
-create policy "public_all_tasks" on tasks for all using (true) with check (true);
+drop policy if exists "authenticated_all_tasks" on tasks;
+create policy "authenticated_all_tasks" on tasks for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 drop policy if exists "public_all_task_comments" on task_comments;
-create policy "public_all_task_comments" on task_comments for all using (true) with check (true);
+drop policy if exists "authenticated_all_task_comments" on task_comments;
+create policy "authenticated_all_task_comments" on task_comments for all
+  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- Seed data so the dashboard isn't empty on first run
 insert into resources (name, email, color) values

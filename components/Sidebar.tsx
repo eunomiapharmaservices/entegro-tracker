@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRight, LogOut } from "lucide-react";
 import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users, List } from "lucide-react";
 import { useState } from "react";
 import { Project, Resource } from "@/lib/types";
@@ -28,6 +28,7 @@ export default function Sidebar({
   onExportResources,
   currentUser,
   setCurrentUser,
+  onSignOut,
 }: {
   view: ViewMode;
   setView: (v: ViewMode) => void;
@@ -48,6 +49,7 @@ export default function Sidebar({
   onExportResources: () => void;
   currentUser: string;
   setCurrentUser: (name: string) => void;
+  onSignOut: () => void;
 }) {
   const [showArchived, setShowArchived] = useState(false);
   const sortByName = (a: Project, b: Project) =>
@@ -289,7 +291,16 @@ export default function Sidebar({
             ))}
           </select>
         </div>
-        <p className="text-[10px] text-[#a39d8c] mt-3">Entegro</p>
+        <div className="flex items-center justify-between mt-3">
+          <p className="text-[10px] text-[#a39d8c]">Entegro</p>
+          <button
+            onClick={onSignOut}
+            className="flex items-center gap-1 text-[10px] text-[#8a8578] hover:text-[#C23B3B]"
+          >
+            <LogOut size={11} />
+            Sign out
+          </button>
+        </div>
       </div>
     </aside>
   );

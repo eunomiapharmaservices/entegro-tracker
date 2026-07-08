@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { Project, Resource, Task, TaskComment } from "./types";
+import { notifyAssignment } from "./notifyAssignment";
 
 export function useTaskData() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -52,23 +53,47 @@ export function useTaskData() {
         .select()
         .single();
       if (error) throw error;
-      setTasks((prev) => [...prev, data as Task]);
-      return data as Task;
+      const created = data as Task;
+      setTasks((prev) => [...prev, created]);
+
+      if (created.assigned_to) {
+        const resource = resources.find((r) => r.id === created.assigned_to);
+        if (resource?.email) {
+          const project = projects.find((p) => p.id === created.project_id);
+          notifyAssignment(resource.email, created, project?.name);
+        }
+      }
+      return created;
     },
-    []
+    [resources, projects]
   );
 
-  const updateTask = useCallback(async (id: string, input: Partial<Task>) => {
-    const { data, error } = await supabase
-      .from("tasks")
-      .update(input)
-      .eq("id", id)
-      .select()
-      .single();
-    if (error) throw error;
-    setTasks((prev) => prev.map((t) => (t.id === id ? (data as Task) : t)));
-    return data as Task;
-  }, []);
+  const updateTask = useCallback(
+    async (id: string, input: Partial<Task>) => {
+      const previous = tasks.find((t) => t.id === id);
+      const { data, error } = await supabase
+        .from("tasks")
+        .update(input)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      const updated = data as Task;
+      setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
+
+      // Only notify when the assignee actually changed (newly assigned or
+      // reassigned) — not on every unrelated edit to an already-assigned task.
+      if (updated.assigned_to && updated.assigned_to !== previous?.assigned_to) {
+        const resource = resources.find((r) => r.id === updated.assigned_to);
+        if (resource?.email) {
+          const project = projects.find((p) => p.id === updated.project_id);
+          notifyAssignment(resource.email, updated, project?.name);
+        }
+      }
+      return updated;
+    },
+    [tasks, resources, projects]
+  );
 
   const deleteTask = useCallback(async (id: string) => {
     const { error } = await supabase.from("tasks").delete().eq("id", id);

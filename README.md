@@ -22,9 +22,12 @@ and Proofreader tools — deploys the same way, to Vercel.
   and due dates, an optional milestone flag + milestone date, subtasks (each
   subtask is its own task with `parent_task_id` set), and a timestamped
   comment log.
-- No login — anyone with the link can use it, matching how you described the
-  intended use. See the "Locking it down later" note below if you want to add
-  auth down the line.
+- **Login required** — registration is limited to `@lumen.com` email
+  addresses, with a basic password policy. See "Login and registration"
+  below.
+- **Assignment emails** — assigning someone to a task sends them an email
+  with the task details, if they have an email address on file and email
+  sending is configured. See "Task assignment emails" below.
 
 ## 1. Set up Supabase
 
@@ -37,17 +40,26 @@ and Proofreader tools — deploys the same way, to Vercel.
 3. Go to **Project Settings → API** and copy:
    - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
    - **anon public key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+4. **Decide on email confirmation for sign-ups**, under **Authentication →
+   Providers → Email**:
+   - Leave **Confirm email** ON (the default) if you want Supabase to email
+     people a confirmation link before they can sign in — no extra setup,
+     Supabase sends this itself.
+   - Turn it OFF if you'd rather people get instant access right after
+     registering, since this is a small internal team. Either is fine; OFF is
+     simpler for a first rollout.
 
 ## 2. Run locally (optional)
 
 ```bash
 cp .env.local.example .env.local
-# paste in your Supabase URL and anon key
+# paste in your Supabase URL, anon key, and (optionally) Resend details
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000 — you'll land on `/login` since the app now
+requires an account. Click "Register" to create the first one.
 
 ## 3. Deploy to Vercel
 
@@ -59,29 +71,83 @@ Same flow as your other tools:
 3. Under **Environment Variables**, add:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `RESEND_API_KEY` and `RESEND_FROM_EMAIL` (optional — only needed for
+     assignment emails; see below)
 4. Deploy. Vercel auto-detects Next.js — no build settings needed.
 
 After that, editing via the GitHub pencil-icon workflow you've used before
 works the same way; Vercel redeploys on every push.
 
-## Locking it down later
+## Login and registration
 
-Right now Supabase Row Level Security policies are permissive (`using (true)`)
-so anyone with the link can read and write — that's what "anyone can use it"
-means in practice. If you later want to restrict who can edit:
+- Go to `/register` to create an account. Registration is limited to
+  `@lumen.com` email addresses (checked in the browser) — change this in
+  `lib/auth.ts` (`ALLOWED_EMAIL_DOMAIN`) if the domain is ever different.
+- Password policy: at least 8 characters, one uppercase letter, one
+  lowercase letter, one number. Shown live on the registration form.
+- Once signed in, every page requires a valid session — there's no more
+  "anyone with the link" access. Sign out from the bottom of the sidebar.
+- **Worth knowing**: the `@lumen.com` domain check happens in the browser,
+  which stops normal sign-ups from other domains but wouldn't stop someone
+  deliberately calling the Supabase Auth API directly with a different
+  email. `supabase/migration_005_auth.sql` has an optional note on closing
+  that gap server-side via a Supabase Auth Hook, if that level of hardening
+  matters for your use case.
+- If you already had the tracker deployed before this update, run
+  `supabase/migration_005_auth.sql` in the Supabase SQL editor — it switches
+  every table's access policy from "anyone" to "must be signed in". Do this
+  only after you've registered at least one account, or you'll lock
+  yourself out of the data (you can still register/sign in either way, just
+  the data screens would show empty/error until an account exists).
 
-- Add Supabase Auth (email/password or Google OAuth, same pattern as the
-  Proofreader tool's NextAuth setup) and change the RLS policies in
-  `supabase/schema.sql` to check `auth.uid()`.
-- Or put the whole app behind Vercel's password protection (Pro plan) as a
-  quick stop-gap.
+## Task assignment emails
+
+Assigning someone to a task — through the task editor, drag-and-drop on the
+board, or CSV import — sends them an email with the task's details (title,
+type, project, site/EID, due date, priority), as long as:
+
+1. That person has an email address set on their People entry, and
+2. Email sending is configured (below).
+
+If either isn't true, nothing breaks — the task save just proceeds without
+sending anything.
+
+**Setup** (5 minutes):
+
+1. Sign up at [resend.com](https://resend.com) (free tier: 100 emails/day,
+   3,000/month — plenty for a small team).
+2. **Verify a domain you own** under **Domains** in the Resend dashboard —
+   this is the domain emails are sent *from*, not the recipient's domain, so
+   it does **not** need to be `lumen.com`. Any domain you control works (e.g.
+   `entegropharma.com` or a subdomain of it). Follow Resend's DNS
+   instructions; verification usually takes a few minutes.
+3. Create an API key under **API Keys** → copy it into `RESEND_API_KEY`.
+4. Set `RESEND_FROM_EMAIL` to an address on your verified domain, e.g.
+   `"Entegro Tracker <notifications@entegropharma.com>"`.
+5. Add both env vars in Vercel (**Settings → Environment Variables**) and
+   redeploy.
+
+Only re-assignment triggers an email — editing other fields on an
+already-assigned task doesn't re-send it.
+
+## Locking it down further
+
+Login now covers "who can get into the app at all." If you later want
+per-person permissions (e.g. only certain people can delete projects or
+edit others' tasks), that would mean moving beyond the current "any signed-in
+user can do anything" model into role-based policies — a bigger change than
+what's here now. Ask if that becomes a priority.
 
 ## Project structure
 
 ```
 app/page.tsx            Main dashboard (view switching, filters, search)
+app/login/page.tsx       Sign in
+app/register/page.tsx    Registration (domain + password checks)
+app/api/notify-assignment/route.ts   Sends assignment emails via Resend
 components/
-  Sidebar.tsx            Nav, project filter, people filter
+  AuthGate.tsx           Redirects to /login if not signed in
+  Sidebar.tsx            Nav, project filter, people filter, sign out
   KanbanBoard.tsx         Board view with drag-and-drop
   TimelineView.tsx        Gantt-style timeline
   CalendarView.tsx        Month calendar with milestones
@@ -91,6 +157,8 @@ components/
 lib/
   types.ts                Shared TypeScript types
   supabaseClient.ts        Supabase client
+  auth.ts                  Email domain + password validation
+  notifyAssignment.ts      Client helper for assignment emails
   useTaskData.ts           Data loading + create/update/delete
   dateUtils.ts             Date formatting helpers
 supabase/schema.sql        Database schema — run this first
