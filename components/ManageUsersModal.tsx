@@ -37,6 +37,7 @@ export default function ManageUsersModal({
   const [role, setRole] = useState<Role>("normal");
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [dragOverRole, setDragOverRole] = useState<Role | null>(null);
 
   const registeredEmails = new Set(profiles.map((p) => p.email.toLowerCase()));
   const pendingInvites = allowedEmails.filter(
@@ -91,7 +92,8 @@ export default function ManageUsersModal({
         </div>
         <p className="text-xs text-[#8a8578] mb-4">
           Only approved emails can register, and each gets a role that
-          controls what they can do once signed in.
+          controls what they can do once signed in. Drag someone between
+          categories to change their role, or use the dropdown on their row.
         </p>
 
         {error && <p className="text-sm text-[#C23B3B] mb-3">{error}</p>}
@@ -105,17 +107,41 @@ export default function ManageUsersModal({
             <div className="flex flex-col gap-3 max-h-64 overflow-y-auto">
               {ROLE_ORDER.map((r) => {
                 const group = profiles.filter((p) => p.role === r);
-                if (group.length === 0) return null;
                 return (
-                  <div key={r}>
+                  <div
+                    key={r}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOverRole(r);
+                    }}
+                    onDragLeave={() => setDragOverRole((cur) => (cur === r ? null : cur))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const id = e.dataTransfer.getData("text/profile-id");
+                      if (id) updateProfileRole(id, r);
+                      setDragOverRole(null);
+                    }}
+                    className={`rounded-lg p-1.5 -m-1.5 transition-colors ${
+                      dragOverRole === r ? "bg-[var(--c-green)]/10 ring-2 ring-[var(--c-green)]/30" : ""
+                    }`}
+                  >
                     <p className="text-[10px] font-medium text-[#a39d8c] uppercase tracking-wide mb-1">
                       {ROLE_LABELS[r]} ({group.length})
                     </p>
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5 min-h-[6px]">
+                      {group.length === 0 && dragOverRole === r && (
+                        <div className="text-[11px] text-[var(--c-green)] border border-dashed border-[var(--c-green)]/40 rounded-lg px-2.5 py-2 text-center">
+                          Drop here to make {ROLE_LABELS[r]}
+                        </div>
+                      )}
                       {group.map((p) => (
                         <div
                           key={p.id}
-                          className="flex items-center gap-2 bg-white border border-[var(--c-line)] rounded-lg px-2.5 py-1.5"
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData("text/profile-id", p.id);
+                          }}
+                          className="flex items-center gap-2 bg-white border border-[var(--c-line)] rounded-lg px-2.5 py-1.5 cursor-grab active:cursor-grabbing"
                         >
                           <span className="text-sm flex-1 truncate">{p.email}</span>
                           <select
