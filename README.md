@@ -139,6 +139,19 @@ sending anything.
 Only re-assignment triggers an email — editing other fields on an
 already-assigned task doesn't re-send it.
 
+## People linked to email — with a name suggestion
+
+Adding a person now asks for their email first, then suggests a name from
+it (e.g. `dharmeshkumar.mehta@lumen.com` → "Dharmeshkumar") — edit the
+suggestion however you like, it's just a starting point. The email is what
+lets a People entry connect to a login account for role grouping (see
+below) and lets that person receive assignment emails.
+
+For anyone already in the People list from before this, or added without an
+email, Admins/Super can now **edit** an existing person — hover their row in
+the sidebar and click the pencil icon to add or change their email, name, or
+colour, without having to delete and re-add them.
+
 ## People list grouped by role (Admin/Super)
 
 For Admins/Super Users, the sidebar's **People** list is grouped by login

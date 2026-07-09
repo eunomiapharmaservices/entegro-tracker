@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRight, LogOut, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRight, LogOut, ShieldCheck, Pencil } from "lucide-react";
 import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users, List } from "lucide-react";
 import { useState } from "react";
 import { Project, Resource } from "@/lib/types";
@@ -33,6 +33,7 @@ export default function Sidebar({
   onArchiveProject,
   onUnarchiveProject,
   onDeleteResource,
+  onEditResource,
   onExportProjects,
   onExportResources,
   currentUserName,
@@ -55,6 +56,7 @@ export default function Sidebar({
   onArchiveProject: (id: string, name: string) => void;
   onUnarchiveProject: (id: string, name: string) => void;
   onDeleteResource: (id: string, name: string) => void;
+  onEditResource: (resource: Resource) => void;
   onExportProjects: () => void;
   onExportResources: () => void;
   currentUserName: string;
@@ -339,6 +341,13 @@ export default function Sidebar({
                           >
                             <Avatar resource={r} size={20} />
                             <span className="truncate">{r.name}</span>
+                          </button>
+                          <button
+                            onClick={() => onEditResource(r)}
+                            title={`Edit ${r.name}`}
+                            className="shrink-0 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[var(--c-green)] transition-opacity"
+                          >
+                            <Pencil size={12} />
                           </button>
                           <button
                             onClick={() => onDeleteResource(r.id, r.name)}

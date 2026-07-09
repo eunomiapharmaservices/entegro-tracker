@@ -19,7 +19,7 @@ import AuthGate from "@/components/AuthGate";
 import { useTaskData } from "@/lib/useTaskData";
 import { useUserRole } from "@/lib/useUserRole";
 import { supabase } from "@/lib/supabaseClient";
-import { Status, Task, STATUS_LABELS } from "@/lib/types";
+import { Status, Task, STATUS_LABELS, Resource } from "@/lib/types";
 import { downloadCSV } from "@/lib/csvImport";
 
 export default function Home() {
@@ -44,6 +44,7 @@ function HomeContent() {
     createProject,
     updateProject,
     createResource,
+    updateResource,
     deleteResource,
     addComment,
   } = useTaskData();
@@ -66,6 +67,7 @@ function HomeContent() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showResourceModal, setShowResourceModal] = useState(false);
+  const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [showManageUsersModal, setShowManageUsersModal] = useState(false);
 
   const filteredTasks = useMemo(() => {
@@ -234,6 +236,7 @@ function HomeContent() {
         onArchiveProject={handleArchiveProject}
         onUnarchiveProject={handleUnarchiveProject}
         onDeleteResource={handleDeleteResource}
+        onEditResource={(r) => setEditingResource(r)}
         onExportProjects={handleExportProjects}
         onExportResources={handleExportResources}
         currentUserName={currentUserName}
@@ -369,6 +372,15 @@ function HomeContent() {
 
       {showResourceModal && isAdminOrAbove && (
         <ResourceModal onClose={() => setShowResourceModal(false)} onCreate={createResource} />
+      )}
+
+      {editingResource && isAdminOrAbove && (
+        <ResourceModal
+          resource={editingResource}
+          onClose={() => setEditingResource(null)}
+          onCreate={createResource}
+          onUpdate={updateResource}
+        />
       )}
 
       {showManageUsersModal && isAdminOrAbove && (
