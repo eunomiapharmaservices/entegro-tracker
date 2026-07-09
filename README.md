@@ -266,16 +266,17 @@ role grouping, so it applies regardless of who's viewing the dashboard.
 ## Unique Task ID
 
 Every task now gets a unique, human-readable ID the moment it's created —
-date and time down to the millisecond, plus a short tiebreaker in the rare
-case two tasks are created in the same millisecond (e.g.
-`20260709T153045.123-a1b2`). It's permanent once set, shown at the top of
-the task editor, and available as its own column in the List view (sortable
-and filterable, same as every other column) and in the full task export.
+`YYMMDD-HHMMSS` (e.g. `260708-120927` for 8 July '26 at 12:09:27), with a
+`-1`, `-2`… suffix appended only in the rare case two tasks are created in
+the exact same second. It's permanent once set, shown at the top of the task
+editor, and available as its own column in the List view (sortable and
+filterable, same as every other column) and in the full task export.
 
 If you already had the tracker deployed before this update, run
-`supabase/migration_010_task_number.sql` — it adds the column, generates IDs
-for any tasks that don't have one yet (using their real creation date, not
-today's date), and enforces uniqueness going forward.
+`supabase/migration_010_task_number.sql` first if you haven't (adds the
+column), then `migration_012_short_task_id.sql` — it switches to the shorter
+format and regenerates every existing task's ID to match, using each task's
+real creation time.
 
 ## Project structure
 

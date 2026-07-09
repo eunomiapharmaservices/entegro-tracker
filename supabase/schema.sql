@@ -24,7 +24,7 @@ create table if not exists projects (
 -- Tasks: parent_task_id null = top-level task; non-null = subtask
 create table if not exists tasks (
   id uuid primary key default gen_random_uuid(),
-  task_number text unique,      -- human-readable unique ID: date+time+ms, e.g. 20260709T153045.123-a1b2
+  task_number text unique,      -- human-readable unique ID: YYMMDD-HHMMSS, e.g. 260708-120927
   project_id uuid references projects(id) on delete set null,
   parent_task_id uuid references tasks(id) on delete cascade,
   title text not null,
@@ -275,17 +275,27 @@ create trigger trg_tasks_actual_completion
 before insert or update on tasks
 for each row execute function set_actual_completion();
 
--- Unique, human-readable task ID: date + time down to the millisecond, plus
--- a short slice of the row's own UUID as a tiebreaker in the rare case two
--- tasks are created in the same millisecond. Set once at creation and never
--- changed afterward.
+-- Unique, human-readable task ID: YYMMDD-HHMMSS (e.g. 260708-120927). If two
+-- tasks somehow land in the exact same second, a "-1", "-2"... suffix is
+-- appended so the ID stays unique — the common case keeps the clean format.
+-- Set once at creation and never changed afterward.
 create or replace function set_task_number()
 returns trigger as $$
+declare
+  base text;
+  candidate text;
+  suffix int := 0;
 begin
-  if new.task_number is null then
-    new.task_number := to_char(clock_timestamp(), 'YYYYMMDD"T"HH24MISS"."MS')
-      || '-' || substr(new.id::text, 1, 4);
+  if new.task_number is not null then
+    return new;
   end if;
+  base := to_char(clock_timestamp(), 'YYMMDD"-"HH24MISS');
+  candidate := base;
+  while exists (select 1 from tasks where task_number = candidate) loop
+    suffix := suffix + 1;
+    candidate := base || '-' || suffix;
+  end loop;
+  new.task_number := candidate;
   return new;
 end;
 $$ language plpgsql;
