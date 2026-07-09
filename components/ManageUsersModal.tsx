@@ -9,7 +9,10 @@ const ROLE_LABELS: Record<Role, string> = {
   super: "Super User",
   admin: "Admin",
   normal: "Normal User",
+  view: "View Only",
 };
+
+const ROLE_ORDER: Role[] = ["super", "admin", "normal", "view"];
 
 export default function ManageUsersModal({
   onClose,
@@ -99,35 +102,48 @@ export default function ManageUsersModal({
             <p className="text-xs font-medium uppercase tracking-wide text-[#8a8578] mb-1.5 font-display">
               Registered ({profiles.length})
             </p>
-            <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
-              {profiles.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center gap-2 bg-white border border-[var(--c-line)] rounded-lg px-2.5 py-1.5"
-                >
-                  <span className="text-sm flex-1 truncate">{p.email}</span>
-                  <select
-                    value={p.role}
-                    onChange={(e) => updateProfileRole(p.id, e.target.value as Role)}
-                    className={selectCls}
-                  >
-                    {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
-                      <option key={r} value={r}>
-                        {ROLE_LABELS[r]}
-                      </option>
-                    ))}
-                  </select>
-                  {p.id !== currentUserId && (
-                    <button
-                      onClick={() => handleDeleteAccount(p.id, p.email)}
-                      className="text-[#c9c2b2] hover:text-[#C23B3B] shrink-0"
-                      title="Delete account"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </div>
-              ))}
+            <div className="flex flex-col gap-3 max-h-64 overflow-y-auto">
+              {ROLE_ORDER.map((r) => {
+                const group = profiles.filter((p) => p.role === r);
+                if (group.length === 0) return null;
+                return (
+                  <div key={r}>
+                    <p className="text-[10px] font-medium text-[#a39d8c] uppercase tracking-wide mb-1">
+                      {ROLE_LABELS[r]} ({group.length})
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      {group.map((p) => (
+                        <div
+                          key={p.id}
+                          className="flex items-center gap-2 bg-white border border-[var(--c-line)] rounded-lg px-2.5 py-1.5"
+                        >
+                          <span className="text-sm flex-1 truncate">{p.email}</span>
+                          <select
+                            value={p.role}
+                            onChange={(e) => updateProfileRole(p.id, e.target.value as Role)}
+                            className={selectCls}
+                          >
+                            {ROLE_ORDER.map((rr) => (
+                              <option key={rr} value={rr}>
+                                {ROLE_LABELS[rr]}
+                              </option>
+                            ))}
+                          </select>
+                          {p.id !== currentUserId && (
+                            <button
+                              onClick={() => handleDeleteAccount(p.id, p.email)}
+                              className="text-[#c9c2b2] hover:text-[#C23B3B] shrink-0"
+                              title="Delete account"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -178,7 +194,7 @@ export default function ManageUsersModal({
               onChange={(e) => setRole(e.target.value as Role)}
               className="rounded-lg border border-[var(--c-line)] px-2 py-2 text-sm bg-white outline-none focus:border-[var(--c-green)]"
             >
-              {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+              {ROLE_ORDER.map((r) => (
                 <option key={r} value={r}>
                   {ROLE_LABELS[r]}
                 </option>

@@ -139,30 +139,37 @@ sending anything.
 Only re-assignment triggers an email — editing other fields on an
 already-assigned task doesn't re-send it.
 
-## Roles: Super User, Admin, Normal User
+## Roles: Super User, Admin, Normal User, View Only
 
-Every account has one of three roles, set when they're invited (and changeable
-later by an Admin or Super User):
+Every account has one of four roles, set when they're invited (and
+changeable later by an Admin or Super User):
 
-| | Super User | Admin | Normal User |
-|---|---|---|---|
-| View Board / Timeline / Calendar / List / People | ✓ | ✓ | ✓ |
-| Add / edit tasks | ✓ | ✓ | ✓ |
-| Export (people, projects, tasks) | ✓ | ✓ | ✓ |
-| **Import** (CSV) | ✓ | ✓ | ✗ |
-| **Delete tasks** (editor, or bulk in List) | ✓ | ✓ | ✗ |
-| **Manage projects** (add, archive/restore) | ✓ | ✓ | ✗ (view/select only) |
-| **Manage users** (invite, change roles, delete accounts) | ✓ | ✓ | ✗ |
+| | Super User | Admin | Normal User | View Only |
+|---|---|---|---|---|
+| View Board / Timeline / Calendar / List / People | ✓ | ✓ | ✓ | ✓ |
+| Add / edit tasks, post comments | ✓ | ✓ | ✓ | ✗ |
+| Export (people, projects, tasks) | ✓ | ✓ | ✓ | ✓ |
+| **Import** (CSV) | ✓ | ✓ | ✗ | ✗ |
+| **Delete tasks** (editor, or bulk in List) | ✓ | ✓ | ✗ | ✗ |
+| **Manage projects** (add, archive/restore) | ✓ | ✓ | ✗ (view/select only) | ✗ (view/select only) |
+| **Manage users** (invite, change roles, delete accounts) | ✓ | ✓ | ✗ | ✗ |
 
 There's no functional difference between Super and Admin in this build — the
 distinction exists so you have a designated "owner" role name (Super) versus
 "can also do admin things" (Admin), in case that matters later for optics or
 future features. Both currently unlock the same set of admin actions.
 
+**View Only** opens tasks in a read-only version of the editor — every field
+is greyed out, there's no Save button (just "Close"), no way to add a
+subtask or post a comment, and dragging a card between board columns doesn't
+do anything. They see everything everyone else sees; they just can't change
+any of it.
+
 **Setting it up:**
 
-1. Run `supabase/migration_007_roles.sql` (after `migration_005_auth.sql` and
-   `migration_006_allowed_emails.sql`, if you haven't already run those).
+1. Run `supabase/migration_007_roles.sql`, then `migration_008_view_only_role.sql`
+   (after `migration_005_auth.sql` and `migration_006_allowed_emails.sql`, if
+   you haven't already run those).
 2. **Bootstrap your first Super User directly in SQL** — the in-app "Manage
    users" panel itself requires being an Admin/Super to see, so the very
    first one has to be set up outside the app:
@@ -174,14 +181,17 @@ future features. Both currently unlock the same set of admin actions.
    automatically gets the Super role from the allowlist entry.
 3. Once signed in as Super/Admin, use **Manage users** (bottom of the
    sidebar) for everyone else: invite an email with a role, or change an
-   existing account's role, or delete an account entirely.
-4. If people had already registered *before* this migration, back-fill their
-   roles once via SQL (the migration file has commented-out examples ready
-   to edit with your real emails):
+   existing account's role, or delete an account entirely. The "Registered"
+   list is grouped by role (Super User / Admin / Normal User / View Only) so
+   it's easy to see who's in which tier at a glance.
+4. If people had already registered *before* these migrations, back-fill
+   their roles once via SQL (the migration files have commented-out examples
+   ready to edit with your real emails):
    ```sql
    update profiles set role = 'super' where lower(email) = lower('sulabh@lumen.com');
    update profiles set role = 'admin' where lower(email) in
      (lower('dharmeshkumar.mehta@lumen.com'), lower('gokul@lumen.com'));
+   update profiles set role = 'view' where lower(email) = lower('someone@lumen.com');
    ```
 
 **Deleting a user account** needs one more piece of setup: a
@@ -191,8 +201,8 @@ future features. Both currently unlock the same set of admin actions.
 - **Never** prefix it with `NEXT_PUBLIC_` — it must only exist server-side.
 - It's used exclusively by `/api/admin/delete-user`, which independently
   re-checks the caller's role server-side before deleting anything — a
-  Normal user calling that endpoint directly would still be rejected, even
-  with a valid session.
+  Normal or View Only user calling that endpoint directly would still be
+  rejected, even with a valid session.
 - Without this key set, role changes still work fine (that's a normal
   database update) — only the "delete this account entirely" button will
   fail with a clear error until it's configured.

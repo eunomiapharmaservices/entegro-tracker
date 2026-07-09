@@ -47,7 +47,7 @@ function HomeContent() {
     deleteResource,
     addComment,
   } = useTaskData();
-  const { userId, email, isAdminOrAbove } = useUserRole();
+  const { userId, email, isAdminOrAbove, canEdit } = useUserRole();
 
   // The commenting identity is now just "whoever's logged in" — matched to
   // their People entry by email if one exists (for a friendly display name),
@@ -240,6 +240,7 @@ function HomeContent() {
         onSignOut={handleSignOut}
         onManageAccess={() => setShowManageUsersModal(true)}
         isAdminOrAbove={isAdminOrAbove}
+        canEdit={canEdit}
       />
 
       <main className="flex-1 p-7 flex flex-col min-w-0">
@@ -290,6 +291,7 @@ function HomeContent() {
                 projects={projects}
                 onOpenTask={(t) => setModalTask(t)}
                 onMoveStatus={handleMoveStatus}
+                canEdit={canEdit}
               />
             )}
             {view === "timeline" && (
@@ -344,6 +346,7 @@ function HomeContent() {
           addComment={addComment}
           authorName={currentUserName}
           canDelete={isAdminOrAbove}
+          canEdit={canEdit}
         />
       )}
 

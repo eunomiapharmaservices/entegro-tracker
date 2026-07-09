@@ -75,7 +75,7 @@ create index if not exists idx_task_comments_task on task_comments(task_id);
 create table if not exists allowed_emails (
   email text primary key,
   note text,
-  role text not null default 'normal' check (role in ('super','admin','normal')),
+  role text not null default 'normal' check (role in ('super','admin','normal','view')),
   created_at timestamptz default now()
 );
 
@@ -106,7 +106,7 @@ grant execute on function is_email_allowed(text) to anon, authenticated;
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
-  role text not null default 'normal' check (role in ('super','admin','normal')),
+  role text not null default 'normal' check (role in ('super','admin','normal','view')),
   created_at timestamptz default now()
 );
 
@@ -133,6 +133,19 @@ set search_path = public
 as $$
   select exists (
     select 1 from profiles where id = auth.uid() and role = 'super'
+  );
+$$;
+
+-- True for super/admin/normal — false for 'view' (View Only can look but not
+-- touch: no creating/editing tasks, no comments, no project auto-creation).
+create or replace function can_edit()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from profiles where id = auth.uid() and role in ('super', 'admin', 'normal')
   );
 $$;
 
@@ -204,9 +217,8 @@ create trigger trg_tasks_actual_completion
 before insert or update on tasks
 for each row execute function set_actual_completion();
 
--- Resources and task_comments stay open to any signed-in user — the roster
--- of assignable people and the comment log aren't part of the admin/super
--- distinction described for projects, tasks, and user accounts.
+-- Resources stay open to any signed-in user (roster used to assign tasks —
+-- who can add/remove entries is gated in the UI, not RLS, for Admin/Super).
 alter table resources enable row level security;
 alter table projects enable row level security;
 alter table tasks enable row level security;
@@ -217,38 +229,51 @@ drop policy if exists "authenticated_all_resources" on resources;
 create policy "authenticated_all_resources" on resources for all
   using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
-drop policy if exists "public_all_task_comments" on task_comments;
-drop policy if exists "authenticated_all_task_comments" on task_comments;
-create policy "authenticated_all_task_comments" on task_comments for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-
--- Projects: anyone signed in can view, and INSERT stays open to everyone —
--- entering a new EID while creating a task auto-creates its project behind
--- the scenes, which normal users need to keep working. Deliberate management
--- (renaming, archiving/restoring, deleting) is admin/super only.
+-- Projects: anyone signed in can view. INSERT requires can_edit() (so View
+-- Only can't trigger project auto-creation, since they can't create tasks
+-- either) — everyone else (super/admin/normal) keeps this open, since
+-- entering a new EID while creating a task auto-creates its project.
+-- Deliberate management (renaming, archiving/restoring, deleting) stays
+-- admin/super only.
 drop policy if exists "public_all_projects" on projects;
 drop policy if exists "authenticated_all_projects" on projects;
+drop policy if exists "projects_insert_all" on projects;
 create policy "projects_select_all" on projects for select
   using (auth.role() = 'authenticated');
-create policy "projects_insert_all" on projects for insert
-  with check (auth.role() = 'authenticated');
+create policy "projects_insert_editors" on projects for insert
+  with check (can_edit());
 create policy "projects_update_admin" on projects for update
   using (is_admin_or_super()) with check (is_admin_or_super());
 create policy "projects_delete_admin" on projects for delete
   using (is_admin_or_super());
 
--- Tasks: anyone signed in can view/create/edit (that's the core "normal
--- user" workflow) — only deleting a task is admin/super only.
+-- Tasks: anyone signed in can view. Creating/editing requires can_edit()
+-- (View Only can look but not touch) — deleting stays admin/super only.
 drop policy if exists "public_all_tasks" on tasks;
 drop policy if exists "authenticated_all_tasks" on tasks;
+drop policy if exists "tasks_insert_all" on tasks;
+drop policy if exists "tasks_update_all" on tasks;
 create policy "tasks_select_all" on tasks for select
   using (auth.role() = 'authenticated');
-create policy "tasks_insert_all" on tasks for insert
-  with check (auth.role() = 'authenticated');
-create policy "tasks_update_all" on tasks for update
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "tasks_insert_editors" on tasks for insert
+  with check (can_edit());
+create policy "tasks_update_editors" on tasks for update
+  using (can_edit()) with check (can_edit());
 create policy "tasks_delete_admin" on tasks for delete
   using (is_admin_or_super());
+
+-- Task comments: anyone signed in can read the log (including View Only) —
+-- posting/editing/deleting a comment requires can_edit().
+drop policy if exists "public_all_task_comments" on task_comments;
+drop policy if exists "authenticated_all_task_comments" on task_comments;
+create policy "task_comments_select_all" on task_comments for select
+  using (auth.role() = 'authenticated');
+create policy "task_comments_insert_editors" on task_comments for insert
+  with check (can_edit());
+create policy "task_comments_update_editors" on task_comments for update
+  using (can_edit()) with check (can_edit());
+create policy "task_comments_delete_editors" on task_comments for delete
+  using (can_edit());
 
 -- Seed data so the dashboard isn't empty on first run
 insert into resources (name, email, color) values

@@ -19,12 +19,14 @@ export default function KanbanBoard({
   projects,
   onOpenTask,
   onMoveStatus,
+  canEdit,
 }: {
   tasks: Task[];
   resources: Resource[];
   projects: Project[];
   onOpenTask: (task: Task) => void;
   onMoveStatus: (taskId: string, status: Status) => void;
+  canEdit: boolean;
 }) {
   const topLevel = tasks.filter((t) => !t.parent_task_id && isVisibleOnBoard(t));
   const hiddenDoneCount = tasks.filter(
@@ -44,11 +46,13 @@ export default function KanbanBoard({
             <div
               key={status}
               onDragOver={(e) => {
+                if (!canEdit) return;
                 e.preventDefault();
                 setDragOverCol(status);
               }}
               onDragLeave={() => setDragOverCol(null)}
               onDrop={(e) => {
+                if (!canEdit) return;
                 e.preventDefault();
                 const taskId = e.dataTransfer.getData("text/task-id");
                 if (taskId) onMoveStatus(taskId, status);
@@ -75,7 +79,7 @@ export default function KanbanBoard({
                     assignee={resourceById(task.assigned_to)}
                     onClick={() => onOpenTask(task)}
                     dragHandlers={{
-                      draggable: true,
+                      draggable: canEdit,
                       onDragStart: (e) =>
                         e.dataTransfer.setData("text/task-id", task.id),
                     }}

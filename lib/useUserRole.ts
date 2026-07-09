@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 
-export type Role = "super" | "admin" | "normal";
+export type Role = "super" | "admin" | "normal" | "view";
 
 export function useUserRole() {
   const [role, setRole] = useState<Role | null>(null);
@@ -56,6 +56,7 @@ export function useUserRole() {
 
   const isSuper = role === "super";
   const isAdminOrAbove = role === "super" || role === "admin";
+  const canEdit = role !== "view"; // super/admin/normal can create & edit; view-only can't
 
-  return { role, userId, email, loading, isSuper, isAdminOrAbove };
+  return { role, userId, email, loading, isSuper, isAdminOrAbove, canEdit };
 }

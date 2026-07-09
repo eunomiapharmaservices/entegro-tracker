@@ -34,6 +34,7 @@ interface Props {
   addComment: (taskId: string, body: string, author?: string | null) => Promise<TaskComment>;
   authorName: string;
   canDelete: boolean;
+  canEdit: boolean;
 }
 
 export default function TaskModal({
@@ -51,6 +52,7 @@ export default function TaskModal({
   addComment,
   authorName,
   canDelete,
+  canEdit,
 }: Props) {
   const isNew = !task;
   const [title, setTitle] = useState(task?.title ?? "");
@@ -293,9 +295,10 @@ export default function TaskModal({
         </div>
 
         <div className="px-6 pb-6 flex flex-col gap-4">
+          <fieldset disabled={!canEdit} className="contents">
           <div>
             <input
-              className="w-full text-lg font-medium bg-transparent border-b border-[var(--c-line)] pb-2 outline-none focus:border-[var(--c-green)]"
+              className="w-full text-lg font-medium bg-transparent border-b border-[var(--c-line)] pb-2 outline-none focus:border-[var(--c-green)] disabled:opacity-60"
               placeholder="Task title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -715,6 +718,8 @@ export default function TaskModal({
             </div>
           </div>
 
+          </fieldset>
+
           <div className="flex items-center justify-between pt-2 gap-3">
             {canDelete ? (
               <button
@@ -728,7 +733,7 @@ export default function TaskModal({
               <span />
             )}
             <div className="flex items-center gap-3">
-              {!isValid && (
+              {canEdit && !isValid && (
                 <p className="text-[11px] text-[#C23B3B] text-right">
                   Required: {missingFields.join(", ")}
                 </p>
@@ -738,18 +743,20 @@ export default function TaskModal({
                   onClick={onClose}
                   className="text-sm px-4 py-2 rounded-lg hover:bg-black/5"
                 >
-                  Cancel
+                  {canEdit ? "Cancel" : "Close"}
                 </button>
-                <button
-                  onClick={async () => {
-                    await handleSave();
-                    onClose();
-                  }}
-                  disabled={saving || !isValid}
-                  className="text-sm px-4 py-2 rounded-lg bg-[var(--c-green)] text-white font-medium hover:bg-[#194a3b] disabled:opacity-50"
-                >
-                  {saving ? "Saving…" : isNew ? "Create task" : "Save changes"}
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={async () => {
+                      await handleSave();
+                      onClose();
+                    }}
+                    disabled={saving || !isValid}
+                    className="text-sm px-4 py-2 rounded-lg bg-[var(--c-green)] text-white font-medium hover:bg-[#194a3b] disabled:opacity-50"
+                  >
+                    {saving ? "Saving…" : isNew ? "Create task" : "Save changes"}
+                  </button>
+                )}
               </div>
             </div>
           </div>

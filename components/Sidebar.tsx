@@ -29,6 +29,7 @@ export default function Sidebar({
   onSignOut,
   onManageAccess,
   isAdminOrAbove,
+  canEdit,
 }: {
   view: ViewMode;
   setView: (v: ViewMode) => void;
@@ -50,6 +51,7 @@ export default function Sidebar({
   onSignOut: () => void;
   onManageAccess: () => void;
   isAdminOrAbove: boolean;
+  canEdit: boolean;
 }) {
   const [showArchived, setShowArchived] = useState(false);
   const sortByName = (a: Project, b: Project) =>
@@ -78,12 +80,14 @@ export default function Sidebar({
         </div>
       </div>
 
-      <button
-        onClick={onNewTask}
-        className="mx-5 mb-5 flex items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-white text-sm font-medium py-2.5 hover:bg-[#194a3b] transition-colors"
-      >
-        <Plus size={16} /> New task
-      </button>
+      {canEdit && (
+        <button
+          onClick={onNewTask}
+          className="mx-5 mb-5 flex items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-white text-sm font-medium py-2.5 hover:bg-[#194a3b] transition-colors"
+        >
+          <Plus size={16} /> New task
+        </button>
+      )}
 
       <nav className="px-3 flex flex-col gap-0.5">
         {navItems.map((item) => (
