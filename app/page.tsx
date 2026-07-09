@@ -10,6 +10,7 @@ import TimelineView from "@/components/TimelineView";
 import CalendarView from "@/components/CalendarView";
 import PeopleDashboard from "@/components/PeopleDashboard";
 import TaskListView from "@/components/TaskListView";
+import CommentLogView from "@/components/CommentLogView";
 import TaskModal from "@/components/TaskModal";
 import ImportModal from "@/components/ImportModal";
 import ProjectModal from "@/components/ProjectModal";
@@ -48,7 +49,7 @@ function HomeContent() {
     deleteResource,
     addComment,
   } = useTaskData();
-  const { userId, email, isAdminOrAbove, canEdit } = useUserRole();
+  const { userId, email, isAdminOrAbove, isSuper, canEdit } = useUserRole();
 
   // The commenting identity is now just "whoever's logged in" — matched to
   // their People entry by email if one exists (for a friendly display name),
@@ -101,6 +102,7 @@ function HomeContent() {
     calendar: "Calendar",
     people: "People",
     list: "List",
+    log: "Comment log",
   };
 
   async function handleMoveStatus(taskId: string, status: Status) {
@@ -155,6 +157,7 @@ function HomeContent() {
     const parentTitle = (id: string | null) => tasks.find((t) => t.id === id)?.title || "";
 
     const cols = [
+      "task_id",
       "title",
       "description",
       "project",
@@ -180,6 +183,7 @@ function HomeContent() {
       cols.join(","),
       ...tasks.map((t) =>
         [
+          esc(t.task_number || ""),
           esc(t.title),
           esc(t.description || ""),
           esc(projectName(t.project_id)),
@@ -243,6 +247,7 @@ function HomeContent() {
         onSignOut={handleSignOut}
         onManageAccess={() => setShowManageUsersModal(true)}
         isAdminOrAbove={isAdminOrAbove}
+        isSuper={isSuper}
         canEdit={canEdit}
       />
 
@@ -329,6 +334,13 @@ function HomeContent() {
                 canDelete={isAdminOrAbove}
               />
             )}
+            {view === "log" && isAdminOrAbove && (
+              <CommentLogView
+                taskComments={taskComments}
+                tasks={tasks}
+                onOpenTask={(t) => setModalTask(t)}
+              />
+            )}
           </div>
         )}
       </main>
@@ -384,7 +396,11 @@ function HomeContent() {
       )}
 
       {showManageUsersModal && isAdminOrAbove && (
-        <ManageUsersModal onClose={() => setShowManageUsersModal(false)} currentUserId={userId} />
+        <ManageUsersModal
+          onClose={() => setShowManageUsersModal(false)}
+          currentUserId={userId}
+          isSuper={isSuper}
+        />
       )}
     </div>
   );

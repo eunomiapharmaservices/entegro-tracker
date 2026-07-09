@@ -7,6 +7,7 @@ import { fmt } from "@/lib/dateUtils";
 import { downloadCSV } from "@/lib/csvImport";
 
 type ColKey =
+  | "task_number"
   | "title"
   | "assigned_to"
   | "project"
@@ -19,6 +20,7 @@ type ColKey =
   | "actual_completion";
 
 const COLUMNS: { key: ColKey; label: string }[] = [
+  { key: "task_number", label: "Task ID" },
   { key: "title", label: "Task" },
   { key: "assigned_to", label: "Assigned to" },
   { key: "project", label: "Project" },
@@ -49,6 +51,7 @@ export default function TaskListView({
   const [sortKey, setSortKey] = useState<ColKey>("due_date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [filters, setFilters] = useState<Record<ColKey, string>>({
+    task_number: "",
     title: "",
     assigned_to: "",
     project: "",
@@ -72,6 +75,8 @@ export default function TaskListView({
 
   function cellText(t: Task, key: ColKey): string {
     switch (key) {
+      case "task_number":
+        return t.task_number || "";
       case "assigned_to":
         return resourceName(t.assigned_to);
       case "project":
@@ -264,6 +269,12 @@ export default function TaskListView({
                     onChange={() => toggleRow(t.id)}
                     className="accent-[var(--c-green)]"
                   />
+                </td>
+                <td
+                  className="px-3 py-2.5 whitespace-nowrap text-[#a39d8c] font-mono text-[11px]"
+                  onClick={() => onOpenTask(t)}
+                >
+                  {t.task_number || "—"}
                 </td>
                 <td className="px-3 py-2.5 max-w-[280px]" onClick={() => onOpenTask(t)}>
                   <span className="flex items-center gap-1.5">

@@ -3,6 +3,7 @@
 import { Flag } from "lucide-react";
 import { Project, Resource, STATUS_LABELS, Task } from "@/lib/types";
 import { fmt, isOverdue } from "@/lib/dateUtils";
+import { useViewOnlyEmails } from "@/lib/useViewOnlyEmails";
 import Avatar from "./Avatar";
 
 const STATUS_DOT: Record<string, string> = {
@@ -24,6 +25,13 @@ export default function PeopleDashboard({
   tasks: Task[];
   onOpenTask: (task: Task) => void;
 }) {
+  const { viewOnlyEmails } = useViewOnlyEmails();
+  // View Only accounts aren't part of the assignable workforce — no point
+  // showing an empty workload card for them here.
+  const workingResources = resources.filter(
+    (r) => !r.email || !viewOnlyEmails.has(r.email.toLowerCase())
+  );
+
   const projectById = (id: string | null) => projects.find((p) => p.id === id);
 
   function tasksFor(resourceId: string) {
@@ -49,7 +57,7 @@ export default function PeopleDashboard({
   return (
     <div className="overflow-y-auto h-full pr-1">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {resources.map((r) => {
+        {workingResources.map((r) => {
           const personTasks = tasksFor(r.id);
           const done = personTasks.filter((t) => t.status === "done").length;
           const overdue = personTasks.filter((t) => isOverdue(t.due_date, t.status)).length;
@@ -137,7 +145,7 @@ export default function PeopleDashboard({
           );
         })}
 
-        {resources.length === 0 && (
+        {workingResources.length === 0 && (
           <p className="text-sm text-[#a39d8c] col-span-full text-center py-10">
             No people added yet — use the + next to "People" in the sidebar.
           </p>

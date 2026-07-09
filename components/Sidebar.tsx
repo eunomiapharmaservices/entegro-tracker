@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRight, LogOut, ShieldCheck, Pencil } from "lucide-react";
-import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users, List } from "lucide-react";
+import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users, List, ScrollText } from "lucide-react";
 import { useState } from "react";
 import { Project, Resource } from "@/lib/types";
 import { useManageUsers } from "@/lib/useManageUsers";
@@ -16,7 +16,7 @@ const ROLE_LABELS: Record<Role, string> = {
 };
 const ROLE_ORDER: Role[] = ["super", "admin", "normal", "view"];
 
-export type ViewMode = "board" | "timeline" | "calendar" | "people" | "list";
+export type ViewMode = "board" | "timeline" | "calendar" | "people" | "list" | "log";
 
 export default function Sidebar({
   view,
@@ -40,6 +40,7 @@ export default function Sidebar({
   onSignOut,
   onManageAccess,
   isAdminOrAbove,
+  isSuper,
   canEdit,
 }: {
   view: ViewMode;
@@ -63,6 +64,7 @@ export default function Sidebar({
   onSignOut: () => void;
   onManageAccess: () => void;
   isAdminOrAbove: boolean;
+  isSuper: boolean;
   canEdit: boolean;
 }) {
   const [showArchived, setShowArchived] = useState(false);
@@ -91,12 +93,16 @@ export default function Sidebar({
       alert(`${resource.name} doesn't have an email set, so there's no account to assign a role to.`);
       return;
     }
-    const profile = profiles.find((p) => p.email.toLowerCase() === resource.email!.toLowerCase());
-    if (profile) {
-      await updateProfileRole(profile.id, role);
-    } else {
-      // No account yet — set the role they'll get once they register.
-      await upsertAllowedEmailRole(resource.email, role);
+    try {
+      const profile = profiles.find((p) => p.email.toLowerCase() === resource.email!.toLowerCase());
+      if (profile) {
+        await updateProfileRole(profile.id, role);
+      } else {
+        // No account yet — set the role they'll get once they register.
+        await upsertAllowedEmailRole(resource.email, role);
+      }
+    } catch (err) {
+      alert(`Couldn't change ${resource.name}'s role: ${(err as Error).message || "unknown error"}`);
     }
   }
 
@@ -106,6 +112,9 @@ export default function Sidebar({
     { key: "calendar", label: "Calendar", icon: <CalendarIcon size={17} /> },
     { key: "list", label: "List", icon: <List size={17} /> },
     { key: "people", label: "People", icon: <Users size={17} /> },
+    ...(isAdminOrAbove
+      ? [{ key: "log" as ViewMode, label: "Log", icon: <ScrollText size={17} /> }]
+      : []),
   ];
 
   return (
@@ -327,11 +336,11 @@ export default function Sidebar({
                       {group.map((r) => (
                         <div
                           key={r.id}
-                          draggable={!!role}
+                          draggable={isSuper && !!role}
                           onDragStart={(e) => e.dataTransfer.setData("text/resource-id", r.id)}
                           className={`group flex items-center gap-1 rounded-md ${
                             activeResource === r.id ? "bg-black/5" : "hover:bg-black/5"
-                          } ${role ? "cursor-grab active:cursor-grabbing" : ""}`}
+                          } ${isSuper && role ? "cursor-grab active:cursor-grabbing" : ""}`}
                         >
                           <button
                             onClick={() => setActiveResource(r.id)}

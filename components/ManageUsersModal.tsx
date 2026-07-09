@@ -17,9 +17,11 @@ const ROLE_ORDER: Role[] = ["super", "admin", "normal", "view"];
 export default function ManageUsersModal({
   onClose,
   currentUserId,
+  isSuper,
 }: {
   onClose: () => void;
   currentUserId: string | null;
+  isSuper: boolean;
 }) {
   const {
     allowedEmails,
@@ -44,12 +46,20 @@ export default function ManageUsersModal({
     (e) => !registeredEmails.has(e.email.toLowerCase())
   );
 
+  async function handleRoleChange(profileId: string, newRole: Role) {
+    try {
+      await updateProfileRole(profileId, newRole);
+    } catch (err) {
+      alert(`Couldn't change that role: ${(err as Error).message || "unknown error"}`);
+    }
+  }
+
   async function handleAdd() {
     if (!email.trim()) return;
     setSaving(true);
     setAddError(null);
     try {
-      await addAllowedEmail(email, role, note);
+      await addAllowedEmail(email, isSuper ? role : "normal", note);
       setEmail("");
       setNote("");
       setRole("normal");
@@ -92,8 +102,10 @@ export default function ManageUsersModal({
         </div>
         <p className="text-xs text-[#8a8578] mb-4">
           Only approved emails can register, and each gets a role that
-          controls what they can do once signed in. Drag someone between
-          categories to change their role, or use the dropdown on their row.
+          controls what they can do once signed in.{" "}
+          {isSuper
+            ? "Drag someone between categories to change their role, or use the dropdown on their row."
+            : "Only Super Users can change roles — you can still invite people (as Normal User) and remove accounts."}
         </p>
 
         {error && <p className="text-sm text-[#C23B3B] mb-3">{error}</p>}
@@ -111,14 +123,16 @@ export default function ManageUsersModal({
                   <div
                     key={r}
                     onDragOver={(e) => {
+                      if (!isSuper) return;
                       e.preventDefault();
                       setDragOverRole(r);
                     }}
                     onDragLeave={() => setDragOverRole((cur) => (cur === r ? null : cur))}
                     onDrop={(e) => {
                       e.preventDefault();
+                      if (!isSuper) return;
                       const id = e.dataTransfer.getData("text/profile-id");
-                      if (id) updateProfileRole(id, r);
+                      if (id) handleRoleChange(id, r);
                       setDragOverRole(null);
                     }}
                     className={`rounded-lg p-1.5 -m-1.5 transition-colors ${
@@ -137,24 +151,31 @@ export default function ManageUsersModal({
                       {group.map((p) => (
                         <div
                           key={p.id}
-                          draggable
+                          draggable={isSuper}
                           onDragStart={(e) => {
+                            if (!isSuper) return;
                             e.dataTransfer.setData("text/profile-id", p.id);
                           }}
-                          className="flex items-center gap-2 bg-white border border-[var(--c-line)] rounded-lg px-2.5 py-1.5 cursor-grab active:cursor-grabbing"
+                          className={`flex items-center gap-2 bg-white border border-[var(--c-line)] rounded-lg px-2.5 py-1.5 ${
+                            isSuper ? "cursor-grab active:cursor-grabbing" : ""
+                          }`}
                         >
                           <span className="text-sm flex-1 truncate">{p.email}</span>
-                          <select
-                            value={p.role}
-                            onChange={(e) => updateProfileRole(p.id, e.target.value as Role)}
-                            className={selectCls}
-                          >
-                            {ROLE_ORDER.map((rr) => (
-                              <option key={rr} value={rr}>
-                                {ROLE_LABELS[rr]}
-                              </option>
-                            ))}
-                          </select>
+                          {isSuper ? (
+                            <select
+                              value={p.role}
+                              onChange={(e) => handleRoleChange(p.id, e.target.value as Role)}
+                              className={selectCls}
+                            >
+                              {ROLE_ORDER.map((rr) => (
+                                <option key={rr} value={rr}>
+                                  {ROLE_LABELS[rr]}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="text-[10px] text-[#a39d8c]">{ROLE_LABELS[p.role]}</span>
+                          )}
                           {p.id !== currentUserId && (
                             <button
                               onClick={() => handleDeleteAccount(p.id, p.email)}
@@ -215,17 +236,19 @@ export default function ManageUsersModal({
             className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2 text-sm bg-white outline-none focus:border-[var(--c-green)]"
           />
           <div className="flex gap-2">
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
-              className="rounded-lg border border-[var(--c-line)] px-2 py-2 text-sm bg-white outline-none focus:border-[var(--c-green)]"
-            >
-              {ROLE_ORDER.map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r]}
-                </option>
-              ))}
-            </select>
+            {isSuper && (
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as Role)}
+                className="rounded-lg border border-[var(--c-line)] px-2 py-2 text-sm bg-white outline-none focus:border-[var(--c-green)]"
+              >
+                {ROLE_ORDER.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABELS[r]}
+                  </option>
+                ))}
+              </select>
+            )}
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}

@@ -19,6 +19,7 @@ export interface Project {
 
 export interface Task {
   id: string;
+  task_number: string | null;
   project_id: string | null;
   parent_task_id: string | null;
   title: string;

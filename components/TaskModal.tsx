@@ -286,9 +286,14 @@ export default function TaskModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
-          <h2 className="font-display font-semibold text-base">
-            {isNew ? "New task" : "Edit task"}
-          </h2>
+          <div>
+            <h2 className="font-display font-semibold text-base">
+              {isNew ? "New task" : "Edit task"}
+            </h2>
+            {task?.task_number && (
+              <p className="text-[10px] text-[#a39d8c] font-mono mt-0.5">{task.task_number}</p>
+            )}
+          </div>
           <button onClick={onClose} className="p-1 rounded-md hover:bg-black/5">
             <X size={18} />
           </button>

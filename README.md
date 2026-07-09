@@ -179,12 +179,16 @@ changeable later by an Admin or Super User):
 | **Import** (CSV) | ✓ | ✓ | ✗ | ✗ |
 | **Delete tasks** (editor, or bulk in List) | ✓ | ✓ | ✗ | ✗ |
 | **Manage projects** (add, archive/restore) | ✓ | ✓ | ✗ (view/select only) | ✗ (view/select only) |
-| **Manage users** (invite, change roles, delete accounts) | ✓ | ✓ | ✗ | ✗ |
+| **Invite / remove user accounts** | ✓ | ✓ | ✗ | ✗ |
+| **Change roles/privileges** | ✓ | ✗ | ✗ | ✗ |
+| **View the Comment Log** (every comment, across all tasks) | ✓ | ✓ | ✗ | ✗ |
 
-There's no functional difference between Super and Admin in this build — the
-distinction exists so you have a designated "owner" role name (Super) versus
-"can also do admin things" (Admin), in case that matters later for optics or
-future features. Both currently unlock the same set of admin actions.
+Admin and Super share almost everything, with one deliberate exception:
+**only Super Users can change anyone's role.** An Admin can still invite new
+people (they land as Normal User) and remove accounts entirely — they just
+can't promote/demote anyone, including themselves. This is enforced at the
+database level, not just hidden in the UI, so it holds even if someone calls
+the API directly.
 
 **View Only** opens tasks in a read-only version of the editor — every field
 is greyed out, there's no Save button (just "Close"), no way to add a
@@ -194,7 +198,8 @@ any of it.
 
 **Setting it up:**
 
-1. Run `supabase/migration_007_roles.sql`, then `migration_008_view_only_role.sql`
+1. Run `supabase/migration_007_roles.sql`, then `migration_008_view_only_role.sql`,
+   then `migration_009_super_only_roles.sql`
    (after `migration_005_auth.sql` and `migration_006_allowed_emails.sql`, if
    you haven't already run those).
 2. **Bootstrap your first Super User directly in SQL** — the in-app "Manage
@@ -241,6 +246,36 @@ a task (that's core to how normal task creation works for the network-ops
 side of the tracker). What they can't do is use the sidebar's manual "add
 project" button, or archive/restore an existing one — those stay Admin/Super
 only.
+
+## Comment Log (Admin/Super)
+
+A **Log** item appears in the sidebar for Admin/Super only, showing every
+comment across every task — including the automatic "Status changed from…"
+entries — newest first, searchable by comment text, person, or task name.
+Click any entry to jump to that task. Normal and View Only users don't see
+this nav item at all.
+
+## People dashboard excludes View Only accounts
+
+The **People** dashboard (workload-by-project view) no longer shows a card
+for anyone whose linked login account is View Only — they're not part of
+the assignable workforce, so an always-empty card added noise rather than
+value. This is based on the same email-matching used for the sidebar's
+role grouping, so it applies regardless of who's viewing the dashboard.
+
+## Unique Task ID
+
+Every task now gets a unique, human-readable ID the moment it's created —
+date and time down to the millisecond, plus a short tiebreaker in the rare
+case two tasks are created in the same millisecond (e.g.
+`20260709T153045.123-a1b2`). It's permanent once set, shown at the top of
+the task editor, and available as its own column in the List view (sortable
+and filterable, same as every other column) and in the full task export.
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_010_task_number.sql` — it adds the column, generates IDs
+for any tasks that don't have one yet (using their real creation date, not
+today's date), and enforces uniqueness going forward.
 
 ## Project structure
 
