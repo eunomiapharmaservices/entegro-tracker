@@ -25,12 +25,10 @@ export default function PeopleDashboard({
   tasks: Task[];
   onOpenTask: (task: Task) => void;
 }) {
-  const { viewOnlyEmails } = useViewOnlyEmails();
+  const { isViewOnlyResource } = useViewOnlyEmails();
   // View Only accounts aren't part of the assignable workforce — no point
   // showing an empty workload card for them here.
-  const workingResources = resources.filter(
-    (r) => !r.email || !viewOnlyEmails.has(r.email.toLowerCase())
-  );
+  const workingResources = resources.filter((r) => !isViewOnlyResource(r));
 
   const projectById = (id: string | null) => projects.find((p) => p.id === id);
 

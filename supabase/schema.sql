@@ -223,6 +223,26 @@ $$;
 
 grant execute on function view_only_emails() to authenticated;
 
+-- Same idea, but also returns a guessed first name (from the email's local
+-- part) so a People entry that hasn't been linked to an email yet can still
+-- be matched by name as a fallback.
+create or replace function view_only_people()
+returns table(email text, name_guess text)
+language sql
+security definer
+set search_path = public
+as $$
+  select email, initcap(split_part(split_part(email, '@', 1), '.', 1)) as name_guess
+  from profiles where role = 'view'
+  union
+  select ae.email, initcap(split_part(split_part(ae.email, '@', 1), '.', 1))
+  from allowed_emails ae
+    where ae.role = 'view'
+    and lower(ae.email) not in (select lower(email) from profiles);
+$$;
+
+grant execute on function view_only_people() to authenticated;
+
 -- Keep updated_at fresh
 create or replace function set_updated_at()
 returns trigger as $$

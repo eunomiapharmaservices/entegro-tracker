@@ -94,13 +94,13 @@ export default function TaskModal({
   // site projects) so repeated lookups don't create duplicates before the
   // parent's own project list has refreshed.
   const [knownProjects, setKnownProjects] = useState<Project[]>(projects);
-  const { viewOnlyEmails } = useViewOnlyEmails();
+  const { isViewOnlyResource } = useViewOnlyEmails();
   // View Only accounts can't act on work, so they shouldn't be assignable —
   // except keep showing whoever a task is *already* assigned to, even if
   // they've since become View Only, so the field never silently hides the
   // current value.
   const assignableResources = resources.filter(
-    (r) => r.id === task?.assigned_to || !r.email || !viewOnlyEmails.has(r.email.toLowerCase())
+    (r) => r.id === task?.assigned_to || !isViewOnlyResource(r)
   );
   const [resolvingProject, setResolvingProject] = useState(false);
 
