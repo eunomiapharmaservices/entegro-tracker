@@ -18,6 +18,7 @@ import {
 import Avatar from "./Avatar";
 import { colorForIndex } from "@/lib/csvImport";
 import { isoDate } from "@/lib/dateUtils";
+import { useViewOnlyEmails } from "@/lib/useViewOnlyEmails";
 
 interface Props {
   task: Task | null; // null = creating a new top-level task
@@ -93,6 +94,14 @@ export default function TaskModal({
   // site projects) so repeated lookups don't create duplicates before the
   // parent's own project list has refreshed.
   const [knownProjects, setKnownProjects] = useState<Project[]>(projects);
+  const { viewOnlyEmails } = useViewOnlyEmails();
+  // View Only accounts can't act on work, so they shouldn't be assignable —
+  // except keep showing whoever a task is *already* assigned to, even if
+  // they've since become View Only, so the field never silently hides the
+  // current value.
+  const assignableResources = resources.filter(
+    (r) => r.id === task?.assigned_to || !r.email || !viewOnlyEmails.has(r.email.toLowerCase())
+  );
   const [resolvingProject, setResolvingProject] = useState(false);
 
   const autoProjectName = projectNameForSite(eid, siteName);
@@ -356,7 +365,7 @@ export default function TaskModal({
                 onChange={(e) => setAssignedTo(e.target.value || null)}
               >
                 <option value="">Unassigned</option>
-                {resources.map((r) => (
+                {assignableResources.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name}
                   </option>
