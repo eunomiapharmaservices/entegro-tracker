@@ -32,8 +32,7 @@ interface Props {
   onDelete: (id: string) => Promise<void>;
   createProject: (name: string, color: string) => Promise<Project>;
   addComment: (taskId: string, body: string, author?: string | null) => Promise<TaskComment>;
-  currentUser: string;
-  setCurrentUser: (name: string) => void;
+  authorName: string;
   canDelete: boolean;
 }
 
@@ -50,8 +49,7 @@ export default function TaskModal({
   onDelete,
   createProject,
   addComment,
-  currentUser,
-  setCurrentUser,
+  authorName,
   canDelete,
 }: Props) {
   const isNew = !task;
@@ -87,7 +85,6 @@ export default function TaskModal({
   const [progress, setProgress] = useState(task?.progress_percent ?? 0);
   const [lastSavedStatus, setLastSavedStatus] = useState<Status | null>(task?.status ?? null);
   const [newCommentText, setNewCommentText] = useState("");
-  const [commentAuthor, setCommentAuthor] = useState(currentUser);
   const [postingComment, setPostingComment] = useState(false);
 
   // Tracks projects created during this modal session (e.g. auto-created
@@ -191,7 +188,7 @@ export default function TaskModal({
           await addComment(
             savedTaskId,
             `Status changed from "${STATUS_LABELS[lastSavedStatus]}" to "${STATUS_LABELS[status]}"`,
-            currentUser || null
+            authorName || null
           );
         }
         setLastSavedStatus(status);
@@ -209,8 +206,7 @@ export default function TaskModal({
     if (!newCommentText.trim() || !savedTaskId) return;
     setPostingComment(true);
     try {
-      await addComment(savedTaskId, newCommentText.trim(), commentAuthor || null);
-      if (commentAuthor && commentAuthor !== currentUser) setCurrentUser(commentAuthor);
+      await addComment(savedTaskId, newCommentText.trim(), authorName || null);
       setNewCommentText("");
     } finally {
       setPostingComment(false);
@@ -624,22 +620,9 @@ export default function TaskModal({
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <select
-                    className="rounded-lg border border-[var(--c-line)] px-2 py-2 text-sm bg-white focus:border-[var(--c-green)] outline-none shrink-0 max-w-[140px]"
-                    value={commentAuthor}
-                    onChange={(e) => setCommentAuthor(e.target.value)}
-                    title="Commenting as"
-                  >
-                    <option value="">Who's commenting?</option>
-                    {resources.map((r) => (
-                      <option key={r.id} value={r.name}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </select>
                   <input
                     className={inputCls + " flex-1 min-w-0"}
-                    placeholder="Add a comment"
+                    placeholder={`Comment as ${authorName || "you"}`}
                     value={newCommentText}
                     onChange={(e) => setNewCommentText(e.target.value)}
                     onKeyDown={(e) => {
@@ -677,9 +660,18 @@ export default function TaskModal({
                   <input
                     type="checkbox"
                     checked={st.status === "done"}
-                    onChange={(e) =>
-                      onUpdate(st.id, { status: e.target.checked ? "done" : "todo" })
-                    }
+                    onChange={async (e) => {
+                      const newStatus = e.target.checked ? "done" : "todo";
+                      const oldStatus = st.status;
+                      await onUpdate(st.id, { status: newStatus });
+                      if (oldStatus !== newStatus) {
+                        await addComment(
+                          st.id,
+                          `Status changed from "${STATUS_LABELS[oldStatus]}" to "${STATUS_LABELS[newStatus]}"`,
+                          authorName || null
+                        );
+                      }
+                    }}
                     className="accent-[var(--c-green)]"
                   />
                   <span

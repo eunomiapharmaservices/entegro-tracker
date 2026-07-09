@@ -17,10 +17,9 @@ import ResourceModal from "@/components/ResourceModal";
 import ManageUsersModal from "@/components/ManageUsersModal";
 import AuthGate from "@/components/AuthGate";
 import { useTaskData } from "@/lib/useTaskData";
-import { useCurrentUser } from "@/lib/useCurrentUser";
 import { useUserRole } from "@/lib/useUserRole";
 import { supabase } from "@/lib/supabaseClient";
-import { Status, Task } from "@/lib/types";
+import { Status, Task, STATUS_LABELS } from "@/lib/types";
 import { downloadCSV } from "@/lib/csvImport";
 
 export default function Home() {
@@ -48,8 +47,16 @@ function HomeContent() {
     deleteResource,
     addComment,
   } = useTaskData();
-  const { currentUser, setCurrentUser } = useCurrentUser();
-  const { userId, isAdminOrAbove } = useUserRole();
+  const { userId, email, isAdminOrAbove } = useUserRole();
+
+  // The commenting identity is now just "whoever's logged in" — matched to
+  // their People entry by email if one exists (for a friendly display name),
+  // falling back to their login email.
+  const currentUserName = useMemo(() => {
+    if (!email) return "";
+    const match = resources.find((r) => r.email && r.email.toLowerCase() === email.toLowerCase());
+    return match?.name || email;
+  }, [resources, email]);
 
   const [view, setView] = useState<ViewMode>("board");
   const [activeProject, setActiveProject] = useState<string | null>(null);
@@ -95,7 +102,15 @@ function HomeContent() {
   };
 
   async function handleMoveStatus(taskId: string, status: Status) {
+    const previous = tasks.find((t) => t.id === taskId);
     await updateTask(taskId, { status });
+    if (previous && previous.status !== status) {
+      await addComment(
+        taskId,
+        `Status changed from "${STATUS_LABELS[previous.status]}" to "${STATUS_LABELS[status]}"`,
+        currentUserName || null
+      );
+    }
   }
 
   function handleArchiveProject(id: string, _name: string) {
@@ -221,8 +236,7 @@ function HomeContent() {
         onDeleteResource={handleDeleteResource}
         onExportProjects={handleExportProjects}
         onExportResources={handleExportResources}
-        currentUser={currentUser}
-        setCurrentUser={setCurrentUser}
+        currentUserName={currentUserName}
         onSignOut={handleSignOut}
         onManageAccess={() => setShowManageUsersModal(true)}
         isAdminOrAbove={isAdminOrAbove}
@@ -328,8 +342,7 @@ function HomeContent() {
           onDelete={deleteTask}
           createProject={createProject}
           addComment={addComment}
-          currentUser={currentUser}
-          setCurrentUser={setCurrentUser}
+          authorName={currentUserName}
           canDelete={isAdminOrAbove}
         />
       )}

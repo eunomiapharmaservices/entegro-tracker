@@ -25,8 +25,7 @@ export default function Sidebar({
   onDeleteResource,
   onExportProjects,
   onExportResources,
-  currentUser,
-  setCurrentUser,
+  currentUserName,
   onSignOut,
   onManageAccess,
   isAdminOrAbove,
@@ -47,8 +46,7 @@ export default function Sidebar({
   onDeleteResource: (id: string, name: string) => void;
   onExportProjects: () => void;
   onExportResources: () => void;
-  currentUser: string;
-  setCurrentUser: (name: string) => void;
+  currentUserName: string;
   onSignOut: () => void;
   onManageAccess: () => void;
   isAdminOrAbove: boolean;
@@ -276,25 +274,16 @@ export default function Sidebar({
       </div>
 
       <div className="mt-auto px-5 py-4 border-t border-[var(--c-line)]">
-        <label className="text-[10px] font-medium uppercase tracking-wide text-[#8a8578] mb-1.5 flex items-center gap-1.5">
-          Commenting as
-        </label>
-        <div className="flex items-center gap-2">
-          <Avatar resource={resources.find((r) => r.name === currentUser)} size={22} />
-          <select
-            value={currentUser}
-            onChange={(e) => setCurrentUser(e.target.value)}
-            className="flex-1 min-w-0 text-sm rounded-lg border border-[var(--c-line)] px-2 py-1.5 bg-white outline-none focus:border-[var(--c-green)]"
-          >
-            <option value="">Not set</option>
-            {resources.map((r) => (
-              <option key={r.id} value={r.name}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-2 mb-3">
+          <Avatar resource={resources.find((r) => r.name === currentUserName)} size={22} />
+          <div className="min-w-0">
+            <p className="text-[10px] text-[#a39d8c] uppercase tracking-wide font-display">
+              Signed in as
+            </p>
+            <p className="text-sm truncate">{currentUserName}</p>
+          </div>
         </div>
-        <div className="flex items-center justify-between mt-3">
+        <div className="flex items-center justify-between">
           {isAdminOrAbove ? (
             <button
               onClick={onManageAccess}

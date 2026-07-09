@@ -269,12 +269,12 @@ data. New installs already have them via `schema.sql`.
   (still shows the existing value even if that person isn't in People yet).
 - **Comments** are a timestamped log — each entry records who posted it and
   when (date + time), with a "Post" button next to the comment box.
-- **Commenting as** — set your name once at the bottom of the sidebar and
-  it's remembered on that browser/device, so comments get attributed to you
-  automatically without reselecting every time. There's no login behind
-  this — it's just a convenience, not access control; anyone can change it
-  (including on someone else's device), and each comment box still lets you
-  pick a different name for that one entry if needed.
+- **Who's commenting is automatic now that login exists.** There's no more
+  picker — comments (and the status-change log entries below) are always
+  attributed to whoever's actually signed in. The name shown is your matching
+  People entry if your login email matches one, otherwise your login email
+  itself. The sidebar footer shows "Signed in as [name]" so it's always
+  visible who you're posting as.
 - **Status** now includes **On hold**, alongside New / In progress / In
   review / Completed (renamed from "To do" and "Done").
 - **Task type** now includes **Training** in the suggestions list (still free
@@ -299,13 +299,10 @@ data. New installs already have them via `schema.sql`.
   editor; quick subtask entries and CSV bulk import stay flexible (a subtask
   is meant to be a lightweight checklist item, and an import may come from a
   source that doesn't track hours or EIDs).
-- **Status changes are logged automatically.** Change a task's status and hit
-  Save (or Create task), and a comment gets added to that task's log —
-  `Status changed from "X" to "Y"` — attributed to whoever's set as
-  "Commenting as" at the time. This only fires from the task editor's Save
-  button right now; dragging a card between board columns or ticking a
-  subtask done doesn't log a status-change comment (those still update status
-  itself, just without the log entry).
+- **Status changes are logged automatically**, from any of the three places
+  status can change — the task editor's Save button, dragging a card between
+  board columns, or ticking a subtask's checkbox. Each logs a comment like
+  `Status changed from "X" to "Y"`, attributed to whoever's signed in.
 
 ## Display fixes
 

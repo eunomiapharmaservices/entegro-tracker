@@ -8,6 +8,7 @@ export type Role = "super" | "admin" | "normal";
 export function useUserRole() {
   const [role, setRole] = useState<Role | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,15 +17,20 @@ export function useUserRole() {
     async function load() {
       const { data: sessionData } = await supabase.auth.getSession();
       const uid = sessionData.session?.user?.id;
+      const userEmail = sessionData.session?.user?.email ?? null;
       if (!uid) {
         if (active) {
           setRole(null);
           setUserId(null);
+          setEmail(null);
           setLoading(false);
         }
         return;
       }
-      if (active) setUserId(uid);
+      if (active) {
+        setUserId(uid);
+        setEmail(userEmail);
+      }
       const { data, error } = await supabase
         .from("profiles")
         .select("role")
@@ -51,5 +57,5 @@ export function useUserRole() {
   const isSuper = role === "super";
   const isAdminOrAbove = role === "super" || role === "admin";
 
-  return { role, userId, loading, isSuper, isAdminOrAbove };
+  return { role, userId, email, loading, isSuper, isAdminOrAbove };
 }
