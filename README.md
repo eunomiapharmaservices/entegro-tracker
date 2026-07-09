@@ -139,6 +139,20 @@ sending anything.
 Only re-assignment triggers an email — editing other fields on an
 already-assigned task doesn't re-send it.
 
+## People list grouped by role (Admin/Super)
+
+For Admins/Super Users, the sidebar's **People** list is grouped by login
+role — Super User, Admin, Normal User, View Only, and "No login yet" for
+anyone without a matching account — matched by comparing each person's email
+to the registered accounts. Drag a person into a different category to
+change their role (or set the role they'll get once they register, if they
+don't have an account yet). Normal and View Only users see the plain list,
+unchanged, since they can't see or act on role data anyway.
+
+This only works for people who have an email set on their People entry — if
+someone's missing one, they show up under "No login yet" and dragging them
+prompts you to add an email first.
+
 ## Roles: Super User, Admin, Normal User, View Only
 
 Every account has one of four roles, set when they're invited (and

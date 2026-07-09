@@ -64,6 +64,26 @@ export function useManageUsers() {
     setAllowedEmails((prev) => prev.filter((e) => e.email !== email));
   }, []);
 
+  // Sets the role an email will get when they eventually register, whether
+  // or not they're already on the allowlist (used when dragging someone
+  // without an account yet into a role category).
+  const upsertAllowedEmailRole = useCallback(async (email: string, role: Role) => {
+    const normalized = email.trim().toLowerCase();
+    const { data, error } = await supabase
+      .from("allowed_emails")
+      .upsert({ email: normalized, role }, { onConflict: "email" })
+      .select()
+      .single();
+    if (error) throw error;
+    setAllowedEmails((prev) => {
+      const exists = prev.some((e) => e.email === normalized);
+      return exists
+        ? prev.map((e) => (e.email === normalized ? (data as AllowedEmail) : e))
+        : [...prev, data as AllowedEmail];
+    });
+    return data as AllowedEmail;
+  }, []);
+
   const updateProfileRole = useCallback(async (id: string, role: Role) => {
     const { data, error } = await supabase
       .from("profiles")
@@ -98,6 +118,7 @@ export function useManageUsers() {
     reload,
     addAllowedEmail,
     removeAllowedEmail,
+    upsertAllowedEmailRole,
     updateProfileRole,
     deleteAccount,
   };

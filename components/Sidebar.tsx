@@ -4,7 +4,17 @@ import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRi
 import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users, List } from "lucide-react";
 import { useState } from "react";
 import { Project, Resource } from "@/lib/types";
+import { useManageUsers } from "@/lib/useManageUsers";
+import type { Role } from "@/lib/useUserRole";
 import Avatar from "./Avatar";
+
+const ROLE_LABELS: Record<Role, string> = {
+  super: "Super User",
+  admin: "Admin",
+  normal: "Normal User",
+  view: "View Only",
+};
+const ROLE_ORDER: Role[] = ["super", "admin", "normal", "view"];
 
 export type ViewMode = "board" | "timeline" | "calendar" | "people" | "list";
 
@@ -58,6 +68,35 @@ export default function Sidebar({
     a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
   const activeProjects = projects.filter((p) => !p.archived).sort(sortByName);
   const archivedProjects = projects.filter((p) => p.archived).sort(sortByName);
+
+  // Resources (the task-assignee roster) don't carry a login role themselves
+  // — roles live on registered accounts. Match by email to group/drag people
+  // by role here too. Only fetched/used for Admin/Super, since RLS means a
+  // Normal/View user wouldn't see other people's profiles anyway.
+  const { profiles, allowedEmails, updateProfileRole, upsertAllowedEmailRole } = useManageUsers();
+  const [dragOverRole, setDragOverRole] = useState<Role | null>(null);
+
+  function roleForResource(r: Resource): Role | null {
+    if (!r.email) return null;
+    const profile = profiles.find((p) => p.email.toLowerCase() === r.email!.toLowerCase());
+    if (profile) return profile.role;
+    const invite = allowedEmails.find((e) => e.email.toLowerCase() === r.email!.toLowerCase());
+    return invite ? invite.role : null;
+  }
+
+  async function handleDropResourceOnRole(resource: Resource, role: Role) {
+    if (!resource.email) {
+      alert(`${resource.name} doesn't have an email set, so there's no account to assign a role to.`);
+      return;
+    }
+    const profile = profiles.find((p) => p.email.toLowerCase() === resource.email!.toLowerCase());
+    if (profile) {
+      await updateProfileRole(profile.id, role);
+    } else {
+      // No account yet — set the role they'll get once they register.
+      await upsertAllowedEmailRole(resource.email, role);
+    }
+  }
 
   const navItems: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
     { key: "board", label: "Board", icon: <LayoutGrid size={17} /> },
@@ -247,33 +286,88 @@ export default function Sidebar({
           >
             Everyone
           </button>
-          {resources.map((r) => (
-            <div
-              key={r.id}
-              className={`group flex items-center gap-1 rounded-md ${
-                activeResource === r.id ? "bg-black/5" : "hover:bg-black/5"
-              }`}
-            >
+
+          {isAdminOrAbove ? (
+            <div className="flex flex-col gap-2.5 mt-1">
+              {[...ROLE_ORDER, null].map((role) => {
+                const group = resources.filter((r) => roleForResource(r) === role);
+                const label = role ? ROLE_LABELS[role] : "No login yet";
+                return (
+                  <div
+                    key={role ?? "none"}
+                    onDragOver={(e) => {
+                      if (!role) return; // can't drop into "No login yet"
+                      e.preventDefault();
+                      setDragOverRole(role);
+                    }}
+                    onDragLeave={() => setDragOverRole((cur) => (cur === role ? null : cur))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (!role) return;
+                      const resourceId = e.dataTransfer.getData("text/resource-id");
+                      const resource = resources.find((r) => r.id === resourceId);
+                      if (resource) handleDropResourceOnRole(resource, role);
+                      setDragOverRole(null);
+                    }}
+                    className={`rounded-lg p-1 -m-1 transition-colors ${
+                      dragOverRole === role ? "bg-[var(--c-green)]/10 ring-2 ring-[var(--c-green)]/30" : ""
+                    }`}
+                  >
+                    <p className="text-[10px] font-medium text-[#a39d8c] uppercase tracking-wide px-1 mb-1">
+                      {label} ({group.length})
+                    </p>
+                    {group.length === 0 && dragOverRole === role && (
+                      <div className="text-[11px] text-[var(--c-green)] border border-dashed border-[var(--c-green)]/40 rounded-lg px-2.5 py-2 text-center mb-1">
+                        Drop here to make {label}
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-0.5">
+                      {group.map((r) => (
+                        <div
+                          key={r.id}
+                          draggable={!!role}
+                          onDragStart={(e) => e.dataTransfer.setData("text/resource-id", r.id)}
+                          className={`group flex items-center gap-1 rounded-md ${
+                            activeResource === r.id ? "bg-black/5" : "hover:bg-black/5"
+                          } ${role ? "cursor-grab active:cursor-grabbing" : ""}`}
+                        >
+                          <button
+                            onClick={() => setActiveResource(r.id)}
+                            className={`flex-1 min-w-0 text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
+                              activeResource === r.id ? "font-medium" : "text-[#4d574f]"
+                            }`}
+                          >
+                            <Avatar resource={r} size={20} />
+                            <span className="truncate">{r.name}</span>
+                          </button>
+                          <button
+                            onClick={() => onDeleteResource(r.id, r.name)}
+                            title={`Remove ${r.name}`}
+                            className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[#C23B3B] transition-opacity"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            resources.map((r) => (
               <button
+                key={r.id}
                 onClick={() => setActiveResource(r.id)}
-                className={`flex-1 min-w-0 text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
-                  activeResource === r.id ? "font-medium" : "text-[#4d574f]"
+                className={`text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
+                  activeResource === r.id ? "bg-black/5 font-medium" : "hover:bg-black/5 text-[#4d574f]"
                 }`}
               >
                 <Avatar resource={r} size={20} />
                 <span className="truncate">{r.name}</span>
               </button>
-              {isAdminOrAbove && (
-                <button
-                  onClick={() => onDeleteResource(r.id, r.name)}
-                  title={`Remove ${r.name}`}
-                  className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[#C23B3B] transition-opacity"
-                >
-                  <Trash2 size={13} />
-                </button>
-              )}
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
