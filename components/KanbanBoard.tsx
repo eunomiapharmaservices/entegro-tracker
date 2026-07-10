@@ -39,7 +39,7 @@ export default function KanbanBoard({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex gap-4 overflow-x-auto pb-4 flex-1">
+      <div className="flex gap-4 overflow-x-auto pb-4 flex-1 min-h-0">
         {STATUS_ORDER.map((status) => {
           const columnTasks = topLevel.filter((t) => t.status === status);
           return (
@@ -58,11 +58,11 @@ export default function KanbanBoard({
                 if (taskId) onMoveStatus(taskId, status);
                 setDragOverCol(null);
               }}
-              className={`w-72 shrink-0 rounded-xl flex flex-col ${
+              className={`w-72 shrink-0 rounded-xl flex flex-col h-full ${
                 dragOverCol === status ? "bg-[var(--c-green)]/5 ring-2 ring-[var(--c-green)]/20" : ""
               }`}
             >
-              <div className="flex items-center justify-between px-1 py-2">
+              <div className="flex items-center justify-between px-1 py-2 shrink-0">
                 <h3 className="font-display text-sm font-semibold text-[#4d574f]">
                   {STATUS_LABELS[status]}
                 </h3>
@@ -70,7 +70,7 @@ export default function KanbanBoard({
                   {columnTasks.length}
                 </span>
               </div>
-              <div className="flex flex-col gap-2 px-0.5 min-h-[60px]">
+              <div className="flex flex-col gap-2 px-0.5 flex-1 min-h-0 overflow-y-auto">
                 {columnTasks.map((task) => (
                   <TaskCard
                     key={task.id}
