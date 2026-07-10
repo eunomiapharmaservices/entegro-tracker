@@ -118,8 +118,8 @@ export default function Sidebar({
   ];
 
   return (
-    <aside className="w-64 shrink-0 h-screen sticky top-0 border-r border-[var(--c-line)] flex flex-col bg-white/60">
-      <div className="px-5 pt-6 pb-5">
+    <aside className="w-64 shrink-0 h-screen sticky top-0 border-r border-[var(--c-line)] flex flex-col bg-white/60 overflow-hidden">
+      <div className="px-5 pt-6 pb-5 shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-[var(--c-green)] flex items-center justify-center">
             <div className="w-2.5 h-2.5 rounded-sm bg-[var(--c-orange)]" />
@@ -133,13 +133,13 @@ export default function Sidebar({
       {canEdit && (
         <button
           onClick={onNewTask}
-          className="mx-5 mb-5 flex items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-white text-sm font-medium py-2.5 hover:bg-[#194a3b] transition-colors"
+          className="mx-5 mb-5 flex items-center justify-center gap-2 rounded-lg bg-[var(--c-green)] text-white text-sm font-medium py-2.5 hover:bg-[#194a3b] transition-colors shrink-0"
         >
           <Plus size={16} /> New task
         </button>
       )}
 
-      <nav className="px-3 flex flex-col gap-0.5">
+      <nav className="px-3 flex flex-col gap-0.5 shrink-0">
         {navItems.map((item) => (
           <button
             key={item.key}
@@ -156,6 +156,7 @@ export default function Sidebar({
         ))}
       </nav>
 
+      <div className="flex-1 min-h-0 overflow-y-auto">
       <div className="px-5 mt-7">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-medium uppercase tracking-wide text-[#8a8578]">
@@ -389,7 +390,9 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div className="mt-auto px-5 py-4 border-t border-[var(--c-line)]">
+      </div>
+
+      <div className="mt-auto px-5 py-4 border-t border-[var(--c-line)] shrink-0">
         <div className="flex items-center gap-2 mb-3">
           <Avatar resource={resources.find((r) => r.name === currentUserName)} size={22} />
           <div className="min-w-0">
