@@ -2,18 +2,24 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import { Project } from "@/lib/types";
 
 const COLOR_OPTIONS = ["#1F5C4A", "#E07A3E", "#3B6E8F", "#8A5FB0", "#C23B3B", "#7A8B84"];
 
 export default function ProjectModal({
+  project,
   onClose,
   onCreate,
+  onUpdate,
 }: {
+  project?: Project | null; // pass to edit an existing project; omit to add a new one
   onClose: () => void;
   onCreate: (name: string, color: string) => Promise<unknown>;
+  onUpdate?: (id: string, input: Partial<Project>) => Promise<unknown>;
 }) {
-  const [name, setName] = useState("");
-  const [color, setColor] = useState(COLOR_OPTIONS[0]);
+  const isEdit = !!project;
+  const [name, setName] = useState(project?.name ?? "");
+  const [color, setColor] = useState(project?.color ?? COLOR_OPTIONS[0]);
   const [saving, setSaving] = useState(false);
 
   return (
@@ -26,7 +32,9 @@ export default function ProjectModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-semibold text-base">New project</h2>
+          <h2 className="font-display font-semibold text-base">
+            {isEdit ? "Edit project" : "New project"}
+          </h2>
           <button onClick={onClose} className="p-1 rounded-md hover:bg-black/5">
             <X size={18} />
           </button>
@@ -60,7 +68,7 @@ export default function ProjectModal({
             disabled={!name.trim() || saving}
             className="text-sm px-4 py-2 rounded-lg bg-[var(--c-green)] text-white font-medium hover:bg-[#194a3b] disabled:opacity-50"
           >
-            {saving ? "Creating…" : "Create"}
+            {saving ? "Saving…" : isEdit ? "Save changes" : "Create"}
           </button>
         </div>
       </div>
@@ -70,8 +78,15 @@ export default function ProjectModal({
   async function handleSave() {
     if (!name.trim()) return;
     setSaving(true);
-    await onCreate(name.trim(), color);
-    setSaving(false);
-    onClose();
+    try {
+      if (isEdit && project && onUpdate) {
+        await onUpdate(project.id, { name: name.trim(), color });
+      } else {
+        await onCreate(name.trim(), color);
+      }
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   }
 }

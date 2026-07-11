@@ -31,6 +31,7 @@ export default function Sidebar({
   onNewProject,
   onNewResource,
   onArchiveProject,
+  onEditProject,
   onUnarchiveProject,
   onDeleteResource,
   onEditResource,
@@ -55,6 +56,7 @@ export default function Sidebar({
   onNewProject: () => void;
   onNewResource: () => void;
   onArchiveProject: (id: string, name: string) => void;
+  onEditProject: (project: Project) => void;
   onUnarchiveProject: (id: string, name: string) => void;
   onDeleteResource: (id: string, name: string) => void;
   onEditResource: (resource: Resource) => void;
@@ -86,6 +88,12 @@ export default function Sidebar({
     if (profile) return profile.role;
     const invite = allowedEmails.find((e) => e.email.toLowerCase() === r.email!.toLowerCase());
     return invite ? invite.role : null;
+  }
+
+  // Admins can set someone to Normal or View Only; only Super Users can
+  // grant Admin or Super itself.
+  function canAssignRole(role: Role): boolean {
+    return isSuper || (isAdminOrAbove && (role === "normal" || role === "view"));
   }
 
   async function handleDropResourceOnRole(resource: Resource, role: Role) {
@@ -211,6 +219,15 @@ export default function Sidebar({
               </button>
               {isAdminOrAbove && (
                 <button
+                  onClick={() => onEditProject(p)}
+                  title={`Edit ${p.name}`}
+                  className="shrink-0 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[var(--c-green)] transition-opacity"
+                >
+                  <Pencil size={12} />
+                </button>
+              )}
+              {isAdminOrAbove && (
+                <button
                   onClick={() => onArchiveProject(p.id, p.name)}
                   title={`Archive ${p.name}`}
                   className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[var(--c-orange)] transition-opacity"
@@ -304,18 +321,19 @@ export default function Sidebar({
               {[...ROLE_ORDER, null].map((role) => {
                 const group = resources.filter((r) => roleForResource(r) === role);
                 const label = role ? ROLE_LABELS[role] : "No login yet";
+                const canDropHere = !!role && canAssignRole(role);
                 return (
                   <div
                     key={role ?? "none"}
                     onDragOver={(e) => {
-                      if (!role) return; // can't drop into "No login yet"
+                      if (!canDropHere) return;
                       e.preventDefault();
                       setDragOverRole(role);
                     }}
                     onDragLeave={() => setDragOverRole((cur) => (cur === role ? null : cur))}
                     onDrop={(e) => {
                       e.preventDefault();
-                      if (!role) return;
+                      if (!canDropHere || !role) return;
                       const resourceId = e.dataTransfer.getData("text/resource-id");
                       const resource = resources.find((r) => r.id === resourceId);
                       if (resource) handleDropResourceOnRole(resource, role);
@@ -337,11 +355,11 @@ export default function Sidebar({
                       {group.map((r) => (
                         <div
                           key={r.id}
-                          draggable={isSuper && !!role}
+                          draggable={isAdminOrAbove && !!role}
                           onDragStart={(e) => e.dataTransfer.setData("text/resource-id", r.id)}
                           className={`group flex items-center gap-1 rounded-md ${
                             activeResource === r.id ? "bg-black/5" : "hover:bg-black/5"
-                          } ${isSuper && role ? "cursor-grab active:cursor-grabbing" : ""}`}
+                          } ${isAdminOrAbove && role ? "cursor-grab active:cursor-grabbing" : ""}`}
                         >
                           <button
                             onClick={() => setActiveResource(r.id)}

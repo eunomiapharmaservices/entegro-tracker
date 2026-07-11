@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, X, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, X, ShieldCheck, Download } from "lucide-react";
 import { useManageUsers } from "@/lib/useManageUsers";
 import type { Role } from "@/lib/useUserRole";
+import { downloadCSV } from "@/lib/csvImport";
 
 const ROLE_LABELS: Record<Role, string> = {
   super: "Super User",
@@ -18,10 +19,12 @@ export default function ManageUsersModal({
   onClose,
   currentUserId,
   isSuper,
+  isAdminOrAbove,
 }: {
   onClose: () => void;
   currentUserId: string | null;
   isSuper: boolean;
+  isAdminOrAbove: boolean;
 }) {
   const {
     allowedEmails,
@@ -40,11 +43,20 @@ export default function ManageUsersModal({
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [dragOverRole, setDragOverRole] = useState<Role | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkRole, setBulkRole] = useState<Role>("normal");
 
   const registeredEmails = new Set(profiles.map((p) => p.email.toLowerCase()));
   const pendingInvites = allowedEmails.filter(
     (e) => !registeredEmails.has(e.email.toLowerCase())
   );
+
+  // Admins can set someone to Normal or View Only; only Super Users can
+  // grant Admin or Super itself.
+  function canAssignRole(r: Role): boolean {
+    return isSuper || (isAdminOrAbove && (r === "normal" || r === "view"));
+  }
+  const assignableRoles = ROLE_ORDER.filter(canAssignRole);
 
   async function handleRoleChange(profileId: string, newRole: Role) {
     try {
@@ -54,12 +66,63 @@ export default function ManageUsersModal({
     }
   }
 
+  async function handleBulkRoleChange() {
+    if (!canAssignRole(bulkRole)) return;
+    for (const id of selected) {
+      if (profiles.some((p) => p.id === id)) {
+        await handleRoleChange(id, bulkRole);
+      }
+    }
+    setSelected(new Set());
+  }
+
+  async function handleBulkDelete() {
+    const targets = [...selected].filter((id) => id !== currentUserId);
+    if (targets.length === 0) return;
+    if (
+      !confirm(
+        `Delete ${targets.length} account${targets.length === 1 ? "" : "s"}? This can't be undone.`
+      )
+    )
+      return;
+    for (const id of targets) {
+      try {
+        await deleteAccount(id);
+      } catch (err) {
+        alert(`Couldn't delete one account: ${(err as Error).message}`);
+      }
+    }
+    setSelected(new Set());
+  }
+
+  function handleExportSelected() {
+    const rows = [
+      "email,role",
+      ...profiles.filter((p) => selected.has(p.id)).map((p) => `${p.email},${p.role}`),
+    ];
+    downloadCSV("selected-users.csv", rows.join("\n"));
+  }
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selected.size === profiles.length) setSelected(new Set());
+    else setSelected(new Set(profiles.map((p) => p.id)));
+  }
+
   async function handleAdd() {
     if (!email.trim()) return;
     setSaving(true);
     setAddError(null);
     try {
-      await addAllowedEmail(email, isSuper ? role : "normal", note);
+      await addAllowedEmail(email, canAssignRole(role) ? role : "normal", note);
       setEmail("");
       setNote("");
       setRole("normal");
@@ -105,7 +168,7 @@ export default function ManageUsersModal({
           controls what they can do once signed in.{" "}
           {isSuper
             ? "Drag someone between categories to change their role, or use the dropdown on their row."
-            : "Only Super Users can change roles — you can still invite people (as Normal User) and remove accounts."}
+            : "You can set Normal User or View Only — only Super Users can grant Admin or Super."}
         </p>
 
         {error && <p className="text-sm text-[#C23B3B] mb-3">{error}</p>}
@@ -113,24 +176,76 @@ export default function ManageUsersModal({
 
         {profiles.length > 0 && (
           <div className="mb-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-[#8a8578] mb-1.5 font-display">
-              Registered ({profiles.length})
-            </p>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-xs font-medium uppercase tracking-wide text-[#8a8578] font-display">
+                Registered ({profiles.length})
+              </p>
+              <label className="flex items-center gap-1.5 text-[10px] text-[#8a8578] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selected.size === profiles.length && profiles.length > 0}
+                  onChange={toggleSelectAll}
+                  className="accent-[var(--c-green)]"
+                />
+                Select all
+              </label>
+            </div>
+
+            {selected.size > 0 && (
+              <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-[var(--c-green)]/10 mb-2 flex-wrap">
+                <span className="text-xs font-medium text-[var(--c-green)]">
+                  {selected.size} selected
+                </span>
+                <select
+                  value={bulkRole}
+                  onChange={(e) => setBulkRole(e.target.value as Role)}
+                  className={selectCls}
+                >
+                  {assignableRoles.map((r) => (
+                    <option key={r} value={r}>
+                      {ROLE_LABELS[r]}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleBulkRoleChange}
+                  className="text-[11px] px-2.5 py-1 rounded-md bg-white border border-[var(--c-line)] hover:bg-black/5"
+                >
+                  Apply role
+                </button>
+                <button
+                  onClick={handleExportSelected}
+                  className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md bg-white border border-[var(--c-line)] hover:bg-black/5"
+                >
+                  <Download size={11} />
+                  Export
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md bg-white border border-[var(--c-line)] text-[#C23B3B] hover:bg-black/5"
+                >
+                  <Trash2 size={11} />
+                  Delete
+                </button>
+              </div>
+            )}
+
             <div className="flex flex-col gap-3 max-h-64 overflow-y-auto">
               {ROLE_ORDER.map((r) => {
                 const group = profiles.filter((p) => p.role === r);
+                const canDropHere = canAssignRole(r);
                 return (
                   <div
                     key={r}
                     onDragOver={(e) => {
-                      if (!isSuper) return;
+                      if (!canDropHere) return;
                       e.preventDefault();
                       setDragOverRole(r);
                     }}
                     onDragLeave={() => setDragOverRole((cur) => (cur === r ? null : cur))}
                     onDrop={(e) => {
                       e.preventDefault();
-                      if (!isSuper) return;
+                      if (!canDropHere) return;
                       const id = e.dataTransfer.getData("text/profile-id");
                       if (id) handleRoleChange(id, r);
                       setDragOverRole(null);
@@ -151,24 +266,31 @@ export default function ManageUsersModal({
                       {group.map((p) => (
                         <div
                           key={p.id}
-                          draggable={isSuper}
+                          draggable={isAdminOrAbove}
                           onDragStart={(e) => {
-                            if (!isSuper) return;
+                            if (!isAdminOrAbove) return;
                             e.dataTransfer.setData("text/profile-id", p.id);
                           }}
                           className={`flex items-center gap-2 bg-white border border-[var(--c-line)] rounded-lg px-2.5 py-1.5 ${
-                            isSuper ? "cursor-grab active:cursor-grabbing" : ""
+                            isAdminOrAbove ? "cursor-grab active:cursor-grabbing" : ""
                           }`}
                         >
+                          <input
+                            type="checkbox"
+                            checked={selected.has(p.id)}
+                            onChange={() => toggleSelect(p.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="accent-[var(--c-green)] shrink-0"
+                          />
                           <span className="text-sm flex-1 truncate">{p.email}</span>
-                          {isSuper ? (
+                          {isAdminOrAbove ? (
                             <select
                               value={p.role}
                               onChange={(e) => handleRoleChange(p.id, e.target.value as Role)}
                               className={selectCls}
                             >
                               {ROLE_ORDER.map((rr) => (
-                                <option key={rr} value={rr}>
+                                <option key={rr} value={rr} disabled={!canAssignRole(rr)}>
                                   {ROLE_LABELS[rr]}
                                 </option>
                               ))}
@@ -236,19 +358,17 @@ export default function ManageUsersModal({
             className="w-full rounded-lg border border-[var(--c-line)] px-3 py-2 text-sm bg-white outline-none focus:border-[var(--c-green)]"
           />
           <div className="flex gap-2">
-            {isSuper && (
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as Role)}
-                className="rounded-lg border border-[var(--c-line)] px-2 py-2 text-sm bg-white outline-none focus:border-[var(--c-green)]"
-              >
-                {ROLE_ORDER.map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABELS[r]}
-                  </option>
-                ))}
-              </select>
-            )}
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
+              className="rounded-lg border border-[var(--c-line)] px-2 py-2 text-sm bg-white outline-none focus:border-[var(--c-green)]"
+            >
+              {ROLE_ORDER.map((r) => (
+                <option key={r} value={r} disabled={!canAssignRole(r)}>
+                  {ROLE_LABELS[r]}
+                </option>
+              ))}
+            </select>
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}

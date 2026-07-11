@@ -20,7 +20,7 @@ import AuthGate from "@/components/AuthGate";
 import { useTaskData } from "@/lib/useTaskData";
 import { useUserRole } from "@/lib/useUserRole";
 import { supabase } from "@/lib/supabaseClient";
-import { Status, Task, STATUS_LABELS, Resource } from "@/lib/types";
+import { Status, Task, STATUS_LABELS, Resource, Project } from "@/lib/types";
 import { downloadCSV } from "@/lib/csvImport";
 
 export default function Home() {
@@ -34,6 +34,7 @@ export default function Home() {
 function HomeContent() {
   const {
     tasks,
+    allTasks,
     resources,
     projects,
     taskComments,
@@ -67,6 +68,7 @@ function HomeContent() {
   const [modalTask, setModalTask] = useState<Task | null | "new">(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [showManageUsersModal, setShowManageUsersModal] = useState(false);
@@ -115,6 +117,13 @@ function HomeContent() {
         currentUserName || null
       );
     }
+  }
+
+  // Used anywhere a task is deleted outside the task editor (e.g. bulk
+  // delete in List view) — the editor's own delete button logs this itself.
+  async function handleDeleteTaskWithLog(id: string) {
+    await addComment(id, "Task deleted", currentUserName || null);
+    await deleteTask(id);
   }
 
   function handleArchiveProject(id: string, _name: string) {
@@ -236,6 +245,7 @@ function HomeContent() {
         setActiveResource={setActiveResource}
         onNewTask={() => setModalTask("new")}
         onNewProject={() => setShowProjectModal(true)}
+        onEditProject={(p) => setEditingProject(p)}
         onNewResource={() => setShowResourceModal(true)}
         onArchiveProject={handleArchiveProject}
         onUnarchiveProject={handleUnarchiveProject}
@@ -330,14 +340,14 @@ function HomeContent() {
                 resources={resources}
                 projects={projects}
                 onOpenTask={(t) => setModalTask(t)}
-                onDeleteTask={deleteTask}
+                onDeleteTask={handleDeleteTaskWithLog}
                 canDelete={isAdminOrAbove}
               />
             )}
             {view === "log" && isAdminOrAbove && (
               <CommentLogView
                 taskComments={taskComments}
-                tasks={tasks}
+                tasks={allTasks}
                 onOpenTask={(t) => setModalTask(t)}
               />
             )}
@@ -382,6 +392,15 @@ function HomeContent() {
         <ProjectModal onClose={() => setShowProjectModal(false)} onCreate={createProject} />
       )}
 
+      {editingProject && isAdminOrAbove && (
+        <ProjectModal
+          project={editingProject}
+          onClose={() => setEditingProject(null)}
+          onCreate={createProject}
+          onUpdate={updateProject}
+        />
+      )}
+
       {showResourceModal && isAdminOrAbove && (
         <ResourceModal onClose={() => setShowResourceModal(false)} onCreate={createResource} />
       )}
@@ -400,6 +419,7 @@ function HomeContent() {
           onClose={() => setShowManageUsersModal(false)}
           currentUserId={userId}
           isSuper={isSuper}
+          isAdminOrAbove={isAdminOrAbove}
         />
       )}
     </div>

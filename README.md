@@ -180,15 +180,23 @@ changeable later by an Admin or Super User):
 | **Delete tasks** (editor, or bulk in List) | ✓ | ✓ | ✗ | ✗ |
 | **Manage projects** (add, archive/restore) | ✓ | ✓ | ✗ (view/select only) | ✗ (view/select only) |
 | **Invite / remove user accounts** | ✓ | ✓ | ✗ | ✗ |
-| **Change roles/privileges** | ✓ | ✗ | ✗ | ✗ |
+| **Change roles/privileges** | ✓ (any role) | Normal/View Only only | ✗ | ✗ |
 | **View the Comment Log** (every comment, across all tasks) | ✓ | ✓ | ✗ | ✗ |
 
-Admin and Super share almost everything, with one deliberate exception:
-**only Super Users can change anyone's role.** An Admin can still invite new
-people (they land as Normal User) and remove accounts entirely — they just
-can't promote/demote anyone, including themselves. This is enforced at the
-database level, not just hidden in the UI, so it holds even if someone calls
-the API directly.
+Admin and Super share almost everything. The one nuanced difference: an
+Admin can set someone's role to **Normal User or View Only** (routine
+day-to-day access changes — e.g. moving someone to View Only when they roll
+off active work), but only a **Super User** can grant **Admin or Super**
+itself. That way privilege escalation always needs a Super's say-so, while
+Admins can still handle everyday access management on their own. This is
+enforced at the database level, not just hidden in the UI, so it holds even
+if someone calls the API directly. Inviting, removing accounts, and
+everything else in Manage Users works the same for both.
+
+**Multi-select in Manage Users**: tick the checkbox on any registered
+account (or "Select all") to bulk-apply a role change, export the selection
+as CSV, or delete several accounts at once — the bulk role dropdown only
+offers roles you're actually allowed to grant.
 
 **View Only** opens tasks in a read-only version of the editor — every field
 is greyed out, there's no Save button (just "Close"), no way to add a
@@ -250,10 +258,30 @@ only.
 ## Comment Log (Admin/Super)
 
 A **Log** item appears in the sidebar for Admin/Super only, showing every
-comment across every task — including the automatic "Status changed from…"
-entries — newest first, searchable by comment text, person, or task name.
-Click any entry to jump to that task. Normal and View Only users don't see
-this nav item at all.
+comment across every task — including the automatic "Status changed from…",
+"Task created", and "Task deleted" entries — newest first, searchable by
+comment text, person, or task name. Click any entry to jump to that task.
+Normal and View Only users don't see this nav item at all.
+
+## Deleting a task keeps its history
+
+Deleting a task (Admin/Super only) no longer removes it from the database —
+it's a soft delete. The task disappears from Board, Timeline, Calendar,
+List, and People, but its full comment log (including every status change
+and the new "Task created"/"Task deleted" entries) stays intact and visible
+in the Comment Log forever, tagged with a red "Deleted" badge if you open it
+from there. This is enforced at the database level too — only Admin/Super
+can actually mark a task deleted, even via a direct API call.
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_013_soft_delete_tasks.sql`.
+
+## Task created / deleted logging
+
+Every task now gets a "Task created" comment the moment it's saved (and
+subtasks get their own entry too), and "Task deleted" is logged right before
+a task disappears — so the Comment Log is a genuine end-to-end record of
+what happened to every task, not just its status changes.
 
 ## People dashboard excludes View Only accounts
 
@@ -408,6 +436,14 @@ and add the auto-completion-date trigger.
   requirement is satisfied without retyping something you just picked.
 - **Project dropdown is now sorted** the same numeric-aware way as the
   sidebar, so EID-prefixed project names are easy to scan in order.
+- **Site name is now mandatory**, same as Task type, EID, and Expected
+  duration. It's also auto-formatted as you type — first letter capitalized,
+  everything else lowercase (e.g. typing "CHARLOTTE" becomes "Charlotte").
+- **Three new task type suggestions**: NAT Updates, Flight Deck, Admin Work
+  (alongside the existing ones — still free text, so anything works).
+- **Projects can be renamed** — Admin/Super see a pencil icon on hover next
+  to each project in the sidebar to edit its name or colour, for fixing
+  typos without having to archive and recreate it.
 
 ## Calendar refinements
 

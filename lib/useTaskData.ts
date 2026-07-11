@@ -6,12 +6,18 @@ import { Project, Resource, Task, TaskComment } from "./types";
 import { notifyAssignment } from "./notifyAssignment";
 
 export function useTaskData() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [taskComments, setTaskComments] = useState<TaskComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // `tasks` is what every normal view should use (Board, Timeline, Calendar,
+  // List, People) — soft-deleted tasks stay in the database forever (so
+  // their comment log/history is never lost) but are hidden everywhere
+  // except the Comment Log, which uses `allTasks` to still resolve titles.
+  const tasks = allTasks.filter((t) => !t.deleted_at);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -31,7 +37,7 @@ export function useTaskData() {
           "Something went wrong loading data."
       );
     } else {
-      setTasks(tasksRes.data as Task[]);
+      setAllTasks(tasksRes.data as Task[]);
       setResources(resourcesRes.data as Resource[]);
       setProjects(projectsRes.data as Project[]);
       // Comment log table may not exist yet if the migration hasn't been run —
@@ -64,7 +70,7 @@ export function useTaskData() {
         .single();
       if (error) throw error;
       const created = data as Task;
-      setTasks((prev) => [...prev, created]);
+      setAllTasks((prev) => [...prev, created]);
 
       if (created.assigned_to) {
         const resource = resources.find((r) => r.id === created.assigned_to);
@@ -80,7 +86,7 @@ export function useTaskData() {
 
   const updateTask = useCallback(
     async (id: string, input: Partial<Task>) => {
-      const previous = tasks.find((t) => t.id === id);
+      const previous = allTasks.find((t) => t.id === id);
       const { data, error } = await supabase
         .from("tasks")
         .update(input)
@@ -89,7 +95,7 @@ export function useTaskData() {
         .single();
       if (error) throw error;
       const updated = data as Task;
-      setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
+      setAllTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
 
       // Only notify when the assignee actually changed (newly assigned or
       // reassigned) — not on every unrelated edit to an already-assigned task.
@@ -102,14 +108,26 @@ export function useTaskData() {
       }
       return updated;
     },
-    [tasks, resources, projects]
+    [allTasks, resources, projects]
   );
 
+  // Soft delete: mark deleted_at instead of removing the row, so the task's
+  // comment log (including the "Task deleted" entry logged by the caller)
+  // is preserved forever and still visible in the Comment Log. Subtasks are
+  // soft-deleted along with their parent, same idea as the old cascade.
   const deleteTask = useCallback(async (id: string) => {
-    const { error } = await supabase.from("tasks").delete().eq("id", id);
+    const now = new Date().toISOString();
+    const childIds = allTasks.filter((t) => t.parent_task_id === id).map((t) => t.id);
+    const idsToDelete = [id, ...childIds];
+    const { error } = await supabase
+      .from("tasks")
+      .update({ deleted_at: now })
+      .in("id", idsToDelete);
     if (error) throw error;
-    setTasks((prev) => prev.filter((t) => t.id !== id && t.parent_task_id !== id));
-  }, []);
+    setAllTasks((prev) =>
+      prev.map((t) => (idsToDelete.includes(t.id) ? { ...t, deleted_at: now } : t))
+    );
+  }, [allTasks]);
 
   const createResource = useCallback(
     async (name: string, color: string, email?: string | null) => {
@@ -166,7 +184,7 @@ export function useTaskData() {
     setResources((prev) => prev.filter((r) => r.id !== id));
     // Tasks assigned to this resource are unassigned server-side (FK is
     // ON DELETE SET NULL), so mirror that in local state too.
-    setTasks((prev) =>
+    setAllTasks((prev) =>
       prev.map((t) => (t.assigned_to === id ? { ...t, assigned_to: null } : t))
     );
   }, []);
@@ -177,7 +195,7 @@ export function useTaskData() {
     setProjects((prev) => prev.filter((p) => p.id !== id));
     // Tasks in this project are detached rather than deleted (FK is
     // ON DELETE SET NULL), so mirror that in local state too.
-    setTasks((prev) =>
+    setAllTasks((prev) =>
       prev.map((t) => (t.project_id === id ? { ...t, project_id: null } : t))
     );
   }, []);
@@ -204,6 +222,7 @@ export function useTaskData() {
 
   return {
     tasks,
+    allTasks,
     resources,
     projects,
     taskComments,

@@ -48,6 +48,8 @@ create table if not exists tasks (
   actual_time_spent_hours numeric,
   progress_percent integer default 0 check (progress_percent between 0 and 100),
   comments text,                -- running notes, separate from the description
+  deleted_at timestamptz,       -- soft delete: set instead of removing the row, so
+                                 -- the comment log/history is never lost
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -175,19 +177,20 @@ drop policy if exists "profiles_select" on profiles;
 create policy "profiles_select" on profiles for select
   using (auth.uid() = id or is_admin_or_super());
 
--- Only Super Users can change an existing account's role or privileges.
--- Admins can still do everything else in "Manage users" (invite, delete
--- accounts) — just not touch the role field on someone already registered.
+-- Admins can set someone's role to Normal or View Only — that covers routine
+-- day-to-day access changes. Only Super Users can grant Admin or Super
+-- itself, so privilege escalation always requires a Super User's say-so.
 drop policy if exists "profiles_update_admin" on profiles;
 drop policy if exists "profiles_update_super" on profiles;
-create policy "profiles_update_super" on profiles for update
-  using (is_super()) with check (is_super());
+drop policy if exists "profiles_update_role" on profiles;
+create policy "profiles_update_role" on profiles for update
+  using (is_admin_or_super())
+  with check (is_super() or (is_admin_or_super() and role in ('normal', 'view')));
 
--- Allowed emails: Admins/Super can view, invite, and remove entries. Only
--- Super Users can set a role other than 'normal' — so an Admin can invite
--- someone (they land as Normal), but can't invite or edit someone straight
--- into Admin/Super/View Only. This applies to both new invites and editing
--- an existing (not-yet-registered) invite's role.
+-- Allowed emails: Admins/Super can view, invite, and remove entries. Admins
+-- can set a role of Normal or View Only; only Super Users can invite or
+-- edit someone straight into Admin/Super. This applies to both new invites
+-- and editing an existing (not-yet-registered) invite's role.
 drop policy if exists "authenticated_all_allowed_emails" on allowed_emails;
 drop policy if exists "admin_all_allowed_emails" on allowed_emails;
 drop policy if exists "allowed_emails_select" on allowed_emails;
@@ -197,10 +200,10 @@ drop policy if exists "allowed_emails_delete" on allowed_emails;
 create policy "allowed_emails_select" on allowed_emails for select
   using (is_admin_or_super());
 create policy "allowed_emails_insert" on allowed_emails for insert
-  with check (is_super() or (is_admin_or_super() and role = 'normal'));
+  with check (is_super() or (is_admin_or_super() and role in ('normal', 'view')));
 create policy "allowed_emails_update" on allowed_emails for update
   using (is_admin_or_super())
-  with check (is_super() or (is_admin_or_super() and role = 'normal'));
+  with check (is_super() or (is_admin_or_super() and role in ('normal', 'view')));
 create policy "allowed_emails_delete" on allowed_emails for delete
   using (is_admin_or_super());
 
@@ -304,6 +307,26 @@ drop trigger if exists trg_tasks_task_number on tasks;
 create trigger trg_tasks_task_number
 before insert on tasks
 for each row execute function set_task_number();
+
+-- Tasks are "deleted" by setting deleted_at (soft delete — the row and its
+-- full comment log stay in the database forever, just hidden from normal
+-- views). This trigger enforces that only Admin/Super can actually do that,
+-- since the general tasks UPDATE policy is open to any editor for normal
+-- field edits.
+create or replace function prevent_unauthorized_delete()
+returns trigger as $$
+begin
+  if (old.deleted_at is null and new.deleted_at is not null) and not is_admin_or_super() then
+    raise exception 'Only Admin/Super can delete tasks';
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_tasks_prevent_unauthorized_delete on tasks;
+create trigger trg_tasks_prevent_unauthorized_delete
+before update on tasks
+for each row execute function prevent_unauthorized_delete();
 
 -- Resources stay open to any signed-in user (roster used to assign tasks —
 -- who can add/remove entries is gated in the UI, not RLS, for Admin/Super).

@@ -134,6 +134,7 @@ export default function TaskModal({
   if (!title.trim()) missingFields.push("Title");
   if (!taskType.trim()) missingFields.push("Task type");
   if (!eid.trim()) missingFields.push("EID");
+  if (!siteName.trim()) missingFields.push("Site name");
   if (!expectedHours.trim()) missingFields.push("Expected duration");
   const isValid = missingFields.length === 0;
 
@@ -207,6 +208,7 @@ export default function TaskModal({
         const created = await onCreate(payload);
         setSavedTaskId(created.id);
         setLastSavedStatus(status);
+        await addComment(created.id, "Task created", authorName || null);
       }
     } finally {
       setSaving(false);
@@ -260,14 +262,16 @@ export default function TaskModal({
       parentId = created.id;
       setSavedTaskId(created.id);
       setLastSavedStatus(status);
+      await addComment(created.id, "Task created", authorName || null);
     }
-    await onCreate({
+    const subtask = await onCreate({
       title: newSubtaskTitle.trim(),
       parent_task_id: parentId,
       project_id: projectId,
       status: "todo",
       priority: "medium",
     });
+    await addComment(subtask.id, "Task created", authorName || null);
     setNewSubtaskTitle("");
   }
 
@@ -277,6 +281,7 @@ export default function TaskModal({
       return;
     }
     if (!confirm("Delete this task and all its subtasks?")) return;
+    await addComment(savedTaskId, "Task deleted", authorName || null);
     await onDelete(savedTaskId);
     onClose();
   }
@@ -298,6 +303,11 @@ export default function TaskModal({
           <div>
             <h2 className="font-display font-semibold text-base">
               {isNew ? "New task" : "Edit task"}
+              {task?.deleted_at && (
+                <span className="ml-2 text-[11px] font-normal text-[#C23B3B] bg-[#C23B3B]/10 px-2 py-0.5 rounded-full align-middle">
+                  Deleted
+                </span>
+              )}
             </h2>
             {task?.task_number && (
               <p className="text-[10px] text-[#a39d8c] font-mono mt-0.5">{task.task_number}</p>
@@ -510,12 +520,17 @@ export default function TaskModal({
                 />
               </div>
               <div>
-                <label className={labelCls}>Site name</label>
+                <label className={labelCls}>
+                  Site name <span className="text-[#C23B3B]">*</span>
+                </label>
                 <input
                   className={inputCls}
                   placeholder="e.g. Boston"
                   value={siteName}
-                  onChange={(e) => setSiteName(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSiteName(v ? v.charAt(0).toUpperCase() + v.slice(1).toLowerCase() : v);
+                  }}
                 />
               </div>
             </div>

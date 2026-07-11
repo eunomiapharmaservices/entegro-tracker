@@ -43,6 +43,7 @@ export interface Task {
   actual_time_spent_hours: number | null;
   progress_percent: number;
   comments: string | null;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -64,6 +65,9 @@ export const TASK_TYPE_SUGGESTIONS = [
   "Data-cleanse",
   "Pre-wire",
   "Training",
+  "NAT Updates",
+  "Flight Deck",
+  "Admin Work",
 ];
 
 // When a task has an EID (circuit/site ID), its project is derived from that
