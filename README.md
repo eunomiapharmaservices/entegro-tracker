@@ -425,6 +425,33 @@ If you already had the tracker deployed before this update, run
 (in that order) — they widen the status field, add the comments log table,
 and add the auto-completion-date trigger.
 
+## Task dependencies
+
+Any task can now depend on another one, via the **Depends on** field in the
+editor (between Due date and the milestone toggle). Once the task it depends
+on is marked **Completed**, this task's **Start date** is automatically set
+to the day after that completion date — and keeps updating automatically if
+the completion date ever changes later.
+
+This works no matter how the dependency gets marked done — through the
+editor, dragging a card on the board, or a bulk CSV import — since it's
+enforced at the database level, not just in the task editor's UI.
+
+A couple of things worth knowing:
+- If you pick a dependency that's *already* completed, the start date is set
+  immediately when you save — no need to wait for anything to change.
+- Because the cascade happens in the database, a teammate's screen might
+  take up to the usual 60-second background refresh to visually show a
+  dependent task's new start date — it's already correct in the database
+  immediately, just not necessarily reflected on-screen for other people
+  until their next refresh.
+- There's a basic guard against the simplest cycle (two tasks depending on
+  each other directly), but deeper chains (A → B → C → A) aren't checked —
+  keep dependency chains straightforward.
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_015_task_dependencies.sql`.
+
 ## Task editor refinements
 
 - **Date added** now defaults to today automatically for new tasks — no need

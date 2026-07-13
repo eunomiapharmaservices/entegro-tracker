@@ -66,6 +66,9 @@ export default function TaskModal({
   const [priority, setPriority] = useState<Priority>(task?.priority ?? "medium");
   const [startDate, setStartDate] = useState(task?.start_date ?? "");
   const [dueDate, setDueDate] = useState(task?.due_date ?? "");
+  const [dependsOnTaskId, setDependsOnTaskId] = useState<string | null>(
+    task?.depends_on_task_id ?? null
+  );
   const [isMilestone, setIsMilestone] = useState(task?.is_milestone ?? false);
   const [milestoneDate, setMilestoneDate] = useState(task?.milestone_date ?? "");
   const [saving, setSaving] = useState(false);
@@ -130,6 +133,13 @@ export default function TaskModal({
     ? tasks.filter((t) => t.parent_task_id === savedTaskId)
     : [];
 
+  // Exclude this task itself and anything that already depends on it
+  // directly (a simple guard against the most obvious two-task cycle).
+  const dependencyOptions = tasks.filter(
+    (t) => t.id !== task?.id && t.depends_on_task_id !== task?.id
+  );
+  const dependencyTask = dependsOnTaskId ? tasks.find((t) => t.id === dependsOnTaskId) : null;
+
   const missingFields: string[] = [];
   if (!title.trim()) missingFields.push("Title");
   if (!taskType.trim()) missingFields.push("Task type");
@@ -181,6 +191,7 @@ export default function TaskModal({
       priority,
       start_date: startDate || null,
       due_date: dueDate || null,
+      depends_on_task_id: dependsOnTaskId,
       is_milestone: isMilestone,
       milestone_date: isMilestone ? milestoneDate || null : null,
       task_type: taskType.trim() || null,
@@ -247,6 +258,7 @@ export default function TaskModal({
         priority,
         start_date: startDate || null,
         due_date: dueDate || null,
+        depends_on_task_id: dependsOnTaskId,
         is_milestone: isMilestone,
         milestone_date: isMilestone ? milestoneDate || null : null,
         task_type: taskType.trim() || null,
@@ -442,6 +454,30 @@ export default function TaskModal({
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
               />
+            </div>
+
+            <div className="col-span-2">
+              <label className={labelCls}>Depends on</label>
+              <select
+                className={inputCls}
+                value={dependsOnTaskId ?? ""}
+                onChange={(e) => setDependsOnTaskId(e.target.value || null)}
+              >
+                <option value="">No dependency</option>
+                {dependencyOptions.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                    {t.status === "done" ? " (Completed)" : ""}
+                  </option>
+                ))}
+              </select>
+              {dependencyTask && (
+                <p className="text-[11px] text-[#a39d8c] mt-1.5">
+                  {dependencyTask.status === "done"
+                    ? `This task's start date is set the day after "${dependencyTask.title}" was completed, and updates automatically if that changes.`
+                    : `Once "${dependencyTask.title}" is marked Completed, this task's start date will automatically be set to the day after.`}
+                </p>
+              )}
             </div>
           </div>
 

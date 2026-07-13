@@ -22,6 +22,7 @@ export interface Task {
   task_number: string | null;
   project_id: string | null;
   parent_task_id: string | null;
+  depends_on_task_id: string | null;
   title: string;
   description: string | null;
   status: Status;

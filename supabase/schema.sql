@@ -27,6 +27,8 @@ create table if not exists tasks (
   task_number text unique,      -- human-readable unique ID: YYMMDD-HHMMSS, e.g. 260708-120927
   project_id uuid references projects(id) on delete set null,
   parent_task_id uuid references tasks(id) on delete cascade,
+  depends_on_task_id uuid references tasks(id) on delete set null
+    check (depends_on_task_id is null or depends_on_task_id <> id),
   title text not null,
   description text,
   status text not null default 'todo' check (status in ('todo','in_progress','on_hold','review','done')),
@@ -57,6 +59,7 @@ create table if not exists tasks (
 create index if not exists idx_tasks_parent on tasks(parent_task_id);
 create index if not exists idx_tasks_project on tasks(project_id);
 create index if not exists idx_tasks_assigned on tasks(assigned_to);
+create index if not exists idx_tasks_depends_on on tasks(depends_on_task_id);
 
 -- Task comments: a timestamped log of notes/updates on a task (distinct from
 -- the single legacy `comments` text field above, which is kept for anything
@@ -327,6 +330,52 @@ drop trigger if exists trg_tasks_prevent_unauthorized_delete on tasks;
 create trigger trg_tasks_prevent_unauthorized_delete
 before update on tasks
 for each row execute function prevent_unauthorized_delete();
+
+-- Task dependencies: when a task is (newly) set to depend on another task
+-- that's already completed, immediately set its start date to the day
+-- after that completion date.
+create or replace function apply_dependency_start_date()
+returns trigger as $$
+declare
+  dep_completion date;
+begin
+  if new.depends_on_task_id is not null and (
+       tg_op = 'INSERT' or new.depends_on_task_id is distinct from old.depends_on_task_id
+     ) then
+    select actual_completion into dep_completion from tasks where id = new.depends_on_task_id;
+    if dep_completion is not null then
+      new.start_date := dep_completion + 1;
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_tasks_apply_dependency_start_date on tasks;
+create trigger trg_tasks_apply_dependency_start_date
+before insert or update on tasks
+for each row execute function apply_dependency_start_date();
+
+-- When a task's actual completion date is set or changes, push that
+-- forward to every task depending on it: their start date becomes the day
+-- after this task's completion date.
+create or replace function cascade_dependency_start_date()
+returns trigger as $$
+begin
+  if new.actual_completion is not null
+     and (old.actual_completion is distinct from new.actual_completion) then
+    update tasks
+    set start_date = new.actual_completion + 1
+    where depends_on_task_id = new.id;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_tasks_cascade_dependency on tasks;
+create trigger trg_tasks_cascade_dependency
+after update on tasks
+for each row execute function cascade_dependency_start_date();
 
 -- Resources stay open to any signed-in user (roster used to assign tasks —
 -- who can add/remove entries is gated in the UI, not RLS, for Admin/Super).
