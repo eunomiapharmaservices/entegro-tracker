@@ -87,9 +87,7 @@ function HomeContent() {
         if (!parent || parent.project_id !== activeProject) return false;
       }
       if (activeResource === UNASSIGNED_FILTER) {
-        const isUnassignedOrChildUnassigned =
-          isUnassigned(t) || tasks.some((s) => s.parent_task_id === t.id && isUnassigned(s));
-        if (!isUnassignedOrChildUnassigned) return false;
+        if (!isUnassigned(t)) return false;
       } else if (activeResource) {
         const isAssignedOrChildAssigned =
           isAssignedTo(t, activeResource) ||
