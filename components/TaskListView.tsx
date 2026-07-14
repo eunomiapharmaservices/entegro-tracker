@@ -166,10 +166,19 @@ export default function TaskListView({
   async function handleDeleteSelected() {
     if (!confirm(`Delete ${selected.size} task${selected.size === 1 ? "" : "s"}? This can't be undone.`))
       return;
+    const failures: string[] = [];
     for (const id of selected) {
-      await onDeleteTask(id);
+      try {
+        await onDeleteTask(id);
+      } catch (err) {
+        const t = tasks.find((x) => x.id === id);
+        failures.push(`${t?.title || id}: ${(err as Error).message || "unknown error"}`);
+      }
     }
     setSelected(new Set());
+    if (failures.length > 0) {
+      alert(`Some tasks couldn't be deleted:\n\n${failures.join("\n")}`);
+    }
   }
 
   const allSelected = sorted.length > 0 && selected.size === sorted.length;

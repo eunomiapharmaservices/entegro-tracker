@@ -72,8 +72,13 @@ export function useTaskData() {
       const created = data as Task;
       setAllTasks((prev) => [...prev, created]);
 
-      if (created.assigned_to) {
-        const resource = resources.find((r) => r.id === created.assigned_to);
+      const assigneeIds = created.assignee_ids?.length
+        ? created.assignee_ids
+        : created.assigned_to
+        ? [created.assigned_to]
+        : [];
+      for (const assigneeId of assigneeIds) {
+        const resource = resources.find((r) => r.id === assigneeId);
         if (resource?.email) {
           const project = projects.find((p) => p.id === created.project_id);
           notifyAssignment(resource.email, created, project?.name);
@@ -97,10 +102,23 @@ export function useTaskData() {
       const updated = data as Task;
       setAllTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
 
-      // Only notify when the assignee actually changed (newly assigned or
-      // reassigned) — not on every unrelated edit to an already-assigned task.
-      if (updated.assigned_to && updated.assigned_to !== previous?.assigned_to) {
-        const resource = resources.find((r) => r.id === updated.assigned_to);
+      // Only notify people who are newly assigned (weren't in the previous
+      // assignee set) — not on every unrelated edit to an already-assigned task.
+      const prevAssigneeIds = new Set(
+        previous?.assignee_ids?.length
+          ? previous.assignee_ids
+          : previous?.assigned_to
+          ? [previous.assigned_to]
+          : []
+      );
+      const newAssigneeIds = updated.assignee_ids?.length
+        ? updated.assignee_ids
+        : updated.assigned_to
+        ? [updated.assigned_to]
+        : [];
+      for (const assigneeId of newAssigneeIds) {
+        if (prevAssigneeIds.has(assigneeId)) continue;
+        const resource = resources.find((r) => r.id === assigneeId);
         if (resource?.email) {
           const project = projects.find((p) => p.id === updated.project_id);
           notifyAssignment(resource.email, updated, project?.name);

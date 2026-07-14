@@ -414,6 +414,7 @@ async function importTasks(
       description: (row.description || "").trim() || null,
       project_id: projectId,
       assigned_to: assignedTo,
+      assignee_ids: assignedTo ? [assignedTo] : [],
       status: normalizeStatus(row.status) as Task["status"],
       priority: normalizePriority(row.priority) as Task["priority"],
       start_date: normalizeDate(row.start_date),

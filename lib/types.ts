@@ -28,6 +28,7 @@ export interface Task {
   status: Status;
   priority: Priority;
   assigned_to: string | null;
+  assignee_ids: string[];
   start_date: string | null;
   due_date: string | null;
   is_milestone: boolean;

@@ -33,7 +33,9 @@ export default function PeopleDashboard({
   const projectById = (id: string | null) => projects.find((p) => p.id === id);
 
   function tasksFor(resourceId: string) {
-    return tasks.filter((t) => t.assigned_to === resourceId);
+    return tasks.filter((t) =>
+      t.assignee_ids?.length ? t.assignee_ids.includes(resourceId) : t.assigned_to === resourceId
+    );
   }
 
   function groupByProject(personTasks: Task[]) {
@@ -50,7 +52,7 @@ export default function PeopleDashboard({
     );
   }
 
-  const unassigned = tasks.filter((t) => !t.assigned_to);
+  const unassigned = tasks.filter((t) => !t.assigned_to && !t.assignee_ids?.length);
 
   return (
     <div className="overflow-y-auto h-full pr-1">

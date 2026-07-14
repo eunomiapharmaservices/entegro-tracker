@@ -425,6 +425,54 @@ If you already had the tracker deployed before this update, run
 (in that order) — they widen the status field, add the comments log table,
 and add the auto-completion-date trigger.
 
+## Due date changes are logged automatically
+
+Any real change to a task's due date now logs a comment — "Due date changed
+from X to Y" (or "set to"/"cleared" for the first-time/removed cases) — no
+matter where the change comes from: a manual edit, CSV import, or the
+On Hold/In Review auto-extension bake-in below. This is enforced at the
+database level, so it catches every path rather than just the task editor.
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_017_log_due_date_change.sql`.
+
+## Multiple assignees per task
+
+A task can now be assigned to more than one person — "Assigned to" in the
+editor is a checklist instead of a single dropdown. The board shows small
+stacked avatars for everyone assigned (up to 3, with a "+N" overflow badge).
+The first person checked stays the "primary" assignee behind the scenes, so
+existing behavior (People dashboard grouping, assignment emails, filtering)
+keeps working — but now every checked person gets included in all of that,
+not just the first.
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_018_multi_assignee.sql` — it adds the column and
+backfills everyone's existing single assignment into the new list.
+
+## Filter by Unassigned
+
+The sidebar's People section now has an "Unassigned" option right below
+"Everyone" — click it to see only tasks with nobody assigned, across Board,
+Timeline, Calendar, List, and People.
+
+## Delete task — error visibility
+
+If deleting a task or bulk-deleting from List view ever fails, you'll now
+see an actual error message explaining why, instead of it just silently not
+happening. If Admin delete still doesn't work for you after this update,
+check that all the migrations through `migration_013` (soft delete) have
+actually been applied — the error message should now tell you exactly what
+Postgres is objecting to.
+
+## Predefined subtasks
+
+The task editor now shows a few quick-add chips above the subtask
+input — "Collect supporting documents," "Verify configuration," "Get
+approval / sign-off," "Update documentation," "Notify stakeholders" — click
+one to add it instantly instead of typing it out. Each one disappears from
+the suggestions once it's already been added to that task.
+
 ## Due date extends automatically while On Hold or In Review
 
 While a task sits in **On Hold** or **In Review**, its due date effectively

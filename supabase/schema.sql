@@ -34,6 +34,9 @@ create table if not exists tasks (
   status text not null default 'todo' check (status in ('todo','in_progress','on_hold','review','done')),
   priority text not null default 'medium' check (priority in ('low','medium','high','urgent')),
   assigned_to uuid references resources(id) on delete set null,
+  assignee_ids uuid[] default '{}',  -- full set of assignees; assigned_to stays
+                                      -- the primary one for backward compatibility
+                                      -- with existing filters/board avatars
   start_date date,
   due_date date,
   is_milestone boolean default false,
@@ -412,6 +415,36 @@ drop trigger if exists trg_tasks_manage_hold_started_at on tasks;
 create trigger trg_tasks_manage_hold_started_at
 before insert or update on tasks
 for each row execute function manage_hold_started_at();
+
+-- Logs a comment whenever a task's due date actually changes, from any
+-- source — manual edit, CSV import, or the automatic On Hold/In Review
+-- bake-in above. AFTER trigger so it sees the final committed value (i.e.
+-- it captures the real change even when another BEFORE trigger adjusted it
+-- further). Only fires on UPDATE, not INSERT, so creating a task with a due
+-- date doesn't also log a redundant "due date set" entry.
+create or replace function log_due_date_change()
+returns trigger as $$
+begin
+  if new.due_date is distinct from old.due_date then
+    insert into task_comments (task_id, body, author)
+    values (
+      new.id,
+      case
+        when old.due_date is null then format('Due date set to %s', to_char(new.due_date, 'DD Mon YYYY'))
+        when new.due_date is null then format('Due date cleared (was %s)', to_char(old.due_date, 'DD Mon YYYY'))
+        else format('Due date changed from %s to %s', to_char(old.due_date, 'DD Mon YYYY'), to_char(new.due_date, 'DD Mon YYYY'))
+      end,
+      null
+    );
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_tasks_log_due_date_change on tasks;
+create trigger trg_tasks_log_due_date_change
+after update on tasks
+for each row execute function log_due_date_change();
 
 -- Resources stay open to any signed-in user (roster used to assign tasks —
 -- who can add/remove entries is gated in the UI, not RLS, for Admin/Super).

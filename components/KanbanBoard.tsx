@@ -37,6 +37,11 @@ export default function KanbanBoard({
   const resourceById = (id: string | null) =>
     resources.find((r) => r.id === id);
 
+  function assigneesFor(task: Task): Resource[] {
+    const ids = task.assignee_ids?.length ? task.assignee_ids : task.assigned_to ? [task.assigned_to] : [];
+    return ids.map((id) => resourceById(id)).filter((r): r is Resource => !!r);
+  }
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex gap-4 overflow-x-auto pb-4 flex-1 min-h-0">
@@ -76,7 +81,7 @@ export default function KanbanBoard({
                     key={task.id}
                     task={task}
                     subtasks={tasks.filter((t) => t.parent_task_id === task.id)}
-                    assignee={resourceById(task.assigned_to)}
+                    assignees={assigneesFor(task)}
                     onClick={() => onOpenTask(task)}
                     dragHandlers={{
                       draggable: canEdit,

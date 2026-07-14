@@ -16,6 +16,8 @@ const ROLE_LABELS: Record<Role, string> = {
 };
 const ROLE_ORDER: Role[] = ["super", "admin", "normal", "view"];
 
+export const UNASSIGNED_FILTER = "__unassigned__";
+
 export type ViewMode = "board" | "timeline" | "calendar" | "people" | "list" | "log";
 
 export default function Sidebar({
@@ -314,6 +316,19 @@ export default function Sidebar({
             }`}
           >
             Everyone
+          </button>
+          <button
+            onClick={() => setActiveResource(UNASSIGNED_FILTER)}
+            className={`text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
+              activeResource === UNASSIGNED_FILTER
+                ? "bg-black/5 font-medium"
+                : "hover:bg-black/5 text-[#4d574f]"
+            }`}
+          >
+            <span className="w-5 h-5 rounded-full border border-dashed border-[#c9c2b2] flex items-center justify-center text-[10px] text-[#a39d8c] shrink-0">
+              —
+            </span>
+            Unassigned
           </button>
 
           {isAdminOrAbove ? (

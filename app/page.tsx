@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useMemo, useState } from "react";
 import { Search, Upload, Download } from "lucide-react";
-import Sidebar, { ViewMode } from "@/components/Sidebar";
+import Sidebar, { ViewMode, UNASSIGNED_FILTER } from "@/components/Sidebar";
 import KanbanBoard from "@/components/KanbanBoard";
 import TimelineView from "@/components/TimelineView";
 import CalendarView from "@/components/CalendarView";
@@ -74,16 +74,26 @@ function HomeContent() {
   const [showManageUsersModal, setShowManageUsersModal] = useState(false);
 
   const filteredTasks = useMemo(() => {
+    function isAssignedTo(t: Task, resourceId: string): boolean {
+      return t.assignee_ids?.length ? t.assignee_ids.includes(resourceId) : t.assigned_to === resourceId;
+    }
+    function isUnassigned(t: Task): boolean {
+      return !t.assigned_to && !t.assignee_ids?.length;
+    }
     return tasks.filter((t) => {
       if (activeProject && t.project_id !== activeProject) {
         // still include its subtasks' parent match; simplest: filter top-level + subtasks whose parent matches
         const parent = tasks.find((p) => p.id === t.parent_task_id);
         if (!parent || parent.project_id !== activeProject) return false;
       }
-      if (activeResource) {
+      if (activeResource === UNASSIGNED_FILTER) {
+        const isUnassignedOrChildUnassigned =
+          isUnassigned(t) || tasks.some((s) => s.parent_task_id === t.id && isUnassigned(s));
+        if (!isUnassignedOrChildUnassigned) return false;
+      } else if (activeResource) {
         const isAssignedOrChildAssigned =
-          t.assigned_to === activeResource ||
-          tasks.some((s) => s.parent_task_id === t.id && s.assigned_to === activeResource);
+          isAssignedTo(t, activeResource) ||
+          tasks.some((s) => s.parent_task_id === t.id && isAssignedTo(s, activeResource));
         if (!isAssignedOrChildAssigned) return false;
       }
       if (search.trim()) {

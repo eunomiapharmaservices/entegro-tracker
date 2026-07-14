@@ -8,13 +8,13 @@ import Avatar from "./Avatar";
 export default function TaskCard({
   task,
   subtasks,
-  assignee,
+  assignees,
   onClick,
   dragHandlers,
 }: {
   task: Task;
   subtasks: Task[];
-  assignee: Resource | undefined;
+  assignees: Resource[];
   onClick: () => void;
   dragHandlers?: {
     draggable: boolean;
@@ -76,7 +76,27 @@ export default function TaskCard({
             </span>
           )}
         </div>
-        <Avatar resource={assignee} size={22} />
+        <div className="flex items-center -space-x-1.5">
+          {assignees.length === 0 ? (
+            <Avatar resource={undefined} size={22} />
+          ) : (
+            <>
+              {assignees.slice(0, 3).map((a) => (
+                <div key={a.id} className="ring-2 ring-white rounded-full">
+                  <Avatar resource={a} size={22} />
+                </div>
+              ))}
+              {assignees.length > 3 && (
+                <div
+                  className="ring-2 ring-white rounded-full bg-black/10 text-[#4d574f] flex items-center justify-center font-display font-medium"
+                  style={{ width: 22, height: 22, fontSize: 9 }}
+                >
+                  +{assignees.length - 3}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

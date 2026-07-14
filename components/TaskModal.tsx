@@ -20,6 +20,16 @@ import { colorForIndex } from "@/lib/csvImport";
 import { isoDate, effectiveDueDate, fmt } from "@/lib/dateUtils";
 import { useViewOnlyEmails } from "@/lib/useViewOnlyEmails";
 
+// Quick-add subtask suggestions — common checklist items across task types,
+// click to add instantly instead of typing them out each time.
+const PREDEFINED_SUBTASKS = [
+  "Collect supporting documents",
+  "Verify configuration",
+  "Get approval / sign-off",
+  "Update documentation",
+  "Notify stakeholders",
+];
+
 interface Props {
   task: Task | null; // null = creating a new top-level task
   defaultProjectId: string | null;
@@ -61,7 +71,9 @@ export default function TaskModal({
   const [projectId, setProjectId] = useState<string | null>(
     task?.project_id ?? defaultProjectId
   );
-  const [assignedTo, setAssignedTo] = useState<string | null>(task?.assigned_to ?? null);
+  const [assigneeIds, setAssigneeIds] = useState<string[]>(
+    task?.assignee_ids?.length ? task.assignee_ids : task?.assigned_to ? [task.assigned_to] : []
+  );
   const [status, setStatus] = useState<Status>(task?.status ?? "todo");
   const [priority, setPriority] = useState<Priority>(task?.priority ?? "medium");
   const [startDate, setStartDate] = useState(task?.start_date ?? "");
@@ -186,7 +198,8 @@ export default function TaskModal({
       title: title.trim(),
       description: description.trim() || null,
       project_id: resolvedProjectId,
-      assigned_to: assignedTo,
+      assigned_to: assigneeIds[0] ?? null,
+      assignee_ids: assigneeIds,
       status,
       priority,
       start_date: startDate || null,
@@ -237,8 +250,9 @@ export default function TaskModal({
     }
   }
 
-  async function handleAddSubtask() {
-    if (!newSubtaskTitle.trim()) return;
+  async function handleAddSubtask(titleOverride?: string) {
+    const subtaskTitle = (titleOverride ?? newSubtaskTitle).trim();
+    if (!subtaskTitle) return;
     let parentId = savedTaskId;
     if (!parentId) {
       if (!isValid) {
@@ -253,7 +267,8 @@ export default function TaskModal({
         title: title.trim(),
         description: description.trim() || null,
         project_id: resolvedProjectId,
-        assigned_to: assignedTo,
+        assigned_to: assigneeIds[0] ?? null,
+        assignee_ids: assigneeIds,
         status,
         priority,
         start_date: startDate || null,
@@ -277,7 +292,7 @@ export default function TaskModal({
       await addComment(created.id, "Task created", authorName || null);
     }
     const subtask = await onCreate({
-      title: newSubtaskTitle.trim(),
+      title: subtaskTitle,
       parent_task_id: parentId,
       project_id: projectId,
       status: "todo",
@@ -293,9 +308,13 @@ export default function TaskModal({
       return;
     }
     if (!confirm("Delete this task and all its subtasks?")) return;
-    await addComment(savedTaskId, "Task deleted", authorName || null);
-    await onDelete(savedTaskId);
-    onClose();
+    try {
+      await addComment(savedTaskId, "Task deleted", authorName || null);
+      await onDelete(savedTaskId);
+      onClose();
+    } catch (err) {
+      alert(`Couldn't delete this task: ${(err as Error).message || "unknown error"}`);
+    }
   }
 
   const inputCls =
@@ -380,19 +399,35 @@ export default function TaskModal({
             </div>
 
             <div>
-              <label className={labelCls}>Assigned to</label>
-              <select
-                className={inputCls}
-                value={assignedTo ?? ""}
-                onChange={(e) => setAssignedTo(e.target.value || null)}
-              >
-                <option value="">Unassigned</option>
+              <label className={labelCls}>
+                Assigned to
+                {assigneeIds.length > 1 && (
+                  <span className="text-[#a39d8c] font-normal"> ({assigneeIds.length})</span>
+                )}
+              </label>
+              <div className="w-full rounded-lg border border-[var(--c-line)] bg-white max-h-32 overflow-y-auto">
+                {assignableResources.length === 0 && (
+                  <p className="text-xs text-[#c9c2b2] px-3 py-2">No one to assign yet.</p>
+                )}
                 {assignableResources.map((r) => (
-                  <option key={r.id} value={r.id}>
+                  <label
+                    key={r.id}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-black/[0.03]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={assigneeIds.includes(r.id)}
+                      onChange={(e) => {
+                        setAssigneeIds((prev) =>
+                          e.target.checked ? [...prev, r.id] : prev.filter((id) => id !== r.id)
+                        );
+                      }}
+                      className="accent-[var(--c-green)]"
+                    />
                     {r.name}
-                  </option>
+                  </label>
                 ))}
-              </select>
+              </div>
             </div>
             <div>
               <label className={labelCls}>Project</label>
@@ -768,6 +803,21 @@ export default function TaskModal({
                 </div>
               ))}
             </div>
+
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {PREDEFINED_SUBTASKS.filter(
+                (label) => !subtasks.some((s) => s.title === label)
+              ).map((label) => (
+                <button
+                  key={label}
+                  onClick={() => handleAddSubtask(label)}
+                  className="text-[11px] px-2 py-1 rounded-full border border-dashed border-[var(--c-line)] text-[#8a8578] hover:border-[var(--c-green)] hover:text-[var(--c-green)] transition-colors"
+                >
+                  + {label}
+                </button>
+              ))}
+            </div>
+
             <div className="flex gap-2">
               <input
                 className={inputCls}
@@ -782,7 +832,7 @@ export default function TaskModal({
                 }}
               />
               <button
-                onClick={handleAddSubtask}
+                onClick={() => handleAddSubtask()}
                 className="shrink-0 rounded-lg border border-[var(--c-line)] px-3 hover:bg-black/5"
               >
                 <Plus size={15} />
