@@ -2,7 +2,7 @@
 
 import { Flag, ListChecks } from "lucide-react";
 import { Resource, Task, PRIORITY_COLORS } from "@/lib/types";
-import { fmt, isOverdue } from "@/lib/dateUtils";
+import { fmt, isOverdue, effectiveDueDate } from "@/lib/dateUtils";
 import Avatar from "./Avatar";
 
 export default function TaskCard({
@@ -22,7 +22,9 @@ export default function TaskCard({
   };
 }) {
   const done = subtasks.filter((s) => s.status === "done").length;
-  const overdue = isOverdue(task.due_date, task.status);
+  const dueDate = effectiveDueDate(task.due_date, task.status, task.hold_started_at);
+  const extended = dueDate !== task.due_date;
+  const overdue = isOverdue(dueDate, task.status);
 
   return (
     <div
@@ -62,8 +64,9 @@ export default function TaskCard({
       <div className="flex items-center justify-between mt-3">
         <div className="flex items-center gap-2 text-xs text-[#8a8578]">
           {task.due_date && (
-            <span className={overdue ? "text-[#C23B3B] font-medium" : ""}>
-              {fmt(task.due_date)}
+            <span className={overdue ? "text-[#C23B3B] font-medium" : ""} title={extended ? "Extended while On Hold/In Review" : undefined}>
+              {fmt(dueDate)}
+              {extended && <span className="text-[var(--c-orange)]"> ⏳</span>}
             </span>
           )}
           {subtasks.length > 0 && (

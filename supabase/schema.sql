@@ -52,6 +52,8 @@ create table if not exists tasks (
   comments text,                -- running notes, separate from the description
   deleted_at timestamptz,       -- soft delete: set instead of removing the row, so
                                  -- the comment log/history is never lost
+  hold_started_at date,         -- date the task most recently entered On Hold/In Review —
+                                 -- used to extend the effective due date while it sits there
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -376,6 +378,40 @@ drop trigger if exists trg_tasks_cascade_dependency on tasks;
 create trigger trg_tasks_cascade_dependency
 after update on tasks
 for each row execute function cascade_dependency_start_date();
+
+-- While a task sits in On Hold or In Review, its *effective* due date grows
+-- by one day for every day that passes (computed on read — see
+-- lib/dateUtils.ts effectiveDueDate — not stored day-by-day). This trigger
+-- just manages the marker date the extension counts from:
+--   - entering On Hold/In Review from anything else: start the marker today
+--   - leaving On Hold/In Review: "bake in" the accumulated extension into
+--     the real due_date, then clear the marker so it stops growing
+create or replace function manage_hold_started_at()
+returns trigger as $$
+declare
+  is_hold_status boolean;
+  was_hold_status boolean;
+begin
+  is_hold_status := new.status in ('on_hold', 'review');
+  was_hold_status := (tg_op = 'UPDATE') and old.status in ('on_hold', 'review');
+
+  if is_hold_status and not was_hold_status then
+    new.hold_started_at := coalesce(new.hold_started_at, current_date);
+  elsif (not is_hold_status) and was_hold_status and old.hold_started_at is not null then
+    if new.due_date is not null then
+      new.due_date := new.due_date + (current_date - old.hold_started_at);
+    end if;
+    new.hold_started_at := null;
+  end if;
+
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_tasks_manage_hold_started_at on tasks;
+create trigger trg_tasks_manage_hold_started_at
+before insert or update on tasks
+for each row execute function manage_hold_started_at();
 
 -- Resources stay open to any signed-in user (roster used to assign tasks —
 -- who can add/remove entries is gated in the UI, not RLS, for Admin/Super).

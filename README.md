@@ -425,6 +425,34 @@ If you already had the tracker deployed before this update, run
 (in that order) — they widen the status field, add the comments log table,
 and add the auto-completion-date trigger.
 
+## Due date extends automatically while On Hold or In Review
+
+While a task sits in **On Hold** or **In Review**, its due date effectively
+grows by one day for every day that passes — starting from the date it
+entered that status. This shows up everywhere the due date appears (Board
+cards, List, Timeline, Calendar, People) as soon as you load the page — it
+doesn't wait for any daily job, since it's computed live from "how many days
+has this been on hold" rather than a value that gets rewritten day by day in
+the database. An extended date shows a small ⏳ next to it.
+
+The moment the task leaves On Hold/In Review (moved to New, In progress, or
+Completed), whatever the extended date was at that instant gets permanently
+saved as the real due date, and the counter resets — so nothing keeps
+silently growing once it's no longer stuck.
+
+A couple of notes:
+- The **task editor's Due date field** always shows and lets you edit the
+  original stored value — the extension is explained in a small note
+  underneath while the task is on hold/review, rather than changing what the
+  field itself displays.
+- **List view's "Export selected"** reflects the extended date (it mirrors
+  what's on screen) — but the main **"Export tasks"** button in the top bar
+  exports the raw stored value, since that export is meant to round-trip
+  with CSV import and shouldn't bake in a live-computed extension.
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_016_hold_review_due_date_extension.sql`.
+
 ## Task dependencies
 
 Any task can now depend on another one, via the **Depends on** field in the

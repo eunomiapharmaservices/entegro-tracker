@@ -17,7 +17,7 @@ import {
 } from "@/lib/types";
 import Avatar from "./Avatar";
 import { colorForIndex } from "@/lib/csvImport";
-import { isoDate } from "@/lib/dateUtils";
+import { isoDate, effectiveDueDate, fmt } from "@/lib/dateUtils";
 import { useViewOnlyEmails } from "@/lib/useViewOnlyEmails";
 
 interface Props {
@@ -454,6 +454,13 @@ export default function TaskModal({
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
               />
+              {(status === "on_hold" || status === "review") && task?.hold_started_at && (
+                <p className="text-[11px] text-[var(--c-orange)] mt-1.5">
+                  Extending automatically while {status === "on_hold" ? "on hold" : "in review"} —
+                  effective due date is currently{" "}
+                  {fmt(effectiveDueDate(dueDate || null, status, task.hold_started_at))}.
+                </p>
+              )}
             </div>
 
             <div className="col-span-2">

@@ -2,7 +2,7 @@
 
 import { Flag } from "lucide-react";
 import { Project, Resource, STATUS_LABELS, Task } from "@/lib/types";
-import { fmt, isOverdue } from "@/lib/dateUtils";
+import { fmt, isOverdue, effectiveDueDate } from "@/lib/dateUtils";
 import { useViewOnlyEmails } from "@/lib/useViewOnlyEmails";
 import Avatar from "./Avatar";
 
@@ -58,7 +58,9 @@ export default function PeopleDashboard({
         {workingResources.map((r) => {
           const personTasks = tasksFor(r.id);
           const done = personTasks.filter((t) => t.status === "done").length;
-          const overdue = personTasks.filter((t) => isOverdue(t.due_date, t.status)).length;
+          const overdue = personTasks.filter((t) =>
+            isOverdue(effectiveDueDate(t.due_date, t.status, t.hold_started_at), t.status)
+          ).length;
           const groups = groupByProject(personTasks);
 
           return (
@@ -124,12 +126,12 @@ export default function PeopleDashboard({
                             {t.due_date && (
                               <span
                                 className={`text-[11px] shrink-0 ${
-                                  isOverdue(t.due_date, t.status)
+                                  isOverdue(effectiveDueDate(t.due_date, t.status, t.hold_started_at), t.status)
                                     ? "text-[#C23B3B] font-medium"
                                     : "text-[#a39d8c]"
                                 }`}
                               >
-                                {fmt(t.due_date)}
+                                {fmt(effectiveDueDate(t.due_date, t.status, t.hold_started_at))}
                               </span>
                             )}
                           </button>
@@ -168,7 +170,9 @@ export default function PeopleDashboard({
                 />
                 <span className="truncate flex-1">{t.title}</span>
                 {t.due_date && (
-                  <span className="text-[11px] text-[#a39d8c] shrink-0">{fmt(t.due_date)}</span>
+                  <span className="text-[11px] text-[#a39d8c] shrink-0">
+                    {fmt(effectiveDueDate(t.due_date, t.status, t.hold_started_at))}
+                  </span>
                 )}
               </button>
             ))}

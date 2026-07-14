@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Flag } from "lucide-react";
 import { Resource, Task, PRIORITY_COLORS } from "@/lib/types";
-import { addDays, daysBetween, fmt, isoDate, MONTH_NAMES } from "@/lib/dateUtils";
+import { addDays, daysBetween, fmt, isoDate, MONTH_NAMES, effectiveDueDate } from "@/lib/dateUtils";
 import Avatar from "./Avatar";
 
 const DAY_WIDTH = 30;
@@ -24,7 +24,8 @@ export default function TimelineView({
     const allDates: string[] = [];
     tasks.forEach((t) => {
       if (t.start_date) allDates.push(t.start_date);
-      if (t.due_date) allDates.push(t.due_date);
+      const due = effectiveDueDate(t.due_date, t.status, t.hold_started_at);
+      if (due) allDates.push(due);
       if (t.milestone_date) allDates.push(t.milestone_date);
     });
     let min: Date, max: Date;
@@ -140,7 +141,10 @@ export default function TimelineView({
               <div key={task.id}>
                 {rows.map((row, idx) => {
                   const isSub = idx > 0;
-                  const bar = barStyle(row.start_date, row.due_date);
+                  const bar = barStyle(
+                    row.start_date,
+                    effectiveDueDate(row.due_date, row.status, row.hold_started_at)
+                  );
                   const assignee = resourceById(row.assigned_to);
                   return (
                     <div

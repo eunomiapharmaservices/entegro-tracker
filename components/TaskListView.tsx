@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Download, Flag, Trash2, X } from "lucide-react";
 import { Resource, Project, STATUS_LABELS, Task } from "@/lib/types";
-import { fmt } from "@/lib/dateUtils";
+import { fmt, effectiveDueDate } from "@/lib/dateUtils";
 import { downloadCSV } from "@/lib/csvImport";
 
 type ColKey =
@@ -91,8 +91,10 @@ export default function TaskListView({
         return STATUS_LABELS[t.status];
       case "progress":
         return `${t.progress_percent}%`;
-      case "due_date":
-        return t.due_date ? fmt(t.due_date) : "";
+      case "due_date": {
+        const d = effectiveDueDate(t.due_date, t.status, t.hold_started_at);
+        return d ? fmt(d) : "";
+      }
       case "actual_completion":
         return t.actual_completion ? fmt(t.actual_completion) : "";
       default:
@@ -101,7 +103,8 @@ export default function TaskListView({
   }
 
   function sortValue(t: Task, key: ColKey): string {
-    if (key === "due_date") return t.due_date || "";
+    if (key === "due_date")
+      return effectiveDueDate(t.due_date, t.status, t.hold_started_at) || "";
     if (key === "actual_completion") return t.actual_completion || "";
     if (key === "progress") return String(t.progress_percent).padStart(3, "0");
     return cellText(t, key).toLowerCase();
@@ -334,7 +337,17 @@ export default function TaskListView({
                   className="px-3 py-2.5 whitespace-nowrap text-[#8a8578] text-xs font-mono"
                   onClick={() => onOpenTask(t)}
                 >
-                  {t.due_date ? fmt(t.due_date) : "—"}
+                  {(() => {
+                    const d = effectiveDueDate(t.due_date, t.status, t.hold_started_at);
+                    if (!d) return "—";
+                    const extended = d !== t.due_date;
+                    return (
+                      <span title={extended ? "Extended while On Hold/In Review" : undefined}>
+                        {fmt(d)}
+                        {extended && <span className="text-[var(--c-orange)]"> ⏳</span>}
+                      </span>
+                    );
+                  })()}
                 </td>
                 <td
                   className="px-3 py-2.5 whitespace-nowrap text-[#8a8578] text-xs font-mono"

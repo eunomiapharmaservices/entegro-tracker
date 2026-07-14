@@ -45,6 +45,7 @@ export interface Task {
   progress_percent: number;
   comments: string | null;
   deleted_at: string | null;
+  hold_started_at: string | null;
   created_at: string;
   updated_at: string;
 }

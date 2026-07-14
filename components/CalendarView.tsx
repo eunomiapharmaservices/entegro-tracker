@@ -10,6 +10,7 @@ import {
   MONTH_NAMES,
   startOfMonth,
   WEEKDAY_SHORT,
+  effectiveDueDate,
 } from "@/lib/dateUtils";
 import { downloadCSV } from "@/lib/csvImport";
 
@@ -40,7 +41,10 @@ export default function CalendarView({
 
   function tasksOnDay(iso: string) {
     const milestones = activeTasks.filter((t) => t.is_milestone && t.milestone_date === iso);
-    const due = activeTasks.filter((t) => !t.is_milestone && t.due_date === iso);
+    const due = activeTasks.filter(
+      (t) =>
+        !t.is_milestone && effectiveDueDate(t.due_date, t.status, t.hold_started_at) === iso
+    );
     return { milestones, due };
   }
 
