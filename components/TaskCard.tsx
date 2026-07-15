@@ -11,6 +11,7 @@ export default function TaskCard({
   assignees,
   onClick,
   dragHandlers,
+  statusBadge,
 }: {
   task: Task;
   subtasks: Task[];
@@ -20,6 +21,7 @@ export default function TaskCard({
     draggable: boolean;
     onDragStart: (e: React.DragEvent) => void;
   };
+  statusBadge?: string;
 }) {
   const done = subtasks.filter((s) => s.status === "done").length;
   const dueDate = effectiveDueDate(task.due_date, task.status, task.hold_started_at);
@@ -39,6 +41,11 @@ export default function TaskCard({
           <Flag size={11} fill="currentColor" />
           MILESTONE
         </div>
+      )}
+      {statusBadge && (
+        <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-black/5 text-[#4d574f] mb-1.5">
+          {statusBadge}
+        </span>
       )}
       <p className="text-sm font-medium leading-snug text-[var(--c-ink)]">
         {task.title}

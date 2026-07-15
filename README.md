@@ -255,6 +255,16 @@ side of the tracker). What they can't do is use the sidebar's manual "add
 project" button, or archive/restore an existing one — those stay Admin/Super
 only.
 
+## GCR Support lane on the Board
+
+The Board now has an extra lane at the end, **GCR Support**, pulling
+together every task with that Task type (matches "GCR_Support" or
+"GCR Support" however it was typed) regardless of its status — alongside
+their normal status column, not instead of it. Each card here shows a small
+status pill since it's not organized by column position like the rest of
+the board. Dragging a card from here into a status column still changes its
+status as usual.
+
 ## Comment Log (Admin/Super)
 
 A **Log** item appears in the sidebar for Admin/Super only, showing every
