@@ -321,7 +321,7 @@ comment across every task — including the automatic "Status changed from…",
 comment text, person, or task name. Click any entry to jump to that task.
 Normal and View Only users don't see this nav item at all.
 
-## Deleting a task keeps its history
+## Deleting a task keeps its history — and it's now restorable
 
 Deleting a task (Admin/Super only) no longer removes it from the database —
 it's a soft delete. The task disappears from Board, Timeline, Calendar,
@@ -331,8 +331,22 @@ in the Comment Log forever, tagged with a red "Deleted" badge if you open it
 from there. This is enforced at the database level too — only Admin/Super
 can actually mark a task deleted, even via a direct API call.
 
+**Restoring a deleted task** works two ways:
+
+- Open a deleted task (e.g. by clicking its title in the Comment Log) and
+  use the **Restore task** button that replaces "Delete task" in the
+  editor's footer.
+- Or go to **Log → Deleted tasks** — a full list of every deleted top-level
+  task, searchable, each with its own **Restore** button, so you can browse
+  and recover something without already knowing its exact title.
+
+Restoring is logged the same way deleting is ("Task restored," visible in
+the Comment Log), and is protected by the same Admin/Super-only database
+rule as deleting.
+
 If you already had the tracker deployed before this update, run
-`supabase/migration_013_soft_delete_tasks.sql`.
+`supabase/migration_013_soft_delete_tasks.sql`, then
+`supabase/migration_021_restore_task_guard.sql`.
 
 ## Task created / deleted logging
 

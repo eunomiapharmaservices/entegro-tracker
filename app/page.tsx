@@ -44,6 +44,7 @@ function HomeContent() {
     createTask,
     updateTask,
     deleteTask,
+    restoreTask,
     createProject,
     updateProject,
     createResource,
@@ -134,6 +135,11 @@ function HomeContent() {
   async function handleDeleteTaskWithLog(id: string) {
     await addComment(id, "Task deleted", currentUserName || null);
     await deleteTask(id);
+  }
+
+  async function handleRestoreTaskWithLog(id: string) {
+    await restoreTask(id);
+    await addComment(id, "Task restored", currentUserName || null);
   }
 
   function handleArchiveProject(id: string, _name: string) {
@@ -367,6 +373,7 @@ function HomeContent() {
                 taskComments={taskComments}
                 tasks={allTasks}
                 onOpenTask={(t) => setModalTask(t)}
+                onRestoreTask={handleRestoreTaskWithLog}
               />
             )}
           </div>
@@ -385,6 +392,7 @@ function HomeContent() {
           onCreate={createTask}
           onUpdate={updateTask}
           onDelete={deleteTask}
+          onRestore={restoreTask}
           createProject={createProject}
           addComment={addComment}
           authorName={currentUserName}

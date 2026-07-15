@@ -147,6 +147,23 @@ export function useTaskData() {
     );
   }, [allTasks]);
 
+  // Restores a soft-deleted task (and any of its subtasks that were deleted
+  // along with it), bringing it back to every normal view.
+  const restoreTask = useCallback(async (id: string) => {
+    const childIds = allTasks
+      .filter((t) => t.parent_task_id === id && t.deleted_at)
+      .map((t) => t.id);
+    const idsToRestore = [id, ...childIds];
+    const { error } = await supabase
+      .from("tasks")
+      .update({ deleted_at: null })
+      .in("id", idsToRestore);
+    if (error) throw error;
+    setAllTasks((prev) =>
+      prev.map((t) => (idsToRestore.includes(t.id) ? { ...t, deleted_at: null } : t))
+    );
+  }, [allTasks]);
+
   const createResource = useCallback(
     async (name: string, color: string, email?: string | null) => {
       const { data, error } = await supabase
@@ -250,6 +267,7 @@ export function useTaskData() {
     createTask,
     updateTask,
     deleteTask,
+    restoreTask,
     createResource,
     updateResource,
     createProject,

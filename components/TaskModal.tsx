@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Flag, Plus, Trash2, X, Copy } from "lucide-react";
+import { Flag, Plus, Trash2, X, Copy, RotateCcw } from "lucide-react";
 import {
   PRIORITY_LABELS,
   Priority,
@@ -41,6 +41,7 @@ interface Props {
   onCreate: (input: Partial<Task>) => Promise<Task>;
   onUpdate: (id: string, input: Partial<Task>) => Promise<Task>;
   onDelete: (id: string) => Promise<void>;
+  onRestore: (id: string) => Promise<void>;
   createProject: (name: string, color: string) => Promise<Project>;
   addComment: (taskId: string, body: string, author?: string | null) => Promise<TaskComment>;
   authorName: string;
@@ -59,6 +60,7 @@ export default function TaskModal({
   onCreate,
   onUpdate,
   onDelete,
+  onRestore,
   createProject,
   addComment,
   authorName,
@@ -85,6 +87,7 @@ export default function TaskModal({
   const [milestoneDate, setMilestoneDate] = useState(task?.milestone_date ?? "");
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [duplicateMessage, setDuplicateMessage] = useState<string | null>(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [savedTaskId, setSavedTaskId] = useState<string | null>(task?.id ?? null);
@@ -322,6 +325,20 @@ export default function TaskModal({
       onClose();
     } catch (err) {
       alert(`Couldn't delete this task: ${(err as Error).message || "unknown error"}`);
+    }
+  }
+
+  async function handleRestore() {
+    if (!savedTaskId) return;
+    setRestoring(true);
+    try {
+      await onRestore(savedTaskId);
+      await addComment(savedTaskId, "Task restored", authorName || null);
+      onClose();
+    } catch (err) {
+      alert(`Couldn't restore this task: ${(err as Error).message || "unknown error"}`);
+    } finally {
+      setRestoring(false);
     }
   }
 
@@ -952,7 +969,16 @@ export default function TaskModal({
 
           <div className="flex items-center justify-between pt-2 gap-3">
             <div className="flex items-center gap-3 shrink-0">
-              {canDelete ? (
+              {task?.deleted_at && canDelete ? (
+                <button
+                  onClick={handleRestore}
+                  disabled={restoring}
+                  className="text-sm text-[var(--c-green)] hover:underline flex items-center gap-1 disabled:opacity-50"
+                >
+                  <RotateCcw size={13} />
+                  {restoring ? "Restoring…" : "Restore task"}
+                </button>
+              ) : canDelete ? (
                 <button
                   onClick={handleDelete}
                   className="text-sm text-[#C23B3B] hover:underline flex items-center gap-1"

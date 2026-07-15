@@ -331,8 +331,8 @@ for each row execute function set_task_number();
 create or replace function prevent_unauthorized_delete()
 returns trigger as $$
 begin
-  if (old.deleted_at is null and new.deleted_at is not null) and not is_admin_or_super() then
-    raise exception 'Only Admin/Super can delete tasks';
+  if (old.deleted_at is distinct from new.deleted_at) and not is_admin_or_super() then
+    raise exception 'Only Admin/Super can delete or restore tasks';
   end if;
   return new;
 end;
