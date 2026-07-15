@@ -433,7 +433,13 @@ export default function Sidebar({
             <p className="text-[10px] text-[#a39d8c] uppercase tracking-wide font-display">
               Signed in as
             </p>
-            <p className="text-sm truncate">{currentUserName}</p>
+            <p className="text-sm truncate">
+              {currentUserName}
+              <span className="text-[#a39d8c]">
+                {" "}
+                · {isSuper ? "Super User" : isAdminOrAbove ? "Admin" : canEdit ? "Normal User" : "View Only"}
+              </span>
+            </p>
           </div>
         </div>
         <div className="flex items-center justify-between">
