@@ -255,6 +255,36 @@ side of the tracker). What they can't do is use the sidebar's manual "add
 project" button, or archive/restore an existing one — those stay Admin/Super
 only.
 
+## Matrix view
+
+A new **Matrix** item in the sidebar shows a pivot table cross-tabulating
+tasks by any two of **Task Status**, **Assigned to**, and **Project** — pick
+which goes in the rows and which in the columns (defaults to Assigned to ×
+Status), with running totals down the side and across the bottom. Click any
+non-empty cell to see the matching task titles in a side panel, and click
+one to open it. A task with multiple assignees counts toward each of them
+when Assigned to is an axis. This view is available to everyone, including
+View Only, since it's just aggregate counts rather than editable data.
+
+## Task type locked after creation (Normal users)
+
+Once a task is saved, **Task type** can only be changed by Admin/Super —
+Normal users can still set it when first creating a task, but it becomes
+read-only on an existing one, with a note explaining why. This is a UI-level
+safeguard (not enforced at the database level), aimed at preventing
+accidental recategorization once work is underway.
+
+## Duplicate a task
+
+The task editor now has a **Duplicate** button next to Delete task (anyone
+who can edit tasks can use it, not just Admin/Super). It creates a fresh
+copy with " (Copy)" appended to the title, carrying over the project,
+assignees, task type, EID, site, priority, and dates — but resets status to
+New, progress to 0%, and clears any dependency/actual completion, so it
+starts clean rather than inheriting the original's progress. A small
+confirmation shows the new task's name; the original stays open so you can
+duplicate again or keep editing it.
+
 ## GCR Support lane on the Board
 
 The Board now has an extra lane at the end, **GCR Support**, pulling

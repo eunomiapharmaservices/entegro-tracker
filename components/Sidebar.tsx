@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRight, LogOut, ShieldCheck, Pencil } from "lucide-react";
-import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users, List, ScrollText } from "lucide-react";
+import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users, List, ScrollText, Grid2x2 } from "lucide-react";
 import { useState } from "react";
 import { Project, Resource } from "@/lib/types";
 import { useManageUsers } from "@/lib/useManageUsers";
@@ -18,7 +18,7 @@ const ROLE_ORDER: Role[] = ["super", "admin", "normal", "view"];
 
 export const UNASSIGNED_FILTER = "__unassigned__";
 
-export type ViewMode = "board" | "timeline" | "calendar" | "people" | "list" | "log";
+export type ViewMode = "board" | "timeline" | "calendar" | "people" | "list" | "matrix" | "log";
 
 export default function Sidebar({
   view,
@@ -122,6 +122,7 @@ export default function Sidebar({
     { key: "calendar", label: "Calendar", icon: <CalendarIcon size={17} /> },
     { key: "list", label: "List", icon: <List size={17} /> },
     { key: "people", label: "People", icon: <Users size={17} /> },
+    { key: "matrix", label: "Matrix", icon: <Grid2x2 size={17} /> },
     ...(isAdminOrAbove
       ? [{ key: "log" as ViewMode, label: "Log", icon: <ScrollText size={17} /> }]
       : []),

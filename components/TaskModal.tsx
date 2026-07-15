@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Flag, Plus, Trash2, X } from "lucide-react";
+import { Flag, Plus, Trash2, X, Copy } from "lucide-react";
 import {
   PRIORITY_LABELS,
   Priority,
@@ -84,6 +84,8 @@ export default function TaskModal({
   const [isMilestone, setIsMilestone] = useState(task?.is_milestone ?? false);
   const [milestoneDate, setMilestoneDate] = useState(task?.milestone_date ?? "");
   const [saving, setSaving] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const [duplicateMessage, setDuplicateMessage] = useState<string | null>(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [savedTaskId, setSavedTaskId] = useState<string | null>(task?.id ?? null);
 
@@ -317,6 +319,47 @@ export default function TaskModal({
       onClose();
     } catch (err) {
       alert(`Couldn't delete this task: ${(err as Error).message || "unknown error"}`);
+    }
+  }
+
+  async function handleDuplicate() {
+    if (!isValid) {
+      alert(`Fill in ${missingFields.join(", ")} before duplicating.`);
+      return;
+    }
+    setDuplicating(true);
+    setDuplicateMessage(null);
+    try {
+      const copy = await onCreate({
+        title: title.trim() + " (Copy)",
+        description: description.trim() || null,
+        project_id: projectId,
+        assigned_to: assigneeIds[0] ?? null,
+        assignee_ids: assigneeIds,
+        status: "todo",
+        priority,
+        start_date: startDate || null,
+        due_date: dueDate || null,
+        depends_on_task_id: null,
+        is_milestone: isMilestone,
+        milestone_date: isMilestone ? milestoneDate || null : null,
+        task_type: taskType.trim() || null,
+        eid: eid.trim() || null,
+        site_name: siteName.trim() || null,
+        raised_by: raisedBy.trim() || null,
+        reviewer_id: reviewerId,
+        date_added: isoDate(new Date()),
+        actual_completion: null,
+        expected_duration_hours: expectedHours.trim() ? Number(expectedHours) : null,
+        actual_time_spent_hours: null,
+        progress_percent: 0,
+      });
+      await addComment(copy.id, "Task created", authorName || null);
+      setDuplicateMessage(`Duplicated as "${copy.title}"`);
+    } catch (err) {
+      alert(`Couldn't duplicate this task: ${(err as Error).message || "unknown error"}`);
+    } finally {
+      setDuplicating(false);
     }
   }
 
@@ -572,17 +615,24 @@ export default function TaskModal({
                   Task type <span className="text-[#C23B3B]">*</span>
                 </label>
                 <input
-                  className={inputCls}
+                  className={inputCls + (!isNew && !canDelete ? " bg-black/[0.04] text-[#8a8578] cursor-not-allowed" : "")}
                   list="task-type-suggestions"
                   placeholder="e.g. Full Audit"
                   value={taskType}
                   onChange={(e) => setTaskType(e.target.value)}
+                  disabled={!isNew && !canDelete}
+                  title={!isNew && !canDelete ? "Only Admin/Super can change task type after creation" : undefined}
                 />
                 <datalist id="task-type-suggestions">
                   {TASK_TYPE_SUGGESTIONS.map((t) => (
                     <option key={t} value={t} />
                   ))}
                 </datalist>
+                {!isNew && !canDelete && (
+                  <p className="text-[10px] text-[#a39d8c] mt-1">
+                    Only Admin/Super can change this after a task is created.
+                  </p>
+                )}
               </div>
               <div>
                 <label className={labelCls}>Raised by</label>
@@ -879,17 +929,32 @@ export default function TaskModal({
           </fieldset>
 
           <div className="flex items-center justify-between pt-2 gap-3">
-            {canDelete ? (
-              <button
-                onClick={handleDelete}
-                className="text-sm text-[#C23B3B] hover:underline flex items-center gap-1 shrink-0"
-              >
-                <Trash2 size={13} />
-                Delete task
-              </button>
-            ) : (
-              <span />
-            )}
+            <div className="flex items-center gap-3 shrink-0">
+              {canDelete ? (
+                <button
+                  onClick={handleDelete}
+                  className="text-sm text-[#C23B3B] hover:underline flex items-center gap-1"
+                >
+                  <Trash2 size={13} />
+                  Delete task
+                </button>
+              ) : (
+                <span />
+              )}
+              {canEdit && savedTaskId && (
+                <button
+                  onClick={handleDuplicate}
+                  disabled={duplicating}
+                  className="text-sm text-[#4d574f] hover:underline flex items-center gap-1 disabled:opacity-50"
+                >
+                  <Copy size={13} />
+                  {duplicating ? "Duplicating…" : "Duplicate"}
+                </button>
+              )}
+              {duplicateMessage && (
+                <span className="text-[11px] text-[var(--c-green)]">{duplicateMessage}</span>
+              )}
+            </div>
             <div className="flex items-center gap-3">
               {canEdit && !isValid && (
                 <p className="text-[11px] text-[#C23B3B] text-right">

@@ -11,6 +11,7 @@ import CalendarView from "@/components/CalendarView";
 import PeopleDashboard from "@/components/PeopleDashboard";
 import TaskListView from "@/components/TaskListView";
 import CommentLogView from "@/components/CommentLogView";
+import MatrixView from "@/components/MatrixView";
 import TaskModal from "@/components/TaskModal";
 import ImportModal from "@/components/ImportModal";
 import ProjectModal from "@/components/ProjectModal";
@@ -112,6 +113,7 @@ function HomeContent() {
     calendar: "Calendar",
     people: "People",
     list: "List",
+    matrix: "Matrix",
     log: "Comment log",
   };
 
@@ -350,6 +352,14 @@ function HomeContent() {
                 onOpenTask={(t) => setModalTask(t)}
                 onDeleteTask={handleDeleteTaskWithLog}
                 canDelete={isAdminOrAbove}
+              />
+            )}
+            {view === "matrix" && (
+              <MatrixView
+                tasks={tasks}
+                resources={resources}
+                projects={projects}
+                onOpenTask={(t) => setModalTask(t)}
               />
             )}
             {view === "log" && isAdminOrAbove && (
