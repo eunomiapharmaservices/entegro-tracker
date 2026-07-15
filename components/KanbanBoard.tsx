@@ -7,9 +7,10 @@ import TaskCard from "./TaskCard";
 
 const DONE_VISIBLE_DAYS = 14;
 
-// Matches "GCR_Support" or "GCR Support" (however it was typed/imported).
-function isGcrSupport(task: Task): boolean {
-  return (task.task_type || "").trim().toLowerCase().replace(/[\s_]+/g, "_") === "gcr_support";
+// Matches any GCR-family task type — GCR_Support, GCR_MOP, "GCR Support",
+// however it was typed/imported — grouped under one "GCR" category.
+function isGcrCategory(task: Task): boolean {
+  return (task.task_type || "").trim().toLowerCase().replace(/[\s_]+/g, "").startsWith("gcr");
 }
 
 function isVisibleOnBoard(task: Task): boolean {
@@ -105,18 +106,16 @@ export default function KanbanBoard({
           );
         })}
 
-        {/* GCR Support — a cross-status lane pulling all matching tasks
-            together for quick visibility, alongside (not instead of) their
-            normal status column. Dragging a card from here into a status
-            column still changes its status as usual. */}
+        {/* GCR — a cross-status lane pulling together every GCR-family task
+            (GCR_Support, GCR_MOP, etc.) for quick visibility, alongside (not
+            instead of) their normal status column. Dragging a card from here
+            into a status column still changes its status as usual. */}
         {(() => {
-          const gcrTasks = topLevel.filter(isGcrSupport);
+          const gcrTasks = topLevel.filter(isGcrCategory);
           return (
             <div className="w-72 shrink-0 rounded-xl flex flex-col h-full">
               <div className="flex items-center justify-between px-1 py-2 shrink-0">
-                <h3 className="font-display text-sm font-semibold text-[#4d574f]">
-                  GCR Support
-                </h3>
+                <h3 className="font-display text-sm font-semibold text-[#4d574f]">GCR</h3>
                 <span className="text-xs text-[#a39d8c] font-mono">{gcrTasks.length}</span>
               </div>
               <div className="flex flex-col gap-2 px-0.5 flex-1 min-h-0 overflow-y-auto">

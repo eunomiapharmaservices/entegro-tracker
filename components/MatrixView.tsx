@@ -17,16 +17,29 @@ import { TrendingUp, CheckCircle2, Activity, AlertTriangle } from "lucide-react"
 import { Project, Resource, STATUS_LABELS, STATUS_ORDER, Task } from "@/lib/types";
 import { effectiveDueDate, isOverdue } from "@/lib/dateUtils";
 
-type Axis = "status" | "assigned" | "project";
+type Axis = "status" | "assigned" | "project" | "task_type";
 
 const AXIS_LABELS: Record<Axis, string> = {
   status: "Task Status",
   assigned: "Assigned to",
   project: "Project",
+  task_type: "Task Type",
 };
 
 const UNASSIGNED_KEY = "__unassigned__";
 const NO_PROJECT_KEY = "__no_project__";
+const NO_TYPE_KEY = "__no_type__";
+const GCR_KEY = "GCR";
+
+// Any task type starting with "GCR" (GCR_Support, GCR_MOP, "GCR Support",
+// however it's typed) gets grouped under one "GCR" category — everything
+// else keeps its own type as-is.
+function taskTypeCategory(rawType: string | null): string {
+  const t = (rawType || "").trim();
+  if (!t) return NO_TYPE_KEY;
+  if (t.toLowerCase().replace(/[\s_]+/g, "").startsWith("gcr")) return GCR_KEY;
+  return t;
+}
 
 const STATUS_COLORS: Record<string, string> = {
   todo: "#a39d8c",
@@ -54,11 +67,12 @@ export default function MatrixView({
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
   const topLevel = tasks.filter((t) => !t.parent_task_id);
-  const axisOptions: Axis[] = ["status", "assigned", "project"];
+  const axisOptions: Axis[] = ["status", "assigned", "project", "task_type"];
 
   function axisKeys(t: Task, axis: Axis): string[] {
     if (axis === "status") return [t.status];
     if (axis === "project") return [t.project_id || NO_PROJECT_KEY];
+    if (axis === "task_type") return [taskTypeCategory(t.task_type)];
     const ids = t.assignee_ids?.length ? t.assignee_ids : t.assigned_to ? [t.assigned_to] : [];
     return ids.length ? ids : [UNASSIGNED_KEY];
   }
@@ -69,6 +83,9 @@ export default function MatrixView({
       if (key === NO_PROJECT_KEY) return "No project";
       return projects.find((p) => p.id === key)?.name || "Unknown project";
     }
+    if (axis === "task_type") {
+      return key === NO_TYPE_KEY ? "No type" : key;
+    }
     if (key === UNASSIGNED_KEY) return "Unassigned";
     return resources.find((r) => r.id === key)?.name || "Unknown person";
   }
@@ -76,6 +93,14 @@ export default function MatrixView({
   function axisValues(axis: Axis): string[] {
     if (axis === "status") return [...STATUS_ORDER];
     if (axis === "project") return [...projects.map((p) => p.id), NO_PROJECT_KEY];
+    if (axis === "task_type") {
+      const seen = new Set<string>();
+      for (const t of topLevel) seen.add(taskTypeCategory(t.task_type));
+      // GCR first (it's the category being tracked specifically), then the rest alphabetically
+      return Array.from(seen).sort((a, b) =>
+        a === GCR_KEY ? -1 : b === GCR_KEY ? 1 : a.localeCompare(b)
+      );
+    }
     return [...resources.map((r) => r.id), UNASSIGNED_KEY];
   }
 
@@ -84,6 +109,11 @@ export default function MatrixView({
     if (axis === "project") {
       if (key === NO_PROJECT_KEY) return "#c9c2b2";
       return projects.find((p) => p.id === key)?.color || FALLBACK_PALETTE[index % FALLBACK_PALETTE.length];
+    }
+    if (axis === "task_type") {
+      if (key === GCR_KEY) return "#8A5FB0";
+      if (key === NO_TYPE_KEY) return "#c9c2b2";
+      return FALLBACK_PALETTE[index % FALLBACK_PALETTE.length];
     }
     if (key === UNASSIGNED_KEY) return "#c9c2b2";
     return resources.find((r) => r.id === key)?.color || FALLBACK_PALETTE[index % FALLBACK_PALETTE.length];

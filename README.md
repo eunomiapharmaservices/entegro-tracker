@@ -262,12 +262,12 @@ just a chart:
 
 - **Summary cards** — Total tasks, Completed, Active, and Overdue, at a
   glance.
-- **Bar chart** — task counts grouped by any of Status/Assigned to/Project
-  (defaults to Assigned to), colored consistently with the rest of the app
-  (status colors, each project's/person's own color). Click a bar to see the
-  matching tasks below.
-- **Donut chart** — a breakdown by whichever of the three categories you
-  pick as the "split," with a small legend and counts.
+- **Bar chart** — task counts grouped by any of Status/Assigned to/Project/
+  **Task Type** (defaults to Assigned to), colored consistently with the
+  rest of the app (status colors, each project's/person's own color). Click
+  a bar to see the matching tasks below.
+- **Donut chart** — a breakdown by whichever of the four categories you pick
+  as the "split," with a small legend and counts.
 - **Progress list** — one row per group (matching whichever axis the bar
   chart is grouped by), showing task count, % complete, an Active/Done
   badge, and a progress bar. Click a row for the same task drill-down as the
@@ -275,6 +275,12 @@ just a chart:
 
 Available to everyone, including View Only, since it's aggregate counts
 rather than editable data.
+
+**Task Type grouping**: when Task Type is used as an axis, every GCR-family
+type (GCR_Support, GCR_MOP, etc.) is consolidated into one **GCR** category
+— matching the Board's GCR lane — so you can track GCR work as a whole
+without it splitting across near-identical type names. Every other task
+type keeps its own individual category.
 
 ## Task type locked after creation (Normal users)
 
@@ -295,14 +301,14 @@ starts clean rather than inheriting the original's progress. A small
 confirmation shows the new task's name; the original stays open so you can
 duplicate again or keep editing it.
 
-## GCR Support lane on the Board
+## GCR lane on the Board
 
-The Board now has an extra lane at the end, **GCR Support**, pulling
-together every task with that Task type (matches "GCR_Support" or
-"GCR Support" however it was typed) regardless of its status — alongside
-their normal status column, not instead of it. Each card here shows a small
-status pill since it's not organized by column position like the rest of
-the board. Dragging a card from here into a status column still changes its
+The Board has an extra lane at the end, **GCR**, pulling together every task
+whose type is in the GCR family — GCR_Support, GCR_MOP, or any other
+variation starting with "GCR" — regardless of its status, alongside their
+normal status column, not instead of it. Each card here shows a small status
+pill since it's not organized by column position like the rest of the
+board. Dragging a card from here into a status column still changes its
 status as usual.
 
 ## Comment Log (Admin/Super)
