@@ -257,14 +257,16 @@ only.
 
 ## Matrix view
 
-A new **Matrix** item in the sidebar shows a pivot table cross-tabulating
-tasks by any two of **Task Status**, **Assigned to**, and **Project** — pick
-which goes in the rows and which in the columns (defaults to Assigned to ×
-Status), with running totals down the side and across the bottom. Click any
-non-empty cell to see the matching task titles in a side panel, and click
-one to open it. A task with multiple assignees counts toward each of them
-when Assigned to is an axis. This view is available to everyone, including
-View Only, since it's just aggregate counts rather than editable data.
+A new **Matrix** item in the sidebar shows a stacked bar chart
+cross-tabulating tasks by any two of **Task Status**, **Assigned to**, and
+**Project** — pick which goes on the bars ("Group by") and which forms the
+stacked segments ("Split by"), defaulting to Assigned to grouped, split by
+Status. Segment colors match what's used elsewhere (status colors, each
+project's/person's own colour). Click any segment to see the matching task
+titles in a side panel, and click one to open it. A task with multiple
+assignees counts toward each of them when Assigned to is an axis. This view
+is available to everyone, including View Only, since it's aggregate counts
+rather than editable data.
 
 ## Task type locked after creation (Normal users)
 
