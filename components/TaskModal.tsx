@@ -503,6 +503,8 @@ export default function TaskModal({
                   Frozen while in review. A "{title.trim() || "…"} Review" task has been created
                   {reviewerId
                     ? ` for ${resources.find((r) => r.id === reviewerId)?.name || "the reviewer"}`
+                    : raisedBy
+                    ? ` for ${raisedBy} (from Raised by)`
                     : ""}
                   — once it's marked Completed, however long it took gets added onto this due
                   date automatically.
@@ -616,7 +618,8 @@ export default function TaskModal({
                 </select>
                 <p className="text-[10px] text-[#a39d8c] mt-1">
                   If this task is set to In Review, a "{title.trim() || "…"} Review" task is
-                  created for them automatically.
+                  created for them automatically — or for whoever's in Raised by, if this is left
+                  unspecified.
                 </p>
               </div>
               <div>

@@ -427,25 +427,36 @@ for each row execute function manage_hold_started_at();
 
 -- Review workflow: the moment a task enters "In Review" (from anything
 -- else), spawn a duplicate task titled "<title> Review", assigned to the
--- original task's chosen Reviewer, and make the original task depend on
--- that new review task. The original's due date is frozen (no automatic
--- daily growth) while this is in progress.
+-- original task's chosen Reviewer — or, if that's not set, whoever is named
+-- in "Raised by" (matched to a People entry by name) — and make the
+-- original task depend on that new review task. The original's due date is
+-- frozen (no automatic daily growth) while this is in progress.
 create or replace function spawn_review_task()
 returns trigger as $$
 declare
   new_review_id uuid;
+  reviewer_resource_id uuid;
 begin
   if new.status = 'review'
      and (old.status is distinct from 'review')
      and not coalesce(old.is_review_task, false) then
+
+    reviewer_resource_id := new.reviewer_id;
+    if reviewer_resource_id is null and new.raised_by is not null then
+      select id into reviewer_resource_id
+      from resources
+      where lower(name) = lower(trim(new.raised_by))
+      limit 1;
+    end if;
+
     insert into tasks (
       title, project_id, task_type, eid, site_name, assigned_to, assignee_ids,
       status, priority, is_review_task, review_of_task_id, date_added
     ) values (
       new.title || ' Review',
       new.project_id, new.task_type, new.eid, new.site_name,
-      new.reviewer_id,
-      case when new.reviewer_id is not null then array[new.reviewer_id] else '{}'::uuid[] end,
+      reviewer_resource_id,
+      case when reviewer_resource_id is not null then array[reviewer_resource_id] else '{}'::uuid[] end,
       'todo', new.priority, true, new.id, current_date
     )
     returning id into new_review_id;

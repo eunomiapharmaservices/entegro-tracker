@@ -513,8 +513,9 @@ Moving a task to **In Review** now does three things automatically:
    exactly where it was until the review task below finishes.
 2. **A duplicate task is spawned**, titled `"<original title> Review"`,
    carrying over the same project/task type/EID/site, assigned to whoever
-   you've picked in the task editor's new **Reviewer** field (or unassigned
-   if you haven't set one).
+   you've picked in the task editor's **Reviewer** field — or, if that's
+   left blank, whoever's named in **Raised by** (matched to a People entry
+   by name). Only unassigned if neither is set/matched.
 3. **The original task gets linked to it** via the existing **Depends on**
    field — so you can see the connection right there, and it behaves like
    any other dependency in the UI.
@@ -531,7 +532,9 @@ of how a task enters Review — the editor, drag-and-drop on the board, or a
 CSV import setting status directly to "review."
 
 If you already had the tracker deployed before this update, run
-`supabase/migration_019_review_workflow.sql`.
+`supabase/migration_019_review_workflow.sql`, then
+`supabase/migration_020_review_task_raised_by_fallback.sql` (adds the
+Raised by fallback described above).
 
 ## Task dependencies
 
