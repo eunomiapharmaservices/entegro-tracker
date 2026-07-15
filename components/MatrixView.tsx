@@ -7,11 +7,15 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
+import { TrendingUp, CheckCircle2, Activity, AlertTriangle } from "lucide-react";
 import { Project, Resource, STATUS_LABELS, STATUS_ORDER, Task } from "@/lib/types";
+import { effectiveDueDate, isOverdue } from "@/lib/dateUtils";
 
 type Axis = "status" | "assigned" | "project";
 
@@ -45,9 +49,9 @@ export default function MatrixView({
   projects: Project[];
   onOpenTask: (task: Task) => void;
 }) {
-  const [groupAxis, setGroupAxis] = useState<Axis>("assigned"); // x-axis categories
-  const [splitAxis, setSplitAxis] = useState<Axis>("status"); // stacked segments
-  const [selected, setSelected] = useState<{ group: string; split: string } | null>(null);
+  const [groupAxis, setGroupAxis] = useState<Axis>("assigned");
+  const [splitAxis, setSplitAxis] = useState<Axis>("status");
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
   const topLevel = tasks.filter((t) => !t.parent_task_id);
   const axisOptions: Axis[] = ["status", "assigned", "project"];
@@ -85,114 +89,122 @@ export default function MatrixView({
     return resources.find((r) => r.id === key)?.color || FALLBACK_PALETTE[index % FALLBACK_PALETTE.length];
   }
 
-  const groupValues = axisValues(groupAxis);
-  const splitValues = axisValues(splitAxis);
+  // ---- Summary metrics ----
+  const totalCount = topLevel.length;
+  const completedCount = topLevel.filter((t) => t.status === "done").length;
+  const activeCount = topLevel.filter((t) => ["in_progress", "on_hold", "review"].includes(t.status)).length;
+  const overdueCount = topLevel.filter((t) =>
+    isOverdue(effectiveDueDate(t.due_date, t.status, t.hold_started_at), t.status)
+  ).length;
 
-  // Map of "groupKey|||splitKey" -> tasks, for drill-down
-  const grid = useMemo(() => {
+  // ---- Group-by breakdown (bar chart + progress list) ----
+  const groupValues = axisValues(groupAxis);
+  const tasksByGroup = useMemo(() => {
     const map = new Map<string, Task[]>();
     for (const t of topLevel) {
-      const groups = axisKeys(t, groupAxis);
-      const splits = axisKeys(t, splitAxis);
-      for (const g of groups) {
-        for (const s of splits) {
-          const key = `${g}|||${s}`;
-          if (!map.has(key)) map.set(key, []);
-          map.get(key)!.push(t);
-        }
+      for (const g of axisKeys(t, groupAxis)) {
+        if (!map.has(g)) map.set(g, []);
+        map.get(g)!.push(t);
       }
     }
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topLevel, groupAxis, splitAxis]);
+  }, [topLevel, groupAxis]);
 
-  function cellTasks(groupKey: string, splitKey: string): Task[] {
-    return grid.get(`${groupKey}|||${splitKey}`) || [];
-  }
+  const activeGroupValues = groupValues
+    .filter((g) => (tasksByGroup.get(g) || []).length > 0)
+    .sort((a, b) => (tasksByGroup.get(b) || []).length - (tasksByGroup.get(a) || []).length);
 
-  // Only include group categories and split segments that actually have data,
-  // so the chart isn't cluttered with empty bars/legend entries.
-  const activeGroupValues = groupValues.filter((g) =>
-    splitValues.some((s) => cellTasks(g, s).length > 0)
-  );
-  const activeSplitValues = splitValues.filter((s) =>
-    groupValues.some((g) => cellTasks(g, s).length > 0)
-  );
+  const barData = activeGroupValues.map((g) => ({
+    key: g,
+    name: axisLabel(groupAxis, g),
+    count: (tasksByGroup.get(g) || []).length,
+    fill: colorFor(groupAxis, g, activeGroupValues.indexOf(g)),
+  }));
 
-  const chartData = activeGroupValues.map((g) => {
-    const row: Record<string, string | number> = { name: axisLabel(groupAxis, g), __key: g };
-    for (const s of activeSplitValues) {
-      row[axisLabel(splitAxis, s)] = cellTasks(g, s).length;
+  // ---- Split-by breakdown (donut) ----
+  const splitValues = axisValues(splitAxis);
+  const tasksBySplit = useMemo(() => {
+    const map = new Map<string, Task[]>();
+    for (const t of topLevel) {
+      for (const s of axisKeys(t, splitAxis)) {
+        if (!map.has(s)) map.set(s, []);
+        map.get(s)!.push(t);
+      }
     }
-    return row;
-  });
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topLevel, splitAxis]);
 
-  const groupKeyByName = new Map(activeGroupValues.map((g) => [axisLabel(groupAxis, g), g]));
+  const activeSplitValues = splitValues.filter((s) => (tasksBySplit.get(s) || []).length > 0);
+  const donutData = activeSplitValues.map((s, i) => ({
+    key: s,
+    name: axisLabel(splitAxis, s),
+    value: (tasksBySplit.get(s) || []).length,
+    fill: colorFor(splitAxis, s, i),
+  }));
 
-  const grandTotal = topLevel.length;
-  const chartHeight = Math.max(280, activeGroupValues.length * 46);
+  const metricCards = [
+    { label: "Total tasks", value: totalCount, color: "#1F5C4A", icon: TrendingUp, sub: "Across all projects" },
+    { label: "Completed", value: completedCount, color: "#2E8B6F", icon: CheckCircle2, sub: "Marked Completed" },
+    { label: "Active", value: activeCount, color: "#3B6E8F", icon: Activity, sub: "In progress, on hold, or in review" },
+    { label: "Overdue", value: overdueCount, color: "#C23B3B", icon: AlertTriangle, sub: "Past their due date" },
+  ];
+
+  const selectedGroupTasks = selectedGroup ? tasksByGroup.get(selectedGroup) || [] : [];
 
   return (
-    <div className="flex flex-col gap-4 h-full">
-      <div className="flex items-center gap-3 flex-wrap">
-        <label className="flex items-center gap-2 text-sm text-[#4d574f]">
-          Group by
-          <select
-            value={groupAxis}
-            onChange={(e) => {
-              const next = e.target.value as Axis;
-              setGroupAxis(next);
-              if (next === splitAxis) setSplitAxis(axisOptions.find((a) => a !== next) || "status");
-              setSelected(null);
-            }}
-            className="rounded-lg border border-[var(--c-line)] px-2 py-1.5 text-sm bg-white outline-none focus:border-[var(--c-green)]"
-          >
-            {axisOptions.map((a) => (
-              <option key={a} value={a} disabled={a === splitAxis}>
-                {AXIS_LABELS[a]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-2 text-sm text-[#4d574f]">
-          Split by
-          <select
-            value={splitAxis}
-            onChange={(e) => {
-              const next = e.target.value as Axis;
-              setSplitAxis(next);
-              if (next === groupAxis) setGroupAxis(axisOptions.find((a) => a !== next) || "status");
-              setSelected(null);
-            }}
-            className="rounded-lg border border-[var(--c-line)] px-2 py-1.5 text-sm bg-white outline-none focus:border-[var(--c-green)]"
-          >
-            {axisOptions.map((a) => (
-              <option key={a} value={a} disabled={a === groupAxis}>
-                {AXIS_LABELS[a]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <span className="text-xs text-[#a39d8c] ml-auto">
-          {grandTotal} top-level task{grandTotal === 1 ? "" : "s"}
-        </span>
+    <div className="flex flex-col gap-5 h-full overflow-y-auto pr-1">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
+        {metricCards.map((m) => (
+          <div key={m.label} className="rounded-xl border border-[var(--c-line)] bg-white p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-[#8a8578]">{m.label}</span>
+              <m.icon size={15} style={{ color: m.color }} />
+            </div>
+            <p className="font-display font-semibold text-2xl" style={{ color: m.color }}>
+              {m.value}
+            </p>
+            <p className="text-[11px] text-[#a39d8c] mt-0.5">{m.sub}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="flex-1 min-h-0 flex gap-4">
-        <div className="flex-1 min-w-0 rounded-xl border border-[var(--c-line)] bg-white p-4 overflow-y-auto">
-          {chartData.length === 0 ? (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 shrink-0">
+        <div className="lg:col-span-2 rounded-xl border border-[var(--c-line)] bg-white p-4">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <p className="font-display font-semibold text-sm">Tasks by {AXIS_LABELS[groupAxis]}</p>
+            <select
+              value={groupAxis}
+              onChange={(e) => {
+                const next = e.target.value as Axis;
+                setGroupAxis(next);
+                setSelectedGroup(null);
+              }}
+              className="rounded-lg border border-[var(--c-line)] px-2 py-1 text-xs bg-white outline-none focus:border-[var(--c-green)]"
+            >
+              {axisOptions.map((a) => (
+                <option key={a} value={a}>
+                  {AXIS_LABELS[a]}
+                </option>
+              ))}
+            </select>
+          </div>
+          {barData.length === 0 ? (
             <p className="text-sm text-[#a39d8c] text-center py-16">No tasks to show yet.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={chartHeight}>
-              <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e7e2d8" />
-                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "#8a8578" }} />
-                <YAxis
-                  type="category"
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={barData} margin={{ left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7e2d8" />
+                <XAxis
                   dataKey="name"
-                  width={140}
-                  tick={{ fontSize: 12, fill: "#4d574f" }}
+                  tick={{ fontSize: 11, fill: "#8a8578" }}
+                  interval={0}
+                  angle={barData.length > 6 ? -30 : 0}
+                  textAnchor={barData.length > 6 ? "end" : "middle"}
+                  height={barData.length > 6 ? 50 : 30}
                 />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#8a8578" }} />
                 <Tooltip
                   cursor={{ fill: "rgba(31,92,74,0.06)" }}
                   contentStyle={{
@@ -202,58 +214,155 @@ export default function MatrixView({
                     fontFamily: "Inter, sans-serif",
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                {activeSplitValues.map((s, i) => {
-                  const splitName = axisLabel(splitAxis, s);
-                  return (
-                    <Bar
-                      key={s}
-                      dataKey={splitName}
-                      stackId="matrix"
-                      fill={colorFor(splitAxis, s, i)}
-                      radius={
-                        i === activeSplitValues.length - 1 ? [0, 4, 4, 0] : undefined
-                      }
-                      onClick={(data: { __key?: string; name?: string }) => {
-                        const groupKey = data?.__key ?? groupKeyByName.get(String(data?.name ?? ""));
-                        if (groupKey) setSelected({ group: groupKey, split: s });
-                      }}
-                      className="cursor-pointer"
-                    />
-                  );
-                })}
+                <Bar
+                  dataKey="count"
+                  radius={[4, 4, 0, 0]}
+                  onClick={(data: { key?: string }) => data?.key && setSelectedGroup(data.key)}
+                  className="cursor-pointer"
+                >
+                  {barData.map((d) => (
+                    <Cell key={d.key} fill={d.fill} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
         </div>
 
-        {selected && (
-          <div className="w-72 shrink-0 rounded-xl border border-[var(--c-line)] bg-white p-3 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-medium text-[#4d574f] font-display">
-                {axisLabel(groupAxis, selected.group)} · {axisLabel(splitAxis, selected.split)}
-              </p>
-              <button
-                onClick={() => setSelected(null)}
-                className="text-[#a39d8c] hover:text-[var(--c-ink)] text-xs"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="flex flex-col gap-1 overflow-y-auto">
-              {cellTasks(selected.group, selected.split).map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => onOpenTask(t)}
-                  className="text-left text-sm px-2 py-1.5 rounded-md hover:bg-black/[0.03] truncate"
-                >
-                  {t.title}
-                </button>
+        <div className="rounded-xl border border-[var(--c-line)] bg-white p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="font-display font-semibold text-sm">By {AXIS_LABELS[splitAxis]}</p>
+            <select
+              value={splitAxis}
+              onChange={(e) => setSplitAxis(e.target.value as Axis)}
+              className="rounded-lg border border-[var(--c-line)] px-2 py-1 text-xs bg-white outline-none focus:border-[var(--c-green)]"
+            >
+              {axisOptions.map((a) => (
+                <option key={a} value={a}>
+                  {AXIS_LABELS[a]}
+                </option>
               ))}
-            </div>
+            </select>
           </div>
-        )}
+          {donutData.length === 0 ? (
+            <p className="text-sm text-[#a39d8c] text-center py-16">No tasks to show yet.</p>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={160}>
+                <PieChart>
+                  <Pie
+                    data={donutData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={45}
+                    outerRadius={70}
+                    paddingAngle={2}
+                  >
+                    {donutData.map((d) => (
+                      <Cell key={d.key} fill={d.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: 8,
+                      border: "1px solid #e7e2d8",
+                      fontSize: 12,
+                      fontFamily: "Inter, sans-serif",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-col gap-1 mt-2">
+                {donutData.map((d) => (
+                  <div key={d.key} className="flex items-center gap-1.5 text-xs text-[#4d574f]">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: d.fill }} />
+                    <span className="truncate flex-1">{d.name}</span>
+                    <span className="font-mono text-[#a39d8c]">{d.value}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
+
+      <div className="rounded-xl border border-[var(--c-line)] bg-white p-4 flex-1 min-h-0 flex flex-col">
+        <div className="flex items-center justify-between mb-1 shrink-0">
+          <p className="font-display font-semibold text-sm">Progress by {AXIS_LABELS[groupAxis]}</p>
+          <p className="text-xs text-[#a39d8c]">
+            {activeGroupValues.length} active ·{" "}
+            {totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0}% average completion
+          </p>
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto mt-2 flex flex-col divide-y divide-[var(--c-line)]">
+          {activeGroupValues.map((g) => {
+            const groupTasks = tasksByGroup.get(g) || [];
+            const done = groupTasks.filter((t) => t.status === "done").length;
+            const pct = groupTasks.length > 0 ? Math.round((done / groupTasks.length) * 100) : 0;
+            const hasActive = groupTasks.some((t) => t.status !== "done");
+            return (
+              <button
+                key={g}
+                onClick={() => setSelectedGroup(g === selectedGroup ? null : g)}
+                className={`text-left py-3 px-1 hover:bg-black/[0.02] ${
+                  selectedGroup === g ? "bg-[var(--c-green)]/5" : ""
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <span className="font-medium text-sm truncate">{axisLabel(groupAxis, g)}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-[#8a8578]">
+                      {groupTasks.length} task{groupTasks.length === 1 ? "" : "s"} · {pct}% complete
+                    </span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full ${
+                        hasActive
+                          ? "bg-[var(--c-green)]/10 text-[var(--c-green)]"
+                          : "bg-black/5 text-[#4d574f]"
+                      }`}
+                    >
+                      {hasActive ? "Active" : "Done"}
+                    </span>
+                  </div>
+                </div>
+                <div className="h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
+                  <div className="h-full bg-[var(--c-green-light)]" style={{ width: `${pct}%` }} />
+                </div>
+              </button>
+            );
+          })}
+          {activeGroupValues.length === 0 && (
+            <p className="text-sm text-[#a39d8c] text-center py-10">No tasks to show yet.</p>
+          )}
+        </div>
+      </div>
+
+      {selectedGroup && selectedGroupTasks.length > 0 && (
+        <div className="rounded-xl border border-[var(--c-line)] bg-white p-3 shrink-0">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-[#4d574f] font-display">
+              Tasks — {axisLabel(groupAxis, selectedGroup)}
+            </p>
+            <button
+              onClick={() => setSelectedGroup(null)}
+              className="text-[#a39d8c] hover:text-[var(--c-ink)] text-xs"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+            {selectedGroupTasks.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => onOpenTask(t)}
+                className="text-left text-xs px-2.5 py-1.5 rounded-lg border border-[var(--c-line)] hover:bg-black/[0.03] truncate max-w-[220px]"
+              >
+                {t.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

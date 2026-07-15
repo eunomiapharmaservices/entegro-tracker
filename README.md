@@ -257,15 +257,23 @@ only.
 
 ## Matrix view
 
-A new **Matrix** item in the sidebar shows a stacked bar chart
-cross-tabulating tasks by any two of **Task Status**, **Assigned to**, and
-**Project** — pick which goes on the bars ("Group by") and which forms the
-stacked segments ("Split by"), defaulting to Assigned to grouped, split by
-Status. Segment colors match what's used elsewhere (status colors, each
-project's/person's own colour). Click any segment to see the matching task
-titles in a side panel, and click one to open it. A task with multiple
-assignees counts toward each of them when Assigned to is an axis. This view
-is available to everyone, including View Only, since it's aggregate counts
+A new **Matrix** item in the sidebar is a proper analytics dashboard, not
+just a chart:
+
+- **Summary cards** — Total tasks, Completed, Active, and Overdue, at a
+  glance.
+- **Bar chart** — task counts grouped by any of Status/Assigned to/Project
+  (defaults to Assigned to), colored consistently with the rest of the app
+  (status colors, each project's/person's own color). Click a bar to see the
+  matching tasks below.
+- **Donut chart** — a breakdown by whichever of the three categories you
+  pick as the "split," with a small legend and counts.
+- **Progress list** — one row per group (matching whichever axis the bar
+  chart is grouped by), showing task count, % complete, an Active/Done
+  badge, and a progress bar. Click a row for the same task drill-down as the
+  bar chart.
+
+Available to everyone, including View Only, since it's aggregate counts
 rather than editable data.
 
 ## Task type locked after creation (Normal users)
