@@ -92,6 +92,7 @@ export default function TaskModal({
   const [eid, setEid] = useState(task?.eid ?? "");
   const [siteName, setSiteName] = useState(task?.site_name ?? "");
   const [raisedBy, setRaisedBy] = useState(task?.raised_by ?? "");
+  const [reviewerId, setReviewerId] = useState<string | null>(task?.reviewer_id ?? null);
   const [dateAdded, setDateAdded] = useState(task?.date_added ?? (task ? "" : isoDate(new Date())));
   const [actualCompletion, setActualCompletion] = useState(task?.actual_completion ?? "");
   const [expectedHours, setExpectedHours] = useState(
@@ -211,6 +212,7 @@ export default function TaskModal({
       eid: eid.trim() || null,
       site_name: siteName.trim() || null,
       raised_by: raisedBy.trim() || null,
+      reviewer_id: reviewerId,
       date_added: dateAdded || null,
       actual_completion: actualCompletion || null,
       expected_duration_hours: expectedHours.trim() ? Number(expectedHours) : null,
@@ -280,6 +282,7 @@ export default function TaskModal({
         eid: eid.trim() || null,
         site_name: siteName.trim() || null,
         raised_by: raisedBy.trim() || null,
+        reviewer_id: reviewerId,
         date_added: dateAdded || null,
         actual_completion: actualCompletion || null,
         expected_duration_hours: expectedHours.trim() ? Number(expectedHours) : null,
@@ -489,11 +492,20 @@ export default function TaskModal({
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
               />
-              {(status === "on_hold" || status === "review") && task?.hold_started_at && (
+              {status === "on_hold" && task?.hold_started_at && (
                 <p className="text-[11px] text-[var(--c-orange)] mt-1.5">
-                  Extending automatically while {status === "on_hold" ? "on hold" : "in review"} —
-                  effective due date is currently{" "}
+                  Extending automatically while on hold — effective due date is currently{" "}
                   {fmt(effectiveDueDate(dueDate || null, status, task.hold_started_at))}.
+                </p>
+              )}
+              {status === "review" && (
+                <p className="text-[11px] text-[#a39d8c] mt-1.5">
+                  Frozen while in review. A "{title.trim() || "…"} Review" task has been created
+                  {reviewerId
+                    ? ` for ${resources.find((r) => r.id === reviewerId)?.name || "the reviewer"}`
+                    : ""}
+                  — once it's marked Completed, however long it took gets added onto this due
+                  date automatically.
                 </p>
               )}
             </div>
@@ -515,7 +527,9 @@ export default function TaskModal({
               </select>
               {dependencyTask && (
                 <p className="text-[11px] text-[#a39d8c] mt-1.5">
-                  {dependencyTask.status === "done"
+                  {dependencyTask.is_review_task
+                    ? `This is the review task created when this task entered In Review — completing it adds however long the review took onto this task's due date, rather than setting a start date.`
+                    : dependencyTask.status === "done"
                     ? `This task's start date is set the day after "${dependencyTask.title}" was completed, and updates automatically if that changes.`
                     : `Once "${dependencyTask.title}" is marked Completed, this task's start date will automatically be set to the day after.`}
                 </p>
@@ -585,6 +599,25 @@ export default function TaskModal({
                     </option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className={labelCls}>Reviewer</label>
+                <select
+                  className={inputCls}
+                  value={reviewerId ?? ""}
+                  onChange={(e) => setReviewerId(e.target.value || null)}
+                >
+                  <option value="">Unspecified</option>
+                  {resources.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-[#a39d8c] mt-1">
+                  If this task is set to In Review, a "{title.trim() || "…"} Review" task is
+                  created for them automatically.
+                </p>
               </div>
               <div>
                 <label className={labelCls}>

@@ -52,19 +52,21 @@ export function daysSince(dateStr: string): number {
   return daysBetween(dateStr, isoDate(new Date()));
 }
 
-// While a task sits in On Hold or In Review, its due date effectively grows
-// by a day for every day that's passed since it entered that state — this
-// computes that "as of right now" without needing the stored value to
-// change daily. Once the task leaves On Hold/In Review, the database bakes
-// the accumulated extension into the real due_date and this just returns
-// that stored value unchanged.
+// While a task sits in On Hold, its due date effectively grows by a day for
+// every day that's passed since it entered that state — this computes that
+// "as of right now" without needing the stored value to change daily. Once
+// the task leaves On Hold, the database bakes the accumulated extension
+// into the real due_date and this just returns that stored value unchanged.
+// In Review works differently — its due date freezes (see the Review
+// workflow: a duplicate review task is spawned instead, and completing that
+// review task adds its own duration onto this task's due date directly).
 export function effectiveDueDate(
   dueDate: string | null,
   status: string,
   holdStartedAt: string | null
 ): string | null {
   if (!dueDate) return dueDate;
-  if ((status === "on_hold" || status === "review") && holdStartedAt) {
+  if (status === "on_hold" && holdStartedAt) {
     const extraDays = daysSince(holdStartedAt);
     if (extraDays > 0) {
       return isoDate(addDays(new Date(dueDate + "T00:00:00"), extraDays));

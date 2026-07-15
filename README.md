@@ -473,17 +473,17 @@ approval / sign-off," "Update documentation," "Notify stakeholders" — click
 one to add it instantly instead of typing it out. Each one disappears from
 the suggestions once it's already been added to that task.
 
-## Due date extends automatically while On Hold or In Review
+## Due date extends automatically while On Hold
 
-While a task sits in **On Hold** or **In Review**, its due date effectively
-grows by one day for every day that passes — starting from the date it
-entered that status. This shows up everywhere the due date appears (Board
-cards, List, Timeline, Calendar, People) as soon as you load the page — it
-doesn't wait for any daily job, since it's computed live from "how many days
-has this been on hold" rather than a value that gets rewritten day by day in
-the database. An extended date shows a small ⏳ next to it.
+While a task sits in **On Hold**, its due date effectively grows by one day
+for every day that passes — starting from the date it entered that status.
+This shows up everywhere the due date appears (Board cards, List, Timeline,
+Calendar, People) as soon as you load the page — it doesn't wait for any
+daily job, since it's computed live from "how many days has this been on
+hold" rather than a value that gets rewritten day by day in the database.
+An extended date shows a small ⏳ next to it.
 
-The moment the task leaves On Hold/In Review (moved to New, In progress, or
+The moment the task leaves On Hold (moved to New, In progress, In Review, or
 Completed), whatever the extended date was at that instant gets permanently
 saved as the real due date, and the counter resets — so nothing keeps
 silently growing once it's no longer stuck.
@@ -491,15 +491,47 @@ silently growing once it's no longer stuck.
 A couple of notes:
 - The **task editor's Due date field** always shows and lets you edit the
   original stored value — the extension is explained in a small note
-  underneath while the task is on hold/review, rather than changing what the
-  field itself displays.
+  underneath while the task is on hold, rather than changing what the field
+  itself displays.
 - **List view's "Export selected"** reflects the extended date (it mirrors
   what's on screen) — but the main **"Export tasks"** button in the top bar
   exports the raw stored value, since that export is meant to round-trip
   with CSV import and shouldn't bake in a live-computed extension.
 
+**In Review works differently** — see the Review workflow below.
+
 If you already had the tracker deployed before this update, run
-`supabase/migration_016_hold_review_due_date_extension.sql`.
+`supabase/migration_016_hold_review_due_date_extension.sql`, then
+`supabase/migration_019_review_workflow.sql` (which narrows the On Hold
+extension to exclude In Review, since In Review now has its own mechanism).
+
+## Review workflow
+
+Moving a task to **In Review** now does three things automatically:
+
+1. **Its due date freezes** — no more daily growth like On Hold. It stays
+   exactly where it was until the review task below finishes.
+2. **A duplicate task is spawned**, titled `"<original title> Review"`,
+   carrying over the same project/task type/EID/site, assigned to whoever
+   you've picked in the task editor's new **Reviewer** field (or unassigned
+   if you haven't set one).
+3. **The original task gets linked to it** via the existing **Depends on**
+   field — so you can see the connection right there, and it behaves like
+   any other dependency in the UI.
+
+When that review task is marked **Completed**, however many days the review
+actually took (its completion date minus the date it was created) gets
+**added onto the original task's due date** — not just "start the day
+after," like a normal dependency, but a real extension by however long the
+review consumed. That change shows up in the task editor immediately and
+gets logged in the comment log like any other due date change.
+
+This all happens at the database level via triggers, so it works regardless
+of how a task enters Review — the editor, drag-and-drop on the board, or a
+CSV import setting status directly to "review."
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_019_review_workflow.sql`.
 
 ## Task dependencies
 

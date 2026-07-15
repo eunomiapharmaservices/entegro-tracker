@@ -29,6 +29,13 @@ create table if not exists tasks (
   parent_task_id uuid references tasks(id) on delete cascade,
   depends_on_task_id uuid references tasks(id) on delete set null
     check (depends_on_task_id is null or depends_on_task_id <> id),
+  reviewer_id uuid references resources(id) on delete set null,  -- who reviews this
+                                                                   -- task if it enters Review
+  is_review_task boolean not null default false,   -- true for the auto-generated
+                                                     -- "<title> Review" task itself
+  review_of_task_id uuid references tasks(id) on delete cascade,  -- back-reference from
+                                                                   -- a review task to the
+                                                                   -- original task it reviews
   title text not null,
   description text,
   status text not null default 'todo' check (status in ('todo','in_progress','on_hold','review','done')),
@@ -382,21 +389,23 @@ create trigger trg_tasks_cascade_dependency
 after update on tasks
 for each row execute function cascade_dependency_start_date();
 
--- While a task sits in On Hold or In Review, its *effective* due date grows
--- by one day for every day that passes (computed on read — see
--- lib/dateUtils.ts effectiveDueDate — not stored day-by-day). This trigger
--- just manages the marker date the extension counts from:
---   - entering On Hold/In Review from anything else: start the marker today
---   - leaving On Hold/In Review: "bake in" the accumulated extension into
---     the real due_date, then clear the marker so it stops growing
+-- While a task sits in On Hold, its *effective* due date grows by one day
+-- for every day that passes (computed on read — see lib/dateUtils.ts
+-- effectiveDueDate — not stored day-by-day). This trigger just manages the
+-- marker date the extension counts from:
+--   - entering On Hold from anything else: start the marker today
+--   - leaving On Hold: "bake in" the accumulated extension into the real
+--     due_date, then clear the marker so it stops growing
+-- In Review works differently (see spawn_review_task/cascade_review_completion
+-- below) — its due date freezes rather than growing daily.
 create or replace function manage_hold_started_at()
 returns trigger as $$
 declare
   is_hold_status boolean;
   was_hold_status boolean;
 begin
-  is_hold_status := new.status in ('on_hold', 'review');
-  was_hold_status := (tg_op = 'UPDATE') and old.status in ('on_hold', 'review');
+  is_hold_status := new.status = 'on_hold';
+  was_hold_status := (tg_op = 'UPDATE') and old.status = 'on_hold';
 
   if is_hold_status and not was_hold_status then
     new.hold_started_at := coalesce(new.hold_started_at, current_date);
@@ -415,6 +424,68 @@ drop trigger if exists trg_tasks_manage_hold_started_at on tasks;
 create trigger trg_tasks_manage_hold_started_at
 before insert or update on tasks
 for each row execute function manage_hold_started_at();
+
+-- Review workflow: the moment a task enters "In Review" (from anything
+-- else), spawn a duplicate task titled "<title> Review", assigned to the
+-- original task's chosen Reviewer, and make the original task depend on
+-- that new review task. The original's due date is frozen (no automatic
+-- daily growth) while this is in progress.
+create or replace function spawn_review_task()
+returns trigger as $$
+declare
+  new_review_id uuid;
+begin
+  if new.status = 'review'
+     and (old.status is distinct from 'review')
+     and not coalesce(old.is_review_task, false) then
+    insert into tasks (
+      title, project_id, task_type, eid, site_name, assigned_to, assignee_ids,
+      status, priority, is_review_task, review_of_task_id, date_added
+    ) values (
+      new.title || ' Review',
+      new.project_id, new.task_type, new.eid, new.site_name,
+      new.reviewer_id,
+      case when new.reviewer_id is not null then array[new.reviewer_id] else '{}'::uuid[] end,
+      'todo', new.priority, true, new.id, current_date
+    )
+    returning id into new_review_id;
+
+    new.depends_on_task_id := new_review_id;
+  end if;
+
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_tasks_spawn_review_task on tasks;
+create trigger trg_tasks_spawn_review_task
+before update on tasks
+for each row execute function spawn_review_task();
+
+-- When an auto-generated review task is completed, add however long the
+-- review itself took (its completion date minus the date it was created)
+-- onto the due date of the original task it was reviewing.
+create or replace function cascade_review_completion()
+returns trigger as $$
+declare
+  duration_days int;
+begin
+  if new.is_review_task and new.review_of_task_id is not null
+     and new.actual_completion is not null
+     and (old.actual_completion is distinct from new.actual_completion) then
+    duration_days := greatest(0, new.actual_completion - coalesce(new.date_added, new.created_at::date));
+    update tasks
+    set due_date = coalesce(due_date, current_date) + duration_days
+    where id = new.review_of_task_id;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_tasks_cascade_review_completion on tasks;
+create trigger trg_tasks_cascade_review_completion
+after update on tasks
+for each row execute function cascade_review_completion();
 
 -- Logs a comment whenever a task's due date actually changes, from any
 -- source — manual edit, CSV import, or the automatic On Hold/In Review

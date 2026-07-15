@@ -47,6 +47,9 @@ export interface Task {
   comments: string | null;
   deleted_at: string | null;
   hold_started_at: string | null;
+  reviewer_id: string | null;
+  is_review_task: boolean;
+  review_of_task_id: string | null;
   created_at: string;
   updated_at: string;
 }
