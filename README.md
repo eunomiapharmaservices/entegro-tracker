@@ -261,7 +261,9 @@ A new **Matrix** item in the sidebar is a proper analytics dashboard, not
 just a chart:
 
 - **Summary cards** — Total tasks, Completed, Active, and Overdue, at a
-  glance.
+  glance. Click any of them (they're highlighted when active) to see the
+  matching tasks in the panel at the bottom, same as clicking a bar or a
+  progress row.
 - **Bar chart** — task counts grouped by any of Status/Assigned to/Project/
   **Task Type** (defaults to Assigned to), colored consistently with the
   rest of the app (status colors, each project's/person's own color). Click
