@@ -91,6 +91,9 @@ export default function TaskModal({
 
   // Network/ops tracker fields
   const [taskType, setTaskType] = useState(task?.task_type ?? "");
+  const [customTaskTypeMode, setCustomTaskTypeMode] = useState(
+    !!task?.task_type && !TASK_TYPE_SUGGESTIONS.includes(task.task_type)
+  );
   const [eid, setEid] = useState(task?.eid ?? "");
   const [siteName, setSiteName] = useState(task?.site_name ?? "");
   const [raisedBy, setRaisedBy] = useState(task?.raised_by ?? "");
@@ -614,20 +617,39 @@ export default function TaskModal({
                 <label className={labelCls}>
                   Task type <span className="text-[#C23B3B]">*</span>
                 </label>
-                <input
+                <select
                   className={inputCls + (!isNew && !canDelete ? " bg-black/[0.04] text-[#8a8578] cursor-not-allowed" : "")}
-                  list="task-type-suggestions"
-                  placeholder="e.g. Full Audit"
-                  value={taskType}
-                  onChange={(e) => setTaskType(e.target.value)}
+                  value={customTaskTypeMode ? "__custom__" : taskType}
+                  onChange={(e) => {
+                    if (e.target.value === "__custom__") {
+                      setCustomTaskTypeMode(true);
+                      setTaskType("");
+                    } else {
+                      setCustomTaskTypeMode(false);
+                      setTaskType(e.target.value);
+                    }
+                  }}
                   disabled={!isNew && !canDelete}
                   title={!isNew && !canDelete ? "Only Admin/Super can change task type after creation" : undefined}
-                />
-                <datalist id="task-type-suggestions">
+                >
+                  <option value="">Select a type…</option>
                   {TASK_TYPE_SUGGESTIONS.map((t) => (
-                    <option key={t} value={t} />
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
                   ))}
-                </datalist>
+                  <option value="__custom__">Other (type your own)…</option>
+                </select>
+                {customTaskTypeMode && (
+                  <input
+                    className={inputCls + " mt-2" + (!isNew && !canDelete ? " bg-black/[0.04] text-[#8a8578] cursor-not-allowed" : "")}
+                    placeholder="Custom task type"
+                    value={taskType}
+                    onChange={(e) => setTaskType(e.target.value)}
+                    disabled={!isNew && !canDelete}
+                    autoFocus
+                  />
+                )}
                 {!isNew && !canDelete && (
                   <p className="text-[10px] text-[#a39d8c] mt-1">
                     Only Admin/Super can change this after a task is created.
