@@ -694,11 +694,23 @@ flash to a loading placeholder that whole time — that's gone now). Your own
 edits still feel instant either way, since they update on-screen immediately
 rather than waiting on anything.
 
-**Setup required**: Realtime needs to be turned on for four tables in your
-Supabase project — go to **Database → Replication**, and enable it for
-`tasks`, `projects`, `resources`, and `task_comments`. Without this, the
-app still works completely normally for your own actions; you'd just need a
-manual page refresh to see changes made by someone else on another device.
+**Setup required**: Realtime needs to be turned on for four tables. In the
+Supabase dashboard, go to **Database → Publications** (not "Replication" —
+that's a separate, newer feature for exporting to BigQuery), find the
+`supabase_realtime` publication, and toggle on `tasks`, `projects`,
+`resources`, and `task_comments`. Or, run this once in the SQL Editor
+instead:
+
+```sql
+alter publication supabase_realtime add table public.tasks;
+alter publication supabase_realtime add table public.projects;
+alter publication supabase_realtime add table public.resources;
+alter publication supabase_realtime add table public.task_comments;
+```
+
+Without this, the app still works completely normally for your own actions;
+you'd just need a manual page refresh to see changes made by someone else on
+another device.
 
 ## List view
 
