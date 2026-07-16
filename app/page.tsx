@@ -6,7 +6,6 @@ import { useMemo, useState } from "react";
 import { Search, Upload, Download } from "lucide-react";
 import Sidebar, { ViewMode, UNASSIGNED_FILTER } from "@/components/Sidebar";
 import KanbanBoard from "@/components/KanbanBoard";
-import TimelineView from "@/components/TimelineView";
 import CalendarView from "@/components/CalendarView";
 import PeopleDashboard from "@/components/PeopleDashboard";
 import TaskListView from "@/components/TaskListView";
@@ -110,7 +109,6 @@ function HomeContent() {
 
   const viewTitles: Record<ViewMode, string> = {
     board: "Board",
-    timeline: "Timeline",
     calendar: "Calendar",
     people: "People",
     list: "List",
@@ -326,13 +324,6 @@ function HomeContent() {
                 onOpenTask={(t) => setModalTask(t)}
                 onMoveStatus={handleMoveStatus}
                 canEdit={canEdit}
-              />
-            )}
-            {view === "timeline" && (
-              <TimelineView
-                tasks={filteredTasks}
-                resources={resources}
-                onOpenTask={(t) => setModalTask(t)}
               />
             )}
             {view === "calendar" && (

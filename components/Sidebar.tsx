@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRight, LogOut, ShieldCheck, Pencil } from "lucide-react";
-import { LayoutGrid, Calendar as CalendarIcon, BarChart3, Users, List, ScrollText, Grid2x2 } from "lucide-react";
+import { LayoutGrid, Calendar as CalendarIcon, Users, List, ScrollText, Grid2x2 } from "lucide-react";
 import { useState } from "react";
 import { Project, Resource } from "@/lib/types";
 import { useManageUsers } from "@/lib/useManageUsers";
@@ -18,7 +18,7 @@ const ROLE_ORDER: Role[] = ["super", "admin", "normal", "view"];
 
 export const UNASSIGNED_FILTER = "__unassigned__";
 
-export type ViewMode = "board" | "timeline" | "calendar" | "people" | "list" | "matrix" | "log";
+export type ViewMode = "board" | "calendar" | "people" | "list" | "matrix" | "log";
 
 export default function Sidebar({
   view,
@@ -118,7 +118,6 @@ export default function Sidebar({
 
   const navItems: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
     { key: "board", label: "Board", icon: <LayoutGrid size={17} /> },
-    { key: "timeline", label: "Timeline", icon: <BarChart3 size={17} /> },
     { key: "calendar", label: "Calendar", icon: <CalendarIcon size={17} /> },
     { key: "list", label: "List", icon: <List size={17} /> },
     { key: "people", label: "People", icon: <Users size={17} /> },

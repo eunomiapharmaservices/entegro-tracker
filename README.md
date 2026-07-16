@@ -1,16 +1,14 @@
 # Entegro Tracker
 
-A task tracker for Entegro: kanban board, timeline (Gantt-style), and calendar
-views over tasks, subtasks, and milestone dates, with resource assignment.
-Built with Next.js 15 + Supabase, matching the stack used for the Entegro Hub
-and Proofreader tools — deploys the same way, to Vercel.
+A task tracker for Entegro: kanban board and calendar views over tasks,
+subtasks, and milestone dates, with resource assignment. Built with Next.js
+15 + Supabase, matching the stack used for the Entegro Hub and Proofreader
+tools — deploys the same way, to Vercel.
 
 ## What it does
 
 - **Board view** — tasks by status (To do / In progress / On hold / In review
   / Done), drag cards between columns.
-- **Timeline view** — Gantt-style bars from start date to due date, subtasks
-  nested under their parent, milestones shown as diamond markers.
 - **Calendar view** — Month, Week, or Day view, highlighting milestone dates
   and task due dates, with a CSV export of what's currently displayed.
 - **People dashboard** — one card per person showing their tasks grouped by
@@ -173,7 +171,7 @@ changeable later by an Admin or Super User):
 
 | | Super User | Admin | Normal User | View Only |
 |---|---|---|---|---|
-| View Board / Timeline / Calendar / List / People | ✓ | ✓ | ✓ | ✓ |
+| View Board / Calendar / List / People | ✓ | ✓ | ✓ | ✓ |
 | Add / edit tasks, post comments | ✓ | ✓ | ✓ | ✗ |
 | Export (people, projects, tasks) | ✓ | ✓ | ✓ | ✓ |
 | **Import** (CSV) | ✓ | ✓ | ✗ | ✗ |
@@ -329,7 +327,7 @@ don't see this nav item at all.
 ## Deleting a task keeps its history — and it's now restorable
 
 Deleting a task (Admin/Super only) no longer removes it from the database —
-it's a soft delete. The task disappears from Board, Timeline, Calendar,
+it's a soft delete. The task disappears from Board, Calendar,
 List, and People, but its full comment log (including every status change
 and the new "Task created"/"Task deleted" entries) stays intact and visible
 in the Comment Log forever, tagged with a red "Deleted" badge if you open it
@@ -396,7 +394,6 @@ components/
   ManageUsersModal.tsx    Invite/role/delete accounts (Admin/Super only)
   Sidebar.tsx            Nav, project filter, people filter, sign out
   KanbanBoard.tsx         Board view with drag-and-drop
-  TimelineView.tsx        Gantt-style timeline
   CalendarView.tsx        Month/Week/Day calendar with milestones
   TaskModal.tsx           Create/edit task, subtasks, milestone toggle
   ProjectModal.tsx        Create a new project (Admin/Super only)
@@ -465,7 +462,7 @@ data. New installs already have them via `schema.sql`.
   completion date is stamped automatically (unless you'd already set one
   manually). The board only shows Completed tasks finished within the last 14
   days — older ones are hidden from the board but still fully there in List,
-  Timeline, Calendar, and People views. A small note at the bottom of the
+  Calendar, and People views. A small note at the bottom of the
   board tells you how many are hidden this way.
 - **Actual completion** in the task editor is greyed out and only editable
   once status is Completed — it fills in automatically the moment you mark a
@@ -484,8 +481,6 @@ data. New installs already have them via `schema.sql`.
 
 ## Display fixes
 
-- **Timeline now shows day numbers**, not just the month, in a row under the
-  month header — weekends are lightly shaded and today is highlighted.
 - **Projects in the sidebar are sorted** (numeric-aware, so EID-prefixed
   names like "6986 - Charlotte" sort in numeric order rather than
   alphabetical-string order, where "10000" would otherwise sort before
@@ -494,7 +489,7 @@ data. New installs already have them via `schema.sql`.
   filter could show a task one day later than its actual date, depending on
   your timezone (anything ahead of UTC, which includes the UK during BST).
   This is fixed at the source, so it self-corrects across Calendar, Board,
-  and Timeline without needing to touch your data.
+  without needing to touch your data.
 
 If you already had the tracker deployed before this update, run
 `supabase/migration_003_status_and_comments.sql` and
@@ -531,7 +526,7 @@ backfills everyone's existing single assignment into the new list.
 
 The sidebar's People section now has an "Unassigned" option right below
 "Everyone" — click it to see only tasks with nobody assigned, across Board,
-Timeline, Calendar, List, and People.
+Calendar, List, and People.
 
 ## Delete task — error visibility
 
@@ -554,7 +549,7 @@ the suggestions once it's already been added to that task.
 
 While a task sits in **On Hold**, its due date effectively grows by one day
 for every day that passes — starting from the date it entered that status.
-This shows up everywhere the due date appears (Board cards, List, Timeline,
+This shows up everywhere the due date appears (Board cards, List,
 Calendar, People) as soon as you load the page — it doesn't wait for any
 daily job, since it's computed live from "how many days has this been on
 hold" rather than a value that gets rewritten day by day in the database.
@@ -681,7 +676,7 @@ If you already had the tracker deployed before this update, run
 
 - **Completed tasks no longer appear** on the calendar in any view — once a
   task is Completed, it's done, so it drops off Month/Week/Day (it's still
-  fully visible in List, Timeline, Board, and People).
+  fully visible in List, Board, and People).
 - **Only due dates are shown, not start dates.** Day view previously also
   listed tasks starting that day; that's been removed everywhere for
   consistency — the calendar now shows exactly two things: a task's due date

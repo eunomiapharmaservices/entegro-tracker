@@ -39,7 +39,8 @@ export default function CommentLogView({
       return (
         c.body.toLowerCase().includes(q) ||
         (c.author || "").toLowerCase().includes(q) ||
-        (task?.title || "").toLowerCase().includes(q)
+        (task?.title || "").toLowerCase().includes(q) ||
+        (task?.task_number || "").toLowerCase().includes(q)
       );
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -56,7 +57,9 @@ export default function CommentLogView({
   const filteredDeleted = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return deletedTasks;
-    return deletedTasks.filter((t) => t.title.toLowerCase().includes(q));
+    return deletedTasks.filter(
+      (t) => t.title.toLowerCase().includes(q) || (t.task_number || "").toLowerCase().includes(q)
+    );
   }, [deletedTasks, search]);
 
   async function handleRestore(id: string) {
@@ -94,7 +97,7 @@ export default function CommentLogView({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={tab === "comments" ? "Search comments, people, tasks…" : "Search deleted tasks…"}
+            placeholder={tab === "comments" ? "Search comments, people, tasks, task ID…" : "Search deleted tasks, task ID…"}
             className="w-full pl-8 pr-3 py-2 rounded-lg border border-[var(--c-line)] bg-white text-sm outline-none focus:border-[var(--c-green)]"
           />
         </div>
