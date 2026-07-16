@@ -118,8 +118,13 @@ export default function CommentLogView({
                     className="w-full text-left rounded-lg border border-[var(--c-line)] px-3 py-2.5 hover:bg-black/[0.02] disabled:cursor-default disabled:hover:bg-transparent"
                   >
                     <div className="flex items-center justify-between gap-3 mb-1">
-                      <span className="text-xs font-medium text-[#4d574f] truncate">
+                      <span className="text-xs font-medium text-[#4d574f] truncate flex items-center gap-1.5">
                         {task ? task.title : "(task no longer exists)"}
+                        {task?.task_number && (
+                          <span className="text-[10px] text-[#a39d8c] font-mono font-normal shrink-0">
+                            {task.task_number}
+                          </span>
+                        )}
                       </span>
                       <span className="text-[10px] text-[#a39d8c] font-mono shrink-0">
                         {new Date(c.created_at).toLocaleString("en-GB", {
@@ -157,7 +162,14 @@ export default function CommentLogView({
                   onClick={() => onOpenTask(t)}
                   className="text-left flex-1 min-w-0 hover:opacity-70"
                 >
-                  <p className="text-sm font-medium truncate">{t.title}</p>
+                  <p className="text-sm font-medium truncate flex items-center gap-1.5">
+                    {t.title}
+                    {t.task_number && (
+                      <span className="text-[10px] text-[#a39d8c] font-mono font-normal shrink-0">
+                        {t.task_number}
+                      </span>
+                    )}
+                  </p>
                   <p className="text-[11px] text-[#a39d8c] font-mono mt-0.5">
                     Deleted{" "}
                     {new Date(t.deleted_at!).toLocaleString("en-GB", {

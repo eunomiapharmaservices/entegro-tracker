@@ -274,6 +274,10 @@ just a chart:
   chart is grouped by), showing task count, % complete, an Active/Done
   badge, and a progress bar. Click a row for the same task drill-down as the
   bar chart.
+- **Task drill-down** (clicking a bar, donut segment, progress row, or
+  summary card) shows the matching tasks in the same sortable/filterable
+  table used in List view, rather than a plain list of titles — same
+  columns, same click-a-header-to-sort behavior.
 
 Available to everyone, including View Only, since it's aggregate counts
 rather than editable data.
@@ -318,8 +322,9 @@ status as usual.
 A **Log** item appears in the sidebar for Admin/Super only, showing every
 comment across every task — including the automatic "Status changed from…",
 "Task created", and "Task deleted" entries — newest first, searchable by
-comment text, person, or task name. Click any entry to jump to that task.
-Normal and View Only users don't see this nav item at all.
+comment text, person, or task name, with each task's ID shown alongside its
+title. Click any entry to jump to that task. Normal and View Only users
+don't see this nav item at all.
 
 ## Deleting a task keeps its history — and it's now restorable
 
@@ -592,12 +597,27 @@ Moving a task to **In Review** now does three things automatically:
    field — so you can see the connection right there, and it behaves like
    any other dependency in the UI.
 
-When that review task is marked **Completed**, however many days the review
-actually took (its completion date minus the date it was created) gets
-**added onto the original task's due date** — not just "start the day
-after," like a normal dependency, but a real extension by however long the
-review consumed. That change shows up in the task editor immediately and
-gets logged in the comment log like any other due date change.
+When that review task is marked **Completed**, three things happen to the
+main task automatically:
+
+1. However many days the review actually took (its completion date minus
+   the date it was created) gets **added onto the main task's due date** —
+   not just "start the day after," like a normal dependency, but a real
+   extension by however long the review consumed.
+2. **Status moves back to In progress** (out of In review), so the task
+   doesn't just sit there — a "Status changed…" comment gets logged for
+   this automatically, same as any other status change.
+3. **Every comment from the review task gets copied onto the main task** —
+   so whatever discussion happened during the review becomes part of the
+   main task's permanent history too, not stranded on a task that's now done
+   and out of the way.
+
+Both the due date change and the copied comments show up in the task editor
+and Comment Log immediately.
+
+On the Board, a task currently **In Review** shows a small ❄️ next to its
+due date (frozen, not growing) — different from the ⏳ shown on an **On
+Hold** task whose due date is actively extending.
 
 This all happens at the database level via triggers, so it works regardless
 of how a task enters Review — the editor, drag-and-drop on the board, or a
@@ -606,7 +626,9 @@ CSV import setting status directly to "review."
 If you already had the tracker deployed before this update, run
 `supabase/migration_019_review_workflow.sql`, then
 `supabase/migration_020_review_task_raised_by_fallback.sql` (adds the
-Raised by fallback described above).
+Raised by fallback described above), then
+`supabase/migration_022_review_completion_moves_status.sql` (adds the
+status-move-back and comment-copying behavior above).
 
 ## Task dependencies
 

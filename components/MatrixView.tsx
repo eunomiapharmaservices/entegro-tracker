@@ -16,6 +16,7 @@ import {
 import { TrendingUp, CheckCircle2, Activity, AlertTriangle } from "lucide-react";
 import { Project, Resource, STATUS_LABELS, STATUS_ORDER, Task } from "@/lib/types";
 import { effectiveDueDate, isOverdue } from "@/lib/dateUtils";
+import TaskListView from "./TaskListView";
 
 type Axis = "status" | "assigned" | "project" | "task_type";
 
@@ -387,8 +388,8 @@ export default function MatrixView({
       </div>
 
       {drill && drill.tasks.length > 0 && (
-        <div className="rounded-xl border border-[var(--c-line)] bg-white p-3 shrink-0">
-          <div className="flex items-center justify-between mb-2">
+        <div className="rounded-xl border border-[var(--c-line)] bg-white p-3 shrink-0 flex flex-col" style={{ height: 340 }}>
+          <div className="flex items-center justify-between mb-2 shrink-0">
             <p className="text-xs font-medium text-[#4d574f] font-display">
               Tasks — {drill.label} ({drill.tasks.length})
             </p>
@@ -399,16 +400,15 @@ export default function MatrixView({
               ✕
             </button>
           </div>
-          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-            {drill.tasks.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => onOpenTask(t)}
-                className="text-left text-xs px-2.5 py-1.5 rounded-lg border border-[var(--c-line)] hover:bg-black/[0.03] truncate max-w-[220px]"
-              >
-                {t.title}
-              </button>
-            ))}
+          <div className="flex-1 min-h-0">
+            <TaskListView
+              tasks={drill.tasks}
+              resources={resources}
+              projects={projects}
+              onOpenTask={onOpenTask}
+              onDeleteTask={async () => {}}
+              canDelete={false}
+            />
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Flag, ListChecks } from "lucide-react";
+import { Flag, ListChecks, Snowflake } from "lucide-react";
 import { Resource, Task, PRIORITY_COLORS } from "@/lib/types";
 import { fmt, isOverdue, effectiveDueDate } from "@/lib/dateUtils";
 import Avatar from "./Avatar";
@@ -71,9 +71,21 @@ export default function TaskCard({
       <div className="flex items-center justify-between mt-3">
         <div className="flex items-center gap-2 text-xs text-[#8a8578]">
           {task.due_date && (
-            <span className={overdue ? "text-[#C23B3B] font-medium" : ""} title={extended ? "Extended while On Hold/In Review" : undefined}>
+            <span
+              className={overdue ? "text-[#C23B3B] font-medium" : ""}
+              title={
+                extended
+                  ? "Extended while On Hold"
+                  : task.status === "review"
+                  ? "Frozen while In Review"
+                  : undefined
+              }
+            >
               {fmt(dueDate)}
               {extended && <span className="text-[var(--c-orange)]"> ⏳</span>}
+              {!extended && task.status === "review" && (
+                <Snowflake size={11} className="inline ml-1 -mt-0.5 text-[#3B6E8F]" />
+              )}
             </span>
           )}
           {subtasks.length > 0 && (
