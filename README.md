@@ -684,10 +684,21 @@ If you already had the tracker deployed before this update, run
 
 ## Keeping data in sync
 
-The app now refreshes data from the database every 60 seconds in the
-background, so changes made by someone else on a different device show up
-without needing a manual page reload. Your own edits still feel instant —
-they update on-screen immediately and don't wait for the next refresh cycle.
+The app refreshes data from the database only when something actually
+changes — not on a timer. This uses **Supabase Realtime**, so changes made
+by someone else on a different device show up automatically without a
+manual page reload, but nothing swaps the screen to a loading state just to
+check for updates every so often (the previous version polled every 60
+seconds regardless of whether anything changed, which made the whole screen
+flash to a loading placeholder that whole time — that's gone now). Your own
+edits still feel instant either way, since they update on-screen immediately
+rather than waiting on anything.
+
+**Setup required**: Realtime needs to be turned on for four tables in your
+Supabase project — go to **Database → Replication**, and enable it for
+`tasks`, `projects`, `resources`, and `task_comments`. Without this, the
+app still works completely normally for your own actions; you'd just need a
+manual page refresh to see changes made by someone else on another device.
 
 ## List view
 

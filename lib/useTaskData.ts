@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { Project, Resource, Task, TaskComment } from "./types";
 import { notifyAssignment } from "./notifyAssignment";
@@ -12,15 +12,20 @@ export function useTaskData() {
   const [taskComments, setTaskComments] = useState<TaskComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
-  // `tasks` is what every normal view should use (Board, Timeline, Calendar,
+  // `tasks` is what every normal view should use (Board, Calendar,
   // List, People) — soft-deleted tasks stay in the database forever (so
   // their comment log/history is never lost) but are hidden everywhere
   // except the Comment Log, which uses `allTasks` to still resolve titles.
   const tasks = allTasks.filter((t) => !t.deleted_at);
 
   const reload = useCallback(async () => {
-    setLoading(true);
+    // Only show the full loading state on the very first load — background
+    // refreshes (from Realtime below) should never swap the screen to a
+    // loading placeholder, since that's what made this feel like everything
+    // was resetting every time it ran.
+    if (!hasLoadedOnce.current) setLoading(true);
     setError(null);
     const [tasksRes, resourcesRes, projectsRes, commentsRes] = await Promise.all([
       supabase.from("tasks").select("*").order("position", { ascending: true }),
@@ -45,20 +50,35 @@ export function useTaskData() {
       setTaskComments(commentsRes.error ? [] : (commentsRes.data as TaskComment[]));
     }
     setLoading(false);
+    hasLoadedOnce.current = true;
   }, []);
 
   useEffect(() => {
     reload();
   }, [reload]);
 
-  // Poll for changes made by other people every 60 seconds. Local edits
-  // still feel instant since they update state directly (see below); this
-  // just catches up on anything someone else changed in the meantime.
+  // Refresh only when something actually changes in the database — not on a
+  // timer. Requires Realtime replication to be turned on for these four
+  // tables in the Supabase dashboard (Database -> Replication); see the
+  // README. Your own edits already show up instantly regardless (they
+  // update local state directly), so this is purely for catching changes
+  // made by someone else.
   useEffect(() => {
-    const interval = setInterval(() => {
-      reload();
-    }, 60_000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel("tracker-db-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => reload())
+      .on("postgres_changes", { event: "*", schema: "public", table: "projects" }, () => reload())
+      .on("postgres_changes", { event: "*", schema: "public", table: "resources" }, () => reload())
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_comments" },
+        () => reload()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [reload]);
 
   const createTask = useCallback(
