@@ -612,7 +612,10 @@ and Comment Log immediately.
 
 On the Board, a task currently **In Review** shows a small ❄️ next to its
 due date (frozen, not growing) — different from the ⏳ shown on an **On
-Hold** task whose due date is actively extending.
+Hold** task whose due date is actively extending. "Frozen" also means a task
+In Review never shows as **Overdue**, even if its due date has quietly
+passed while sitting there — the same way a Completed task doesn't. It picks
+back up as soon as it moves out of In Review, if it's still actually late.
 
 This all happens at the database level via triggers, so it works regardless
 of how a task enters Review — the editor, drag-and-drop on the board, or a

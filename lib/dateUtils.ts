@@ -42,7 +42,7 @@ export function endOfMonth(d: Date): Date {
 }
 
 export function isOverdue(dueDate: string | null, status: string): boolean {
-  if (!dueDate || status === "done") return false;
+  if (!dueDate || status === "done" || status === "review") return false;
   const today = isoDate(new Date());
   return dueDate < today;
 }
