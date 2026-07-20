@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Search, RotateCcw } from "lucide-react";
 import { Task, TaskComment } from "@/lib/types";
+import TaskTitle from "./TaskTitle";
 
 export default function CommentLogView({
   taskComments,
@@ -122,7 +123,7 @@ export default function CommentLogView({
                   >
                     <div className="flex items-center justify-between gap-3 mb-1">
                       <span className="text-xs font-medium text-[#4d574f] truncate flex items-center gap-1.5">
-                        {task ? task.title : "(task no longer exists)"}
+                        {task ? <TaskTitle task={task} /> : "(task no longer exists)"}
                         {task?.task_number && (
                           <span className="text-[10px] text-[#a39d8c] font-mono font-normal shrink-0">
                             {task.task_number}
@@ -166,7 +167,7 @@ export default function CommentLogView({
                   className="text-left flex-1 min-w-0 hover:opacity-70"
                 >
                   <p className="text-sm font-medium truncate flex items-center gap-1.5">
-                    {t.title}
+                    <TaskTitle task={t} />
                     {t.task_number && (
                       <span className="text-[10px] text-[#a39d8c] font-mono font-normal shrink-0">
                         {t.task_number}

@@ -3,6 +3,7 @@
 import { Flag, ListChecks, Snowflake } from "lucide-react";
 import { Resource, Task, PRIORITY_COLORS } from "@/lib/types";
 import { fmt, isOverdue, effectiveDueDate } from "@/lib/dateUtils";
+import TaskTitle from "./TaskTitle";
 import Avatar from "./Avatar";
 
 export default function TaskCard({
@@ -48,7 +49,7 @@ export default function TaskCard({
         </span>
       )}
       <p className="text-sm font-medium leading-snug text-[var(--c-ink)]">
-        {task.title}
+        <TaskTitle task={task} />
       </p>
 
       {(task.site_name || task.eid || task.task_type) && (

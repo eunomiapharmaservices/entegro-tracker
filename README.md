@@ -592,6 +592,12 @@ Moving a task to **In Review** now does three things automatically:
    field — so you can see the connection right there, and it behaves like
    any other dependency in the UI.
 
+The word **"Review"** in a review task's title is visually highlighted
+(bold, in orange) everywhere its title appears — Board, List, People, and
+the Comment Log — so it stands out from a regular task whose name just
+happens to end that way. The task editor also shows a small "Review task"
+badge next to its header.
+
 When that review task is marked **Completed**, three things happen to the
 main task automatically:
 

@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Download, Flag, Trash2, X } from "luci
 import { Resource, Project, STATUS_LABELS, Task } from "@/lib/types";
 import { fmt, effectiveDueDate } from "@/lib/dateUtils";
 import { downloadCSV } from "@/lib/csvImport";
+import TaskTitle from "./TaskTitle";
 
 type ColKey =
   | "task_number"
@@ -298,7 +299,9 @@ export default function TaskListView({
                         fill="currentColor"
                       />
                     )}
-                    <span className="truncate">{t.title}</span>
+                    <span className="truncate">
+                      <TaskTitle task={t} />
+                    </span>
                   </span>
                 </td>
                 <td

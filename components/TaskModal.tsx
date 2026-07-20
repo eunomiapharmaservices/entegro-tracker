@@ -400,6 +400,11 @@ export default function TaskModal({
           <div>
             <h2 className="font-display font-semibold text-base">
               {isNew ? "New task" : "Edit task"}
+              {task?.is_review_task && (
+                <span className="ml-2 text-[11px] font-normal text-[var(--c-orange)] bg-[var(--c-orange)]/10 px-2 py-0.5 rounded-full align-middle">
+                  Review task
+                </span>
+              )}
               {task?.deleted_at && (
                 <span className="ml-2 text-[11px] font-normal text-[#C23B3B] bg-[#C23B3B]/10 px-2 py-0.5 rounded-full align-middle">
                   Deleted

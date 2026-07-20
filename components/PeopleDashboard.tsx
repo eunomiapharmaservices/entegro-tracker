@@ -5,6 +5,7 @@ import { Project, Resource, STATUS_LABELS, Task } from "@/lib/types";
 import { fmt, isOverdue, effectiveDueDate } from "@/lib/dateUtils";
 import { useViewOnlyEmails } from "@/lib/useViewOnlyEmails";
 import Avatar from "./Avatar";
+import TaskTitle from "./TaskTitle";
 
 const STATUS_DOT: Record<string, string> = {
   todo: "#a39d8c",
@@ -119,7 +120,7 @@ export default function PeopleDashboard({
                                 fill="currentColor"
                               />
                             )}
-                            <span className="truncate flex-1">{t.title}</span>
+                            <span className="truncate flex-1"><TaskTitle task={t} /></span>
                             {t.progress_percent > 0 && t.progress_percent < 100 && (
                               <span className="text-[11px] text-[#8a8578] font-mono shrink-0">
                                 {t.progress_percent}%
@@ -170,7 +171,7 @@ export default function PeopleDashboard({
                   className="w-1.5 h-1.5 rounded-full shrink-0"
                   style={{ background: STATUS_DOT[t.status] }}
                 />
-                <span className="truncate flex-1">{t.title}</span>
+                <span className="truncate flex-1"><TaskTitle task={t} /></span>
                 {t.due_date && (
                   <span className="text-[11px] text-[#a39d8c] shrink-0">
                     {fmt(effectiveDueDate(t.due_date, t.status, t.hold_started_at))}
