@@ -3,7 +3,7 @@
 import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRight, LogOut, ShieldCheck, Pencil } from "lucide-react";
 import { LayoutGrid, Calendar as CalendarIcon, Users, List, ScrollText, Grid2x2 } from "lucide-react";
 import { useState } from "react";
-import { Project, Resource } from "@/lib/types";
+import { Project, Resource, Task } from "@/lib/types";
 import { useManageUsers } from "@/lib/useManageUsers";
 import type { Role } from "@/lib/useUserRole";
 import Avatar from "./Avatar";
@@ -25,6 +25,7 @@ export default function Sidebar({
   setView,
   projects,
   resources,
+  tasks,
   activeProject,
   setActiveProject,
   activeResource,
@@ -50,6 +51,7 @@ export default function Sidebar({
   setView: (v: ViewMode) => void;
   projects: Project[];
   resources: Resource[];
+  tasks: Task[];
   activeProject: string | null;
   setActiveProject: (id: string | null) => void;
   activeResource: string | null;
@@ -76,6 +78,24 @@ export default function Sidebar({
     a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
   const activeProjects = projects.filter((p) => !p.archived).sort(sortByName);
   const archivedProjects = projects.filter((p) => p.archived).sort(sortByName);
+
+  // Task counts shown in the project dropdown — top-level tasks only (a
+  // subtask's count belongs to its parent), matching how the rest of the
+  // app treats task totals.
+  const topLevelTasks = tasks.filter((t) => !t.parent_task_id);
+  const allProjectsTaskCount = topLevelTasks.length;
+  function projectTaskCount(projectId: string): number {
+    return topLevelTasks.filter((t) => t.project_id === projectId).length;
+  }
+  function isUnassignedTask(t: Task): boolean {
+    return !t.assigned_to && !t.assignee_ids?.length;
+  }
+  function resourceTaskCount(resourceId: string): number {
+    return topLevelTasks.filter((t) =>
+      t.assignee_ids?.length ? t.assignee_ids.includes(resourceId) : t.assigned_to === resourceId
+    ).length;
+  }
+  const unassignedTaskCount = topLevelTasks.filter(isUnassignedTask).length;
 
   // Resources (the task-assignee roster) don't carry a login role themselves
   // — roles live on registered accounts. Match by email to group/drag people
@@ -191,54 +211,41 @@ export default function Sidebar({
             )}
           </div>
         </div>
-        <div className="flex flex-col gap-0.5">
-          <button
-            onClick={() => setActiveProject(null)}
-            className={`text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
-              activeProject === null ? "bg-black/5 font-medium" : "hover:bg-black/5 text-[#4d574f]"
-            }`}
+        <div className="flex flex-col gap-1.5">
+          <select
+            value={activeProject ?? ""}
+            onChange={(e) => setActiveProject(e.target.value || null)}
+            className="w-full text-sm rounded-lg border border-[var(--c-line)] px-2 py-1.5 bg-white outline-none focus:border-[var(--c-green)]"
           >
-            All projects
-          </button>
-          {activeProjects.map((p) => (
-            <div
-              key={p.id}
-              className={`group flex items-center gap-1 rounded-md ${
-                activeProject === p.id ? "bg-black/5" : "hover:bg-black/5"
-              }`}
-            >
+            <option value="">All projects ({allProjectsTaskCount})</option>
+            {activeProjects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} ({projectTaskCount(p.id)})
+              </option>
+            ))}
+          </select>
+          {isAdminOrAbove && activeProject && (
+            <div className="flex items-center gap-2 px-0.5">
               <button
-                onClick={() => setActiveProject(p.id)}
-                className={`flex-1 min-w-0 text-left text-sm px-2 py-1.5 rounded-md flex items-center gap-2 ${
-                  activeProject === p.id ? "font-medium" : "text-[#4d574f]"
-                }`}
+                onClick={() => {
+                  const p = activeProjects.find((pr) => pr.id === activeProject);
+                  if (p) onEditProject(p);
+                }}
+                className="flex items-center gap-1 text-xs text-[#8a8578] hover:text-[var(--c-green)]"
               >
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ background: p.color }}
-                />
-                <span className="truncate">{p.name}</span>
+                <Pencil size={11} /> Edit
               </button>
-              {isAdminOrAbove && (
-                <button
-                  onClick={() => onEditProject(p)}
-                  title={`Edit ${p.name}`}
-                  className="shrink-0 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[var(--c-green)] transition-opacity"
-                >
-                  <Pencil size={12} />
-                </button>
-              )}
-              {isAdminOrAbove && (
-                <button
-                  onClick={() => onArchiveProject(p.id, p.name)}
-                  title={`Archive ${p.name}`}
-                  className="shrink-0 mr-1 p-1 rounded text-[#c9c2b2] opacity-0 group-hover:opacity-100 hover:text-[var(--c-orange)] transition-opacity"
-                >
-                  <Archive size={13} />
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  const p = activeProjects.find((pr) => pr.id === activeProject);
+                  if (p) onArchiveProject(p.id, p.name);
+                }}
+                className="flex items-center gap-1 text-xs text-[#8a8578] hover:text-[var(--c-orange)]"
+              >
+                <Archive size={11} /> Archive
+              </button>
             </div>
-          ))}
+          )}
         </div>
 
         {isAdminOrAbove && archivedProjects.length > 0 && (
@@ -315,7 +322,7 @@ export default function Sidebar({
               activeResource === null ? "bg-black/5 font-medium" : "hover:bg-black/5 text-[#4d574f]"
             }`}
           >
-            Everyone
+            Everyone ({allProjectsTaskCount})
           </button>
           <button
             onClick={() => setActiveResource(UNASSIGNED_FILTER)}
@@ -328,7 +335,7 @@ export default function Sidebar({
             <span className="w-5 h-5 rounded-full border border-dashed border-[#c9c2b2] flex items-center justify-center text-[10px] text-[#a39d8c] shrink-0">
               —
             </span>
-            Unassigned
+            Unassigned ({unassignedTaskCount})
           </button>
 
           {isAdminOrAbove ? (
@@ -384,6 +391,9 @@ export default function Sidebar({
                           >
                             <Avatar resource={r} size={20} />
                             <span className="truncate">{r.name}</span>
+                            <span className="text-[11px] text-[#a39d8c] shrink-0 ml-auto pr-1">
+                              {resourceTaskCount(r.id)}
+                            </span>
                           </button>
                           <button
                             onClick={() => onEditResource(r)}
@@ -417,6 +427,9 @@ export default function Sidebar({
               >
                 <Avatar resource={r} size={20} />
                 <span className="truncate">{r.name}</span>
+                <span className="text-[11px] text-[#a39d8c] shrink-0 ml-auto pr-1">
+                  {resourceTaskCount(r.id)}
+                </span>
               </button>
             ))
           )}

@@ -107,17 +107,28 @@ works the same way; Vercel redeploys on every push.
   yourself out of the data (you can still register/sign in either way, just
   the data screens would show empty/error until an account exists).
 
-## Task assignment emails
+## Email notifications — assignment and status changes
 
-Assigning someone to a task — through the task editor, drag-and-drop on the
-board, or CSV import — sends them an email with the task's details (title,
-type, project, site/EID, due date, priority), as long as:
+Two things now send an email, as long as the person has an email set on
+their People entry and email sending is configured (below):
 
-1. That person has an email address set on their People entry, and
-2. Email sending is configured (below).
+- **Being assigned** to a task — through the task editor, drag-and-drop on
+  the board, or CSV import — sends the task's details (title, type,
+  project, site/EID, due date, priority). Only a *new* assignment triggers
+  this; editing other fields on an already-assigned task doesn't re-send it.
+- **A task's status changing** — every current assignee gets an email
+  showing the old and new status, from the task editor's Save button or
+  dragging a card between board columns.
 
-If either isn't true, nothing breaks — the task save just proceeds without
-sending anything.
+If either condition isn't met, nothing breaks — the task save just proceeds
+without sending anything.
+
+**One limitation worth knowing**: the automatic status change that happens
+when a review task completes (moving the main task from In review back to
+In progress — see the Review workflow section below) happens at the
+database level via a trigger, not through the app's own code, so it does
+**not** currently send an email. Only status changes made directly through
+the editor or by dragging a card trigger a notification.
 
 **Setup** (5 minutes):
 
@@ -133,9 +144,6 @@ sending anything.
    `"Entegro Tracker <notifications@entegropharma.com>"`.
 5. Add both env vars in Vercel (**Settings → Environment Variables**) and
    redeploy.
-
-Only re-assignment triggers an email — editing other fields on an
-already-assigned task doesn't re-send it.
 
 ## People linked to email — with a name suggestion
 
@@ -587,7 +595,10 @@ Moving a task to **In Review** now does three things automatically:
    carrying over the same project/task type/EID/site, assigned to whoever
    you've picked in the task editor's **Reviewer** field — or, if that's
    left blank, whoever's named in **Raised by** (matched to a People entry
-   by name). Only unassigned if neither is set/matched.
+   by name). Only unassigned if neither is set/matched. Its own **Raised
+   by** is set automatically to whoever owned the main task at that moment
+   (its assignee) — or **"System"** if it was unassigned — so it's always
+   clear who asked for the review.
 3. **The original task gets linked to it** via the existing **Depends on**
    field — so you can see the connection right there, and it behaves like
    any other dependency in the UI.
@@ -632,7 +643,9 @@ If you already had the tracker deployed before this update, run
 `supabase/migration_020_review_task_raised_by_fallback.sql` (adds the
 Raised by fallback described above), then
 `supabase/migration_022_review_completion_moves_status.sql` (adds the
-status-move-back and comment-copying behavior above).
+status-move-back and comment-copying behavior above), then
+`supabase/migration_023_review_task_raised_by_owner.sql` (sets the review
+task's own Raised by to the previous owner/System).
 
 ## Task dependencies
 
@@ -774,17 +787,25 @@ bulk — useful for migrating an existing task list or spreadsheet in one go.
 This is now governed by the role system above rather than being universally
 locked down:
 
-- **Admin/Super** see a "+" next to "Projects" in the sidebar to add one, and
-  an archive icon on hover to move a project out of the active list (for
-  closed-out EIDs/sites) — with a matching restore icon in the collapsed
-  "Archived (N)" section. There's no "delete permanently" for projects;
-  archiving is as final as it gets from the UI.
-- **Normal users** don't see any of those controls — they can still view,
-  filter by, and select any active project, and new projects still get
+- **Projects are a dropdown** in the sidebar now (instead of a scrollable
+  list of buttons) — "All projects (N)" plus each active project, each
+  showing its task count right in the option text, so it stays compact even
+  with a lot of projects. Selecting one filters the whole app to it, same as
+  before.
+- **Admin/Super** get an "Edit" and "Archive" link underneath the dropdown
+  whenever a specific project is selected (not shown for "All projects"),
+  plus the usual "+" next to "Projects" to add a new one, and the collapsed
+  "Archived (N)" section with its own restore icon. There's no "delete
+  permanently" for projects; archiving is as final as it gets from the UI.
+- **Normal users** don't see the Edit/Archive controls — they can still
+  select any active project from the dropdown, and new projects still get
   auto-created behind the scenes when they enter a new EID on a task (that
   keeps working regardless of role, since it's core to normal task entry).
 - **People** now have the same treatment as Projects: Admin/Super see a "+"
   to add someone and a trash icon on hover to remove them (their tasks
   become unassigned, not deleted). Normal users can still view, filter by,
   and select any person — same pattern as Projects.
+- **Task counts are visible throughout the sidebar** — "Everyone," each
+  person, "Unassigned," and every project all show how many tasks currently
+  belong to them (subtasks count toward their parent, not separately).
 

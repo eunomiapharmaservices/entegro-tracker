@@ -19,6 +19,7 @@ import Avatar from "./Avatar";
 import { colorForIndex } from "@/lib/csvImport";
 import { isoDate, effectiveDueDate, fmt } from "@/lib/dateUtils";
 import { useViewOnlyEmails } from "@/lib/useViewOnlyEmails";
+import { notifyStatusChange } from "@/lib/notifyAssignment";
 
 // Quick-add subtask suggestions — common checklist items across task types,
 // click to add instantly instead of typing them out each time.
@@ -236,6 +237,20 @@ export default function TaskModal({
             `Status changed from "${STATUS_LABELS[lastSavedStatus]}" to "${STATUS_LABELS[status]}"`,
             authorName || null
           );
+          const project = projects.find((p) => p.id === projectId);
+          for (const id of assigneeIds) {
+            const resource = resources.find((r) => r.id === id);
+            if (resource?.email) {
+              await notifyStatusChange(
+                resource.email,
+                { ...payload, title: title.trim() } as Task,
+                STATUS_LABELS[lastSavedStatus],
+                STATUS_LABELS[status],
+                project?.name,
+                authorName || null
+              );
+            }
+          }
         }
         setLastSavedStatus(status);
       } else {

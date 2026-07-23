@@ -436,6 +436,7 @@ returns trigger as $$
 declare
   new_review_id uuid;
   reviewer_resource_id uuid;
+  previous_owner_name text;
 begin
   if new.status = 'review'
      and (old.status is distinct from 'review')
@@ -449,15 +450,20 @@ begin
       limit 1;
     end if;
 
+    -- The review task is "raised by" whoever owned the main task when it
+    -- went into review — falling back to "System" if it was unassigned.
+    select name into previous_owner_name from resources where id = new.assigned_to;
+    previous_owner_name := coalesce(previous_owner_name, 'System');
+
     insert into tasks (
       title, project_id, task_type, eid, site_name, assigned_to, assignee_ids,
-      status, priority, is_review_task, review_of_task_id, date_added
+      status, priority, is_review_task, review_of_task_id, date_added, raised_by
     ) values (
       new.title || ' Review',
       new.project_id, new.task_type, new.eid, new.site_name,
       reviewer_resource_id,
       case when reviewer_resource_id is not null then array[reviewer_resource_id] else '{}'::uuid[] end,
-      'todo', new.priority, true, new.id, current_date
+      'todo', new.priority, true, new.id, current_date, previous_owner_name
     )
     returning id into new_review_id;
 

@@ -22,6 +22,7 @@ import { useUserRole } from "@/lib/useUserRole";
 import { supabase } from "@/lib/supabaseClient";
 import { Status, Task, STATUS_LABELS, Resource, Project } from "@/lib/types";
 import { downloadCSV } from "@/lib/csvImport";
+import { notifyStatusChange } from "@/lib/notifyAssignment";
 
 export default function Home() {
   return (
@@ -116,15 +117,40 @@ function HomeContent() {
     log: "Comment log",
   };
 
+  // Emails every current assignee of a task when its status changes — used
+  // by both drag-and-drop moves and the task editor's Save.
+  async function notifyAssigneesOfStatusChange(task: Task, oldStatus: Status, newStatus: Status) {
+    const assigneeIds = task.assignee_ids?.length
+      ? task.assignee_ids
+      : task.assigned_to
+      ? [task.assigned_to]
+      : [];
+    const project = projects.find((p) => p.id === task.project_id);
+    for (const id of assigneeIds) {
+      const resource = resources.find((r) => r.id === id);
+      if (resource?.email) {
+        await notifyStatusChange(
+          resource.email,
+          task,
+          STATUS_LABELS[oldStatus],
+          STATUS_LABELS[newStatus],
+          project?.name,
+          currentUserName || null
+        );
+      }
+    }
+  }
+
   async function handleMoveStatus(taskId: string, status: Status) {
     const previous = tasks.find((t) => t.id === taskId);
-    await updateTask(taskId, { status });
+    const updated = await updateTask(taskId, { status });
     if (previous && previous.status !== status) {
       await addComment(
         taskId,
         `Status changed from "${STATUS_LABELS[previous.status]}" to "${STATUS_LABELS[status]}"`,
         currentUserName || null
       );
+      await notifyAssigneesOfStatusChange(updated, previous.status, status);
     }
   }
 
@@ -253,6 +279,7 @@ function HomeContent() {
         setView={setView}
         projects={projects}
         resources={resources}
+        tasks={tasks}
         activeProject={activeProject}
         setActiveProject={setActiveProject}
         activeResource={activeResource}
