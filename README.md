@@ -374,6 +374,11 @@ the assignable workforce, so an always-empty card added noise rather than
 value. This is based on the same email-matching used for the sidebar's
 role grouping, so it applies regardless of who's viewing the dashboard.
 
+**Completed tasks don't show here at all** — each card's count and task
+list only reflect active work, so the header just reads "N active tasks"
+rather than a mix of active and done. This keeps the dashboard focused on
+what's actually outstanding rather than a running history.
+
 ## Unique Task ID
 
 Every task now gets a unique, human-readable ID the moment it's created —

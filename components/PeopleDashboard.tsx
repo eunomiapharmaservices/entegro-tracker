@@ -34,8 +34,10 @@ export default function PeopleDashboard({
   const projectById = (id: string | null) => projects.find((p) => p.id === id);
 
   function tasksFor(resourceId: string) {
-    return tasks.filter((t) =>
-      t.assignee_ids?.length ? t.assignee_ids.includes(resourceId) : t.assigned_to === resourceId
+    return tasks.filter(
+      (t) =>
+        t.status !== "done" &&
+        (t.assignee_ids?.length ? t.assignee_ids.includes(resourceId) : t.assigned_to === resourceId)
     );
   }
 
@@ -53,14 +55,15 @@ export default function PeopleDashboard({
     );
   }
 
-  const unassigned = tasks.filter((t) => !t.assigned_to && !t.assignee_ids?.length);
+  const unassigned = tasks.filter(
+    (t) => t.status !== "done" && !t.assigned_to && !t.assignee_ids?.length
+  );
 
   return (
     <div className="overflow-y-auto h-full pr-1">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {workingResources.map((r) => {
           const personTasks = tasksFor(r.id);
-          const done = personTasks.filter((t) => t.status === "done").length;
           const overdue = personTasks.filter((t) =>
             isOverdue(effectiveDueDate(t.due_date, t.status, t.hold_started_at), t.status)
           ).length;
@@ -76,7 +79,7 @@ export default function PeopleDashboard({
                 <div className="min-w-0">
                   <p className="font-display font-semibold text-sm truncate">{r.name}</p>
                   <p className="text-xs text-[#8a8578]">
-                    {personTasks.length} task{personTasks.length === 1 ? "" : "s"} · {done} done
+                    {personTasks.length} active task{personTasks.length === 1 ? "" : "s"}
                     {overdue > 0 && (
                       <span className="text-[#C23B3B] font-medium"> · {overdue} overdue</span>
                     )}
