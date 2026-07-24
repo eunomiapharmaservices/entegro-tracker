@@ -87,15 +87,19 @@ export default function Sidebar({
   function projectTaskCount(projectId: string): number {
     return topLevelTasks.filter((t) => t.project_id === projectId).length;
   }
+  // People-section counts exclude completed tasks — these should reflect
+  // active workload, not a running history (matching the People dashboard).
+  const activeTopLevelTasks = topLevelTasks.filter((t) => t.status !== "done");
+  const everyoneActiveTaskCount = activeTopLevelTasks.length;
   function isUnassignedTask(t: Task): boolean {
     return !t.assigned_to && !t.assignee_ids?.length;
   }
   function resourceTaskCount(resourceId: string): number {
-    return topLevelTasks.filter((t) =>
+    return activeTopLevelTasks.filter((t) =>
       t.assignee_ids?.length ? t.assignee_ids.includes(resourceId) : t.assigned_to === resourceId
     ).length;
   }
-  const unassignedTaskCount = topLevelTasks.filter(isUnassignedTask).length;
+  const unassignedTaskCount = activeTopLevelTasks.filter(isUnassignedTask).length;
 
   // Resources (the task-assignee roster) don't carry a login role themselves
   // — roles live on registered accounts. Match by email to group/drag people
@@ -322,7 +326,7 @@ export default function Sidebar({
               activeResource === null ? "bg-black/5 font-medium" : "hover:bg-black/5 text-[#4d574f]"
             }`}
           >
-            Everyone ({allProjectsTaskCount})
+            Everyone ({everyoneActiveTaskCount})
           </button>
           <button
             onClick={() => setActiveResource(UNASSIGNED_FILTER)}

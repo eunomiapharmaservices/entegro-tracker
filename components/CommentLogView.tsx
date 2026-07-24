@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, RotateCcw } from "lucide-react";
+import { Search, RotateCcw, ChevronDown, ChevronRight } from "lucide-react";
 import { Task, TaskComment } from "@/lib/types";
+import { isoDate } from "@/lib/dateUtils";
 import TaskTitle from "./TaskTitle";
 
 export default function CommentLogView({
@@ -19,6 +20,27 @@ export default function CommentLogView({
   const [tab, setTab] = useState<"comments" | "deleted">("comments");
   const [search, setSearch] = useState("");
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const today = isoDate(new Date());
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set([today]));
+
+  function toggleDate(date: string) {
+    setExpandedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  }
+
+  function dateLabel(date: string): string {
+    if (date === today) return "Today";
+    return new Date(date + "T00:00:00").toLocaleDateString("en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
 
   function taskFor(taskId: string) {
     return tasks.find((t) => t.id === taskId);
@@ -47,6 +69,18 @@ export default function CommentLogView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sorted, search, tasks]);
 
+  // Grouped by day (most recent first) — only used when there's no active
+  // search, since searching implies looking across all history at once.
+  const groupedByDate = useMemo(() => {
+    const groups = new Map<string, TaskComment[]>();
+    for (const c of filtered) {
+      const date = isoDate(new Date(c.created_at));
+      if (!groups.has(date)) groups.set(date, []);
+      groups.get(date)!.push(c);
+    }
+    return Array.from(groups.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  }, [filtered]);
+
   const deletedTasks = useMemo(
     () =>
       tasks
@@ -72,6 +106,42 @@ export default function CommentLogView({
     } finally {
       setRestoringId(null);
     }
+  }
+
+  function renderCommentRow(c: TaskComment) {
+    const task = taskFor(c.task_id);
+    return (
+      <button
+        key={c.id}
+        onClick={() => task && onOpenTask(task)}
+        disabled={!task}
+        className="w-full text-left rounded-lg border border-[var(--c-line)] px-3 py-2.5 hover:bg-black/[0.02] disabled:cursor-default disabled:hover:bg-transparent"
+      >
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <span className="text-xs font-medium text-[#4d574f] truncate flex items-center gap-1.5">
+            {task ? <TaskTitle task={task} /> : "(task no longer exists)"}
+            {task?.task_number && (
+              <span className="text-[10px] text-[#a39d8c] font-mono font-normal shrink-0">
+                {task.task_number}
+              </span>
+            )}
+          </span>
+          <span className="text-[10px] text-[#a39d8c] font-mono shrink-0">
+            {new Date(c.created_at).toLocaleString("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        </div>
+        <p className="text-sm">
+          {c.author && <span className="font-medium text-[var(--c-green)]">{c.author}: </span>}
+          {c.body}
+        </p>
+      </button>
+    );
   }
 
   return (
@@ -110,43 +180,28 @@ export default function CommentLogView({
             <p className="text-sm text-[#a39d8c] text-center py-10">
               {taskComments.length === 0 ? "No comments yet." : "No comments match that search."}
             </p>
+          ) : search.trim() ? (
+            <div className="flex flex-col gap-2">{filtered.map(renderCommentRow)}</div>
           ) : (
             <div className="flex flex-col gap-2">
-              {filtered.map((c) => {
-                const task = taskFor(c.task_id);
+              {groupedByDate.map(([date, comments]) => {
+                const expanded = expandedDates.has(date);
                 return (
-                  <button
-                    key={c.id}
-                    onClick={() => task && onOpenTask(task)}
-                    disabled={!task}
-                    className="w-full text-left rounded-lg border border-[var(--c-line)] px-3 py-2.5 hover:bg-black/[0.02] disabled:cursor-default disabled:hover:bg-transparent"
-                  >
-                    <div className="flex items-center justify-between gap-3 mb-1">
-                      <span className="text-xs font-medium text-[#4d574f] truncate flex items-center gap-1.5">
-                        {task ? <TaskTitle task={task} /> : "(task no longer exists)"}
-                        {task?.task_number && (
-                          <span className="text-[10px] text-[#a39d8c] font-mono font-normal shrink-0">
-                            {task.task_number}
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-[10px] text-[#a39d8c] font-mono shrink-0">
-                        {new Date(c.created_at).toLocaleString("en-GB", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                    <p className="text-sm">
-                      {c.author && (
-                        <span className="font-medium text-[var(--c-green)]">{c.author}: </span>
-                      )}
-                      {c.body}
-                    </p>
-                  </button>
+                  <div key={date}>
+                    <button
+                      onClick={() => toggleDate(date)}
+                      className="w-full flex items-center gap-1.5 text-xs font-medium text-[#4d574f] py-1.5 hover:text-[var(--c-green)]"
+                    >
+                      {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                      {dateLabel(date)}
+                      <span className="text-[#a39d8c] font-normal">({comments.length})</span>
+                    </button>
+                    {expanded && (
+                      <div className="flex flex-col gap-2 mt-1 mb-1">
+                        {comments.map(renderCommentRow)}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>

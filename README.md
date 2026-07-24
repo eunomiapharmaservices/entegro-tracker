@@ -332,6 +332,13 @@ comment text, person, or task name, with each task's ID shown alongside its
 title. Click any entry to jump to that task. Normal and View Only users
 don't see this nav item at all.
 
+**Comments are archived by day** — only **Today** is expanded by default;
+every earlier day collapses into a "24 Jul 2026 (N)" header you click to
+expand, keeping the page from turning into one giant unbroken scroll.
+Searching bypasses this entirely and just shows every matching result
+across all history flat, since a search is about finding something
+specific, not browsing day by day.
+
 ## Deleting a task keeps its history — and it's now restorable
 
 Deleting a task (Admin/Super only) no longer removes it from the database —
@@ -812,5 +819,9 @@ locked down:
   and select any person — same pattern as Projects.
 - **Task counts are visible throughout the sidebar** — "Everyone," each
   person, "Unassigned," and every project all show how many tasks currently
-  belong to them (subtasks count toward their parent, not separately).
+  belong to them (subtasks count toward their parent, not separately). The
+  People-section counts ("Everyone," each person, "Unassigned") exclude
+  completed tasks, matching the People dashboard's active-work-only view —
+  the Projects dropdown's counts still include everything, since that's
+  meant as a full picture of a project's size.
 
