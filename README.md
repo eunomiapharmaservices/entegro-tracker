@@ -503,6 +503,9 @@ data. New installs already have them via `schema.sql`.
 
 ## Display fixes
 
+- **Completed task cards on the Board show the completion date**, not the
+  due date — "Completed 24 Jul 2026" instead of a due date that's no longer
+  the relevant number once a task is actually done.
 - **Projects in the sidebar are sorted** (numeric-aware, so EID-prefixed
   names like "6986 - Charlotte" sort in numeric order rather than
   alphabetical-string order, where "10000" would otherwise sort before

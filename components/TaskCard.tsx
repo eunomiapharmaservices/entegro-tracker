@@ -71,23 +71,27 @@ export default function TaskCard({
 
       <div className="flex items-center justify-between mt-3">
         <div className="flex items-center gap-2 text-xs text-[#8a8578]">
-          {task.due_date && (
-            <span
-              className={overdue ? "text-[#C23B3B] font-medium" : ""}
-              title={
-                extended
-                  ? "Extended while On Hold"
-                  : task.status === "review"
-                  ? "Frozen while In Review"
-                  : undefined
-              }
-            >
-              {fmt(dueDate)}
-              {extended && <span className="text-[var(--c-orange)]"> ⏳</span>}
-              {!extended && task.status === "review" && (
-                <Snowflake size={11} className="inline ml-1 -mt-0.5 text-[#3B6E8F]" />
-              )}
-            </span>
+          {task.status === "done" ? (
+            task.actual_completion && <span>Completed {fmt(task.actual_completion)}</span>
+          ) : (
+            task.due_date && (
+              <span
+                className={overdue ? "text-[#C23B3B] font-medium" : ""}
+                title={
+                  extended
+                    ? "Extended while On Hold"
+                    : task.status === "review"
+                    ? "Frozen while In Review"
+                    : undefined
+                }
+              >
+                {fmt(dueDate)}
+                {extended && <span className="text-[var(--c-orange)]"> ⏳</span>}
+                {!extended && task.status === "review" && (
+                  <Snowflake size={11} className="inline ml-1 -mt-0.5 text-[#3B6E8F]" />
+                )}
+              </span>
+            )
           )}
           {subtasks.length > 0 && (
             <span className="flex items-center gap-1">
