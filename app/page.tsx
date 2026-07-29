@@ -98,10 +98,12 @@ function HomeContent() {
       }
       if (search.trim()) {
         const q = search.toLowerCase();
-        const matches = t.title.toLowerCase().includes(q);
-        const childMatches = tasks.some(
-          (s) => s.parent_task_id === t.id && s.title.toLowerCase().includes(q)
-        );
+        const taskMatches = (x: Task) =>
+          x.title.toLowerCase().includes(q) ||
+          (x.site_name || "").toLowerCase().includes(q) ||
+          (x.eid || "").toLowerCase().includes(q);
+        const matches = taskMatches(t);
+        const childMatches = tasks.some((s) => s.parent_task_id === t.id && taskMatches(s));
         if (!matches && !childMatches) return false;
       }
       return true;
@@ -330,7 +332,7 @@ function HomeContent() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search tasks…"
+                placeholder="Search tasks, EID, site…"
                 className="pl-8 pr-3 py-2 rounded-lg border border-[var(--c-line)] bg-white text-sm w-56 outline-none focus:border-[var(--c-green)]"
               />
             </div>

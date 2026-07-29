@@ -437,7 +437,9 @@ Tasks can now also capture (all optional, shown in the task modal):
 - **Task type** — e.g. MRP Planning, Full Audit, Circuit Audit, Config
   Removal, GCR_MOP (free text, with suggestions from common values)
 - **EID / circuit ID** and **Site name** — which site or circuit the task is
-  about
+  about, and both are matched by the search box in the top bar too (search
+  "6986" or "Charlotte" and it finds the right tasks even if that text isn't
+  in the title)
 - **Raised by** — who requested the task, separate from who it's assigned to
 - **Date added**, **Actual completion** — alongside the existing start/due
   dates
