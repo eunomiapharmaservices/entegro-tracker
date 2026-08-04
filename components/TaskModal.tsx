@@ -733,7 +733,7 @@ export default function TaskModal({
               </div>
               <div>
                 <label className={labelCls}>
-                  EID / circuit ID <span className="text-[#C23B3B]">*</span>
+                  EID <span className="text-[#C23B3B]">*</span>
                 </label>
                 <input
                   className={inputCls}
