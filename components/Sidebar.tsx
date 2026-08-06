@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Trash2, Download, Archive, ArchiveRestore, ChevronDown, ChevronRight, LogOut, ShieldCheck, Pencil } from "lucide-react";
-import { LayoutGrid, Calendar as CalendarIcon, Users, List, ScrollText, Grid2x2 } from "lucide-react";
+import { LayoutGrid, Calendar as CalendarIcon, Users, List, ScrollText, Grid2x2, Building2 } from "lucide-react";
 import { useState } from "react";
 import { Project, Resource, Task } from "@/lib/types";
 import { useManageUsers } from "@/lib/useManageUsers";
@@ -43,6 +43,7 @@ export default function Sidebar({
   currentUserName,
   onSignOut,
   onManageAccess,
+  onManageProjects,
   isAdminOrAbove,
   isSuper,
   canEdit,
@@ -69,6 +70,7 @@ export default function Sidebar({
   currentUserName: string;
   onSignOut: () => void;
   onManageAccess: () => void;
+  onManageProjects: () => void;
   isAdminOrAbove: boolean;
   isSuper: boolean;
   canEdit: boolean;
@@ -460,13 +462,22 @@ export default function Sidebar({
         </div>
         <div className="flex items-center justify-between">
           {isAdminOrAbove ? (
-            <button
-              onClick={onManageAccess}
-              className="flex items-center gap-1 text-[10px] text-[#8a8578] hover:text-[var(--c-ink)]"
-            >
-              <ShieldCheck size={11} />
-              Manage users
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onManageAccess}
+                className="flex items-center gap-1 text-[10px] text-[#8a8578] hover:text-[var(--c-ink)]"
+              >
+                <ShieldCheck size={11} />
+                Manage users
+              </button>
+              <button
+                onClick={onManageProjects}
+                className="flex items-center gap-1 text-[10px] text-[#8a8578] hover:text-[var(--c-ink)]"
+              >
+                <Building2 size={11} />
+                Manage projects
+              </button>
+            </div>
           ) : (
             <span />
           )}

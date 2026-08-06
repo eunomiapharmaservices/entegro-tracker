@@ -16,6 +16,7 @@ import ImportModal from "@/components/ImportModal";
 import ProjectModal from "@/components/ProjectModal";
 import ResourceModal from "@/components/ResourceModal";
 import ManageUsersModal from "@/components/ManageUsersModal";
+import ManageProjectsModal from "@/components/ManageProjectsModal";
 import AuthGate from "@/components/AuthGate";
 import { useTaskData } from "@/lib/useTaskData";
 import { useUserRole } from "@/lib/useUserRole";
@@ -74,6 +75,7 @@ function HomeContent() {
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [showManageUsersModal, setShowManageUsersModal] = useState(false);
+  const [showManageProjectsModal, setShowManageProjectsModal] = useState(false);
 
   const filteredTasks = useMemo(() => {
     function isAssignedTo(t: Task, resourceId: string): boolean {
@@ -299,6 +301,7 @@ function HomeContent() {
         currentUserName={currentUserName}
         onSignOut={handleSignOut}
         onManageAccess={() => setShowManageUsersModal(true)}
+        onManageProjects={() => setShowManageProjectsModal(true)}
         isAdminOrAbove={isAdminOrAbove}
         isSuper={isSuper}
         canEdit={canEdit}
@@ -466,6 +469,14 @@ function HomeContent() {
           currentUserId={userId}
           isSuper={isSuper}
           isAdminOrAbove={isAdminOrAbove}
+        />
+      )}
+
+      {showManageProjectsModal && isAdminOrAbove && (
+        <ManageProjectsModal
+          projects={projects}
+          onClose={() => setShowManageProjectsModal(false)}
+          onUpdate={updateProject}
         />
       )}
     </div>

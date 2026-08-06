@@ -18,6 +18,9 @@ create table if not exists projects (
   name text not null,
   color text default '#E07A3E',
   archived boolean default false,
+  eid text,                     -- circuit/EID for this project, managed by Admin/Super
+  site_name text,                -- site name for this project
+  site_dark_date date,           -- SDD — shown on the header of any task in this project
   created_at timestamptz default now()
 );
 
@@ -151,6 +154,29 @@ set search_path = public
 as $$
   select exists (
     select 1 from profiles where id = auth.uid() and role = 'super'
+  );
+$$;
+
+-- The name to attribute an automatically-generated comment to — whoever's
+-- actually signed in and performing the action that triggered it (matched
+-- to their People entry by email for a friendly name), falling back to
+-- their login email, or "System" if there's no session at all (e.g. a
+-- change made outside the app).
+create or replace function current_actor_name()
+returns text
+language sql
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (
+      select r.name from resources r
+      join profiles p on lower(p.email) = lower(r.email)
+      where p.id = auth.uid()
+      limit 1
+    ),
+    (select email from profiles where id = auth.uid()),
+    'System'
   );
 $$;
 
@@ -403,6 +429,8 @@ returns trigger as $$
 declare
   is_hold_status boolean;
   was_hold_status boolean;
+  extension_days int;
+  max_extension_days constant int := 30; -- cap on how far On Hold can push the due date
 begin
   is_hold_status := new.status = 'on_hold';
   was_hold_status := (tg_op = 'UPDATE') and old.status = 'on_hold';
@@ -411,7 +439,8 @@ begin
     new.hold_started_at := coalesce(new.hold_started_at, current_date);
   elsif (not is_hold_status) and was_hold_status and old.hold_started_at is not null then
     if new.due_date is not null then
-      new.due_date := new.due_date + (current_date - old.hold_started_at);
+      extension_days := least(current_date - old.hold_started_at, max_extension_days);
+      new.due_date := new.due_date + extension_days;
     end if;
     new.hold_started_at := null;
   end if;
@@ -507,7 +536,7 @@ begin
       values (
         new.review_of_task_id,
         'Status changed from "In review" to "In progress" (review completed)',
-        null
+        current_actor_name()
       );
     end if;
 
@@ -545,7 +574,7 @@ begin
         when new.due_date is null then format('Due date cleared (was %s)', to_char(old.due_date, 'DD Mon YYYY'))
         else format('Due date changed from %s to %s', to_char(old.due_date, 'DD Mon YYYY'), to_char(new.due_date, 'DD Mon YYYY'))
       end,
-      null
+      current_actor_name()
     );
   end if;
   return new;

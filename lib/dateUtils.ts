@@ -60,6 +60,11 @@ export function daysSince(dateStr: string): number {
 // In Review works differently — its due date freezes (see the Review
 // workflow: a duplicate review task is spawned instead, and completing that
 // review task adds its own duration onto this task's due date directly).
+// Keep in sync with max_extension_days in the manage_hold_started_at()
+// database trigger — the live display and the eventual baked-in value
+// should always agree.
+const MAX_HOLD_EXTENSION_DAYS = 30;
+
 export function effectiveDueDate(
   dueDate: string | null,
   status: string,
@@ -67,7 +72,7 @@ export function effectiveDueDate(
 ): string | null {
   if (!dueDate) return dueDate;
   if (status === "on_hold" && holdStartedAt) {
-    const extraDays = daysSince(holdStartedAt);
+    const extraDays = Math.min(daysSince(holdStartedAt), MAX_HOLD_EXTENSION_DAYS);
     if (extraDays > 0) {
       return isoDate(addDays(new Date(dueDate + "T00:00:00"), extraDays));
     }

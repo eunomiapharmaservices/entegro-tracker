@@ -294,13 +294,60 @@ type (GCR_Support, GCR_MOP, etc.) is consolidated into one **GCR** category
 without it splitting across near-identical type names. Every other task
 type keeps its own individual category.
 
-## Task type locked after creation (Normal users)
+## Fields locked after creation (Normal users)
 
-Once a task is saved, **Task type** can only be changed by Admin/Super —
-Normal users can still set it when first creating a task, but it becomes
-read-only on an existing one, with a note explaining why. This is a UI-level
-safeguard (not enforced at the database level), aimed at preventing
-accidental recategorization once work is underway.
+Once a task is saved, **Task type**, **EID**, and **Due date** can only be
+changed by Admin/Super — Normal users can still set them when first creating
+a task, but they become read-only on an existing one, with a note explaining
+why. This is a UI-level safeguard (not enforced at the database level), aimed
+at preventing accidental changes to key identifying/scheduling fields once
+work is underway.
+
+**"Date added" is no longer shown** in the task editor at all — it's still
+recorded automatically on creation (and used by the review-duration
+calculation), just not presented as something to fill in.
+
+## Manage projects — EID, Site Name, and SDD (Admin/Super)
+
+A **Manage projects** link sits next to "Manage users" at the bottom of the
+sidebar, for Admin/Super only. It opens a table of every project (active and
+archived) where you can set:
+
+- **EID** — the circuit/EID this project covers
+- **Site name**
+- **SDD (Site Dark Date)**
+
+Each row saves independently — a Save button appears on a row only once
+you've changed something in it.
+
+**SDD appears on the task header**: any task belonging to a project with an
+SDD set shows `SDD <date>` in orange under the task ID in the editor, so the
+site's dark date is visible while working on any task for that site.
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_024_project_eid_site_sdd.sql`.
+
+## Comment log entries show who made the change
+
+Automatically-generated log entries (due date changes, the review-completion
+status change) are now attributed to whoever actually performed the action,
+rather than appearing with no author. The name shown is their People entry's
+name if their login email matches one, otherwise their login email — or
+**"System"** if a change happened outside the app entirely (e.g. directly in
+the database).
+
+## On Hold extension is capped
+
+The automatic due-date extension while a task sits **On Hold** now stops
+growing after **30 days**. Both the live on-screen figure and the value
+eventually saved when the task leaves On Hold respect the same cap, so they
+never disagree. To change the limit, edit `max_extension_days` in the
+`manage_hold_started_at()` database function *and* `MAX_HOLD_EXTENSION_DAYS`
+in `lib/dateUtils.ts` — they're deliberately kept in sync.
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_025_actor_attribution_and_hold_cap.sql` (covers both this
+and the comment attribution above).
 
 ## Duplicate a task
 

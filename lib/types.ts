@@ -14,6 +14,9 @@ export interface Project {
   name: string;
   color: string;
   archived: boolean;
+  eid: string | null;
+  site_name: string | null;
+  site_dark_date: string | null;
   created_at: string;
 }
 
@@ -65,6 +68,7 @@ export const TASK_TYPE_SUGGESTIONS = [
   "Config Drop",
   "Config Generation",
   "Transport Requirements",
+  "GCR",
   "GCR_MOP",
   "GCR_Support",
   "Design",

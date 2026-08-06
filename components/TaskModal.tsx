@@ -429,6 +429,14 @@ export default function TaskModal({
             {task?.task_number && (
               <p className="text-[10px] text-[#a39d8c] font-mono mt-0.5">{task.task_number}</p>
             )}
+            {(() => {
+              const proj = projects.find((p) => p.id === projectId);
+              return proj?.site_dark_date ? (
+                <p className="text-[10px] text-[var(--c-orange)] font-mono mt-0.5">
+                  SDD {fmt(proj.site_dark_date)}
+                </p>
+              ) : null;
+            })()}
           </div>
           <button onClick={onClose} className="p-1 rounded-md hover:bg-black/5">
             <X size={18} />
@@ -571,10 +579,17 @@ export default function TaskModal({
               <label className={labelCls}>Due date</label>
               <input
                 type="date"
-                className={inputCls}
+                className={inputCls + (!isNew && !canDelete ? " bg-black/[0.04] text-[#8a8578] cursor-not-allowed" : "")}
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
+                disabled={!isNew && !canDelete}
+                title={!isNew && !canDelete ? "Only Admin/Super can change the due date after creation" : undefined}
               />
+              {!isNew && !canDelete && (
+                <p className="text-[10px] text-[#a39d8c] mt-1">
+                  Only Admin/Super can change this after a task is created.
+                </p>
+              )}
               {status === "on_hold" && task?.hold_started_at && (
                 <p className="text-[11px] text-[var(--c-orange)] mt-1.5">
                   Extending automatically while on hold — effective due date is currently{" "}
@@ -736,11 +751,18 @@ export default function TaskModal({
                   EID <span className="text-[#C23B3B]">*</span>
                 </label>
                 <input
-                  className={inputCls}
+                  className={inputCls + (!isNew && !canDelete ? " bg-black/[0.04] text-[#8a8578] cursor-not-allowed" : "")}
                   placeholder="e.g. 8232"
                   value={eid}
                   onChange={(e) => setEid(e.target.value)}
+                  disabled={!isNew && !canDelete}
+                  title={!isNew && !canDelete ? "Only Admin/Super can change EID after creation" : undefined}
                 />
+                {!isNew && !canDelete && (
+                  <p className="text-[10px] text-[#a39d8c] mt-1">
+                    Only Admin/Super can change this after a task is created.
+                  </p>
+                )}
               </div>
               <div>
                 <label className={labelCls}>
@@ -771,15 +793,6 @@ export default function TaskModal({
               Time &amp; progress
             </p>
             <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className={labelCls}>Date added</label>
-                <input
-                  type="date"
-                  className={inputCls}
-                  value={dateAdded}
-                  onChange={(e) => setDateAdded(e.target.value)}
-                />
-              </div>
               <div>
                 <label className={labelCls}>Actual completion</label>
                 <input
