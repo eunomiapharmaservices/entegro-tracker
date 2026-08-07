@@ -1,194 +1,137 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Download, AlertTriangle } from "lucide-react";
-import { Project, Resource, STATUS_LABELS, STATUS_ORDER, Status, Task } from "@/lib/types";
-import { fmtFull, isOverdue, effectiveDueDate } from "@/lib/dateUtils";
+import { Flag, AlertTriangle, Download } from "lucide-react";
+import { Project, Resource, STATUS_LABELS, Status, Task } from "@/lib/types";
+import { fmt, fmtFull, isOverdue, effectiveDueDate } from "@/lib/dateUtils";
 import { downloadCSV } from "@/lib/csvImport";
+import TaskTitle from "./TaskTitle";
 
-type SortKey = "name" | "sdd" | "total" | "done" | "overdue" | "progress" | "next_due";
-
-interface ProjectStats {
-  project: Project;
-  tasks: Task[];
-  total: number;
-  done: number;
-  overdue: number;
-  progress: number;
-  byStatus: Record<Status, number>;
-  nextDue: string | null;
-  people: string[];
-}
+const STATUS_DOT: Record<string, string> = {
+  todo: "#a39d8c",
+  in_progress: "#3B6E8F",
+  on_hold: "#E07A3E",
+  review: "#8A5FB0",
+  gcr: "#2E8B6F",
+  done: "#1F5C4A",
+};
 
 export default function ProjectStatusView({
   tasks,
   resources,
   projects,
-  onSelectProject,
+  onOpenTask,
 }: {
   tasks: Task[];
   resources: Resource[];
   projects: Project[];
-  onSelectProject: (projectId: string) => void;
+  onOpenTask: (task: Task) => void;
 }) {
-  const [sortKey, setSortKey] = useState<SortKey>("overdue");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
 
-  const stats: ProjectStats[] = useMemo(() => {
-    // Top-level, non-deleted tasks only — matching how totals are counted
-    // everywhere else in the app.
-    const countable = tasks.filter((t) => !t.parent_task_id && !t.deleted_at);
+  // Top-level, non-deleted tasks only — matching how totals are counted
+  // everywhere else in the app.
+  const countable = useMemo(
+    () => tasks.filter((t) => !t.parent_task_id && !t.deleted_at),
+    [tasks]
+  );
+
+  function assigneeNames(t: Task): string {
+    const ids = t.assignee_ids?.length ? t.assignee_ids : t.assigned_to ? [t.assigned_to] : [];
+    return ids
+      .map((id) => resources.find((r) => r.id === id)?.name)
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  const cards = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return projects
       .filter((p) => showArchived || !p.archived)
+      .filter(
+        (p) =>
+          !q ||
+          p.name.toLowerCase().includes(q) ||
+          (p.eid || "").toLowerCase().includes(q) ||
+          (p.site_name || "").toLowerCase().includes(q)
+      )
       .map((p) => {
         const mine = countable.filter((t) => t.project_id === p.id);
         const done = mine.filter((t) => t.status === "done").length;
         const overdue = mine.filter((t) =>
           isOverdue(effectiveDueDate(t.due_date, t.status, t.hold_started_at), t.status)
         ).length;
+        const visible = showCompleted ? mine : mine.filter((t) => t.status !== "done");
 
-        const byStatus = STATUS_ORDER.reduce((acc, s) => {
-          acc[s] = mine.filter((t) => t.status === s).length;
-          return acc;
-        }, {} as Record<Status, number>);
+        // Group the visible tasks by status so the card reads like a summary
+        // rather than a flat list.
+        const byStatus = new Map<Status, Task[]>();
+        for (const t of visible) {
+          if (!byStatus.has(t.status)) byStatus.set(t.status, []);
+          byStatus.get(t.status)!.push(t);
+        }
+        const groups = [...byStatus.entries()].sort(
+          (a, b) => STATUS_SORT.indexOf(a[0]) - STATUS_SORT.indexOf(b[0])
+        );
 
-        // Soonest due date among work that isn't finished yet.
         const nextDue =
           mine
             .filter((t) => t.status !== "done" && t.due_date)
             .map((t) => effectiveDueDate(t.due_date, t.status, t.hold_started_at)!)
             .sort()[0] ?? null;
 
-        const peopleIds = new Set<string>();
-        for (const t of mine) {
-          if (t.status === "done") continue;
-          const ids = t.assignee_ids?.length ? t.assignee_ids : t.assigned_to ? [t.assigned_to] : [];
-          ids.forEach((id) => peopleIds.add(id));
-        }
-        const people = [...peopleIds]
-          .map((id) => resources.find((r) => r.id === id)?.name)
-          .filter((n): n is string => !!n)
-          .sort();
-
         return {
           project: p,
-          tasks: mine,
           total: mine.length,
           done,
           overdue,
           progress: mine.length ? Math.round((done / mine.length) * 100) : 0,
-          byStatus,
+          groups,
           nextDue,
-          people,
         };
+      })
+      .sort((a, b) => {
+        // Trouble first: most overdue, then least complete, then by name.
+        if (b.overdue !== a.overdue) return b.overdue - a.overdue;
+        if (a.progress !== b.progress) return a.progress - b.progress;
+        return a.project.name.localeCompare(b.project.name, undefined, { numeric: true });
       });
-  }, [tasks, projects, resources, showArchived]);
+  }, [projects, countable, search, showArchived, showCompleted]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return stats;
-    return stats.filter(
-      (s) =>
-        s.project.name.toLowerCase().includes(q) ||
-        (s.project.eid || "").toLowerCase().includes(q) ||
-        (s.project.site_name || "").toLowerCase().includes(q)
-    );
-  }, [stats, search]);
-
-  const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      let cmp = 0;
-      switch (sortKey) {
-        case "name":
-          cmp = a.project.name.localeCompare(b.project.name, undefined, { numeric: true });
-          break;
-        case "sdd":
-          cmp = (a.project.site_dark_date || "").localeCompare(b.project.site_dark_date || "");
-          break;
-        case "next_due":
-          cmp = (a.nextDue || "").localeCompare(b.nextDue || "");
-          break;
-        case "total":
-          cmp = a.total - b.total;
-          break;
-        case "done":
-          cmp = a.done - b.done;
-          break;
-        case "overdue":
-          cmp = a.overdue - b.overdue;
-          break;
-        case "progress":
-          cmp = a.progress - b.progress;
-          break;
-      }
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-  }, [filtered, sortKey, sortDir]);
-
-  function toggleSort(key: SortKey) {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else {
-      setSortKey(key);
-      setSortDir(key === "name" ? "asc" : "desc");
-    }
-  }
+  const totals = useMemo(
+    () => ({
+      projects: cards.length,
+      open: cards.reduce((n, c) => n + (c.total - c.done), 0),
+      done: cards.reduce((n, c) => n + c.done, 0),
+      atRisk: cards.filter((c) => c.overdue > 0).length,
+      overdue: cards.reduce((n, c) => n + c.overdue, 0),
+    }),
+    [cards]
+  );
 
   function handleExport() {
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
     const rows = [
-      ["Project", "EID", "Site", "SDD", "Total", "Active", "Completed", "Overdue", "Progress %", "Next due", "People"].join(","),
-      ...sorted.map((s) =>
+      ["Project", "EID", "Site", "SDD", "Total", "Open", "Completed", "Overdue", "Progress %", "Next due"].join(","),
+      ...cards.map((c) =>
         [
-          esc(s.project.name),
-          esc(s.project.eid || ""),
-          esc(s.project.site_name || ""),
-          esc(s.project.site_dark_date || ""),
-          s.total,
-          s.total - s.done,
-          s.done,
-          s.overdue,
-          s.progress,
-          esc(s.nextDue || ""),
-          esc(s.people.join("; ")),
+          esc(c.project.name),
+          esc(c.project.eid || ""),
+          esc(c.project.site_name || ""),
+          esc(c.project.site_dark_date || ""),
+          c.total,
+          c.total - c.done,
+          c.done,
+          c.overdue,
+          c.progress,
+          esc(c.nextDue || ""),
         ].join(",")
       ),
     ];
     downloadCSV(`project-status-${new Date().toISOString().slice(0, 10)}.csv`, rows.join("\n"));
   }
-
-  // Roll-up figures across everything currently shown.
-  const totals = useMemo(
-    () => ({
-      projects: sorted.length,
-      tasks: sorted.reduce((n, s) => n + s.total, 0),
-      done: sorted.reduce((n, s) => n + s.done, 0),
-      overdue: sorted.reduce((n, s) => n + s.overdue, 0),
-      atRisk: sorted.filter((s) => s.overdue > 0).length,
-    }),
-    [sorted]
-  );
-
-  const SortHead = ({ label, k, right }: { label: string; k: SortKey; right?: boolean }) => (
-    <th
-      className={`px-3 py-2 border-b border-[var(--c-line)] font-display font-medium text-[#4d574f] whitespace-nowrap ${
-        right ? "text-right" : "text-left"
-      }`}
-    >
-      <button
-        onClick={() => toggleSort(k)}
-        className={`flex items-center gap-1 hover:text-[var(--c-green)] ${right ? "ml-auto" : ""}`}
-      >
-        {label}
-        {sortKey === k ? (
-          sortDir === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />
-        ) : (
-          <ArrowUpDown size={11} className="text-[#c9c2b2]" />
-        )}
-      </button>
-    </th>
-  );
 
   return (
     <div className="flex flex-col gap-4 h-full min-h-0">
@@ -196,9 +139,14 @@ export default function ProjectStatusView({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
         {[
           { label: "Projects", value: totals.projects, color: "#1F5C4A", sub: "Currently shown" },
-          { label: "Open tasks", value: totals.tasks - totals.done, color: "#3B6E8F", sub: `${totals.tasks} total` },
+          { label: "Open tasks", value: totals.open, color: "#3B6E8F", sub: "Not yet completed" },
           { label: "Completed", value: totals.done, color: "#2E8B6F", sub: "Across these projects" },
-          { label: "Projects at risk", value: totals.atRisk, color: "#C23B3B", sub: `${totals.overdue} overdue tasks` },
+          {
+            label: "Projects at risk",
+            value: totals.atRisk,
+            color: "#C23B3B",
+            sub: `${totals.overdue} overdue task${totals.overdue === 1 ? "" : "s"}`,
+          },
         ].map((m) => (
           <div key={m.label} className="rounded-xl border border-[var(--c-line)] bg-white p-4">
             <p className="text-xs font-medium text-[#8a8578] mb-1.5">{m.label}</p>
@@ -210,149 +158,184 @@ export default function ProjectStatusView({
         ))}
       </div>
 
-      <div className="rounded-xl border border-[var(--c-line)] bg-white flex-1 min-h-0 flex flex-col overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--c-line)] shrink-0 flex-wrap">
+      {/* Controls */}
+      <div className="flex items-center gap-3 flex-wrap shrink-0">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search project, EID, site…"
+          className="flex-1 min-w-[180px] max-w-xs rounded-lg border border-[var(--c-line)] px-3 py-1.5 text-sm bg-white outline-none focus:border-[var(--c-green)]"
+        />
+        <label className="flex items-center gap-1.5 text-xs text-[#8a8578] cursor-pointer">
           <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search project, EID, site…"
-            className="flex-1 min-w-[180px] max-w-xs rounded-lg border border-[var(--c-line)] px-3 py-1.5 text-sm bg-white outline-none focus:border-[var(--c-green)]"
+            type="checkbox"
+            checked={showCompleted}
+            onChange={(e) => setShowCompleted(e.target.checked)}
+            className="accent-[var(--c-green)]"
           />
-          <label className="flex items-center gap-1.5 text-xs text-[#8a8578] cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(e) => setShowArchived(e.target.checked)}
-              className="accent-[var(--c-green)]"
-            />
-            Include archived
-          </label>
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-white border border-[var(--c-line)] hover:bg-black/5 ml-auto"
-          >
-            <Download size={12} />
-            Export CSV
-          </button>
-        </div>
+          Show completed tasks
+        </label>
+        <label className="flex items-center gap-1.5 text-xs text-[#8a8578] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+            className="accent-[var(--c-green)]"
+          />
+          Include archived projects
+        </label>
+        <button
+          onClick={handleExport}
+          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-white border border-[var(--c-line)] hover:bg-black/5 ml-auto"
+        >
+          <Download size={12} />
+          Export CSV
+        </button>
+      </div>
 
-        <div className="flex-1 min-h-0 overflow-auto">
-          <table className="text-sm border-collapse w-full">
-            <thead className="sticky top-0 z-10 bg-white">
-              <tr>
-                <SortHead label="Project" k="name" />
-                <SortHead label="SDD" k="sdd" />
-                <th className="text-left px-3 py-2 border-b border-[var(--c-line)] font-display font-medium text-[#4d574f] whitespace-nowrap">
-                  Breakdown
-                </th>
-                <SortHead label="Progress" k="progress" />
-                <SortHead label="Open" k="total" right />
-                <SortHead label="Done" k="done" right />
-                <SortHead label="Overdue" k="overdue" right />
-                <SortHead label="Next due" k="next_due" />
-                <th className="text-left px-3 py-2 border-b border-[var(--c-line)] font-display font-medium text-[#4d574f] whitespace-nowrap">
-                  People
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((s) => (
-                <tr
-                  key={s.project.id}
-                  onClick={() => onSelectProject(s.project.id)}
-                  className="cursor-pointer hover:bg-black/[0.02] border-b border-[var(--c-line)]"
-                  title="Open the board filtered to this project"
-                >
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ background: s.project.color }}
-                      />
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">
-                          {s.project.name}
-                          {s.project.archived && (
-                            <span className="text-[10px] text-[#a39d8c] font-normal"> (archived)</span>
-                          )}
-                        </p>
-                        {(s.project.eid || s.project.site_name) && (
-                          <p className="text-[10px] text-[#a39d8c] truncate">
-                            {[s.project.site_name, s.project.eid ? `#${s.project.eid}` : null]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </p>
-                        )}
+      {/* Project cards */}
+      <div className="overflow-y-auto flex-1 min-h-0 pr-1">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {cards.map((c) => (
+            <div
+              key={c.project.id}
+              className="rounded-xl border border-[var(--c-line)] bg-white p-4 flex flex-col gap-3"
+            >
+              {/* Header */}
+              <div className="flex items-start gap-3">
+                <span
+                  className="w-3 h-3 rounded-full shrink-0 mt-1"
+                  style={{ background: c.project.color }}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-display font-semibold text-sm truncate">
+                    {c.project.name}
+                    {c.project.archived && (
+                      <span className="text-[10px] text-[#a39d8c] font-normal"> (archived)</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-[#8a8578]">
+                    {c.total - c.done} open · {c.done} done
+                    {c.overdue > 0 && (
+                      <span className="text-[#C23B3B] font-medium"> · {c.overdue} overdue</span>
+                    )}
+                  </p>
+                  {(c.project.site_name || c.project.eid || c.project.site_dark_date) && (
+                    <p className="text-[10px] text-[#a39d8c] mt-0.5">
+                      {[
+                        c.project.site_name,
+                        c.project.eid ? `#${c.project.eid}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                      {c.project.site_dark_date && (
+                        <span className="text-[var(--c-orange)]">
+                          {c.project.site_name || c.project.eid ? " · " : ""}
+                          SDD {fmtFull(c.project.site_dark_date)}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </div>
+                {c.overdue > 0 && (
+                  <AlertTriangle size={15} className="text-[#C23B3B] shrink-0 mt-0.5" />
+                )}
+              </div>
+
+              {/* Progress */}
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 flex-1 rounded-full bg-black/[0.06] overflow-hidden">
+                  <div
+                    className="h-full bg-[var(--c-green-light)]"
+                    style={{ width: `${c.progress}%` }}
+                  />
+                </div>
+                <span className="text-[11px] text-[#8a8578] font-mono shrink-0">
+                  {c.progress}%
+                </span>
+              </div>
+
+              {c.nextDue && (
+                <p className="text-[11px] text-[#8a8578] -mt-1">
+                  Next due <span className="font-medium">{fmtFull(c.nextDue)}</span>
+                </p>
+              )}
+
+              {/* Tasks grouped by status */}
+              {c.groups.length === 0 ? (
+                <p className="text-xs text-[#c9c2b2]">
+                  {c.total === 0 ? "No tasks in this project." : "No open tasks."}
+                </p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {c.groups.map(([status, statusTasks]) => (
+                    <div key={status}>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span
+                          className="w-1.5 h-1.5 rounded-full shrink-0"
+                          style={{ background: STATUS_DOT[status] }}
+                        />
+                        <span className="text-xs font-medium text-[#4d574f] font-display">
+                          {STATUS_LABELS[status]}
+                        </span>
+                        <span className="text-[10px] text-[#a39d8c]">({statusTasks.length})</span>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 whitespace-nowrap text-xs text-[var(--c-orange)]">
-                    {s.project.site_dark_date ? fmtFull(s.project.site_dark_date) : "—"}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {s.total === 0 ? (
-                      <span className="text-xs text-[#c9c2b2]">No tasks</span>
-                    ) : (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {STATUS_ORDER.filter((st) => s.byStatus[st] > 0).map((st) => (
-                          <span
-                            key={st}
-                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/5 text-[#4d574f] whitespace-nowrap"
+                      <div className="flex flex-col gap-1">
+                        {statusTasks.map((t) => (
+                          <button
+                            key={t.id}
+                            onClick={() => onOpenTask(t)}
+                            className="flex items-center gap-2 text-left px-2 py-1.5 rounded-md hover:bg-black/[0.03] text-sm"
                           >
-                            {STATUS_LABELS[st]} {s.byStatus[st]}
-                          </span>
+                            {t.is_milestone && (
+                              <Flag
+                                size={10}
+                                className="text-[var(--c-orange)] shrink-0"
+                                fill="currentColor"
+                              />
+                            )}
+                            <span className="truncate flex-1">
+                              <TaskTitle task={t} />
+                            </span>
+                            {assigneeNames(t) && (
+                              <span className="text-[11px] text-[#a39d8c] shrink-0 max-w-[90px] truncate">
+                                {assigneeNames(t)}
+                              </span>
+                            )}
+                            {t.due_date && (
+                              <span
+                                className={`text-[11px] shrink-0 ${
+                                  isOverdue(
+                                    effectiveDueDate(t.due_date, t.status, t.hold_started_at),
+                                    t.status
+                                  )
+                                    ? "text-[#C23B3B] font-medium"
+                                    : "text-[#a39d8c]"
+                                }`}
+                              >
+                                {fmt(effectiveDueDate(t.due_date, t.status, t.hold_started_at))}
+                              </span>
+                            )}
+                          </button>
                         ))}
                       </div>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 min-w-[110px]">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 flex-1 rounded-full bg-black/[0.06] overflow-hidden min-w-[50px]">
-                        <div
-                          className="h-full bg-[var(--c-green-light)]"
-                          style={{ width: `${s.progress}%` }}
-                        />
-                      </div>
-                      <span className="text-[11px] text-[#8a8578] font-mono shrink-0">
-                        {s.progress}%
-                      </span>
                     </div>
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs">{s.total - s.done}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs text-[#a39d8c]">
-                    {s.done}
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs">
-                    {s.overdue > 0 ? (
-                      <span className="text-[#C23B3B] font-semibold inline-flex items-center gap-1">
-                        <AlertTriangle size={11} />
-                        {s.overdue}
-                      </span>
-                    ) : (
-                      <span className="text-[#c9c2b2]">0</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 whitespace-nowrap text-xs text-[#8a8578]">
-                    {s.nextDue ? fmtFull(s.nextDue) : "—"}
-                  </td>
-                  <td className="px-3 py-2.5 max-w-[180px]">
-                    <span className="text-xs text-[#4d574f] truncate block" title={s.people.join(", ")}>
-                      {s.people.length ? s.people.join(", ") : "—"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {sorted.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="py-12 text-center text-[#a39d8c]">
-                    {stats.length === 0 ? "No projects yet." : "No projects match that search."}
-                  </td>
-                </tr>
+                  ))}
+                </div>
               )}
-            </tbody>
-          </table>
+            </div>
+          ))}
         </div>
+
+        {cards.length === 0 && (
+          <p className="text-sm text-[#a39d8c] text-center py-12">
+            {projects.length === 0 ? "No projects yet." : "No projects match that search."}
+          </p>
+        )}
       </div>
     </div>
   );
 }
+
+// Order statuses appear within a project card.
+const STATUS_SORT: Status[] = ["on_hold", "review", "gcr", "in_progress", "todo", "done"];

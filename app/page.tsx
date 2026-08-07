@@ -393,10 +393,7 @@ function HomeContent() {
                 tasks={tasks}
                 resources={resources}
                 projects={projects}
-                onSelectProject={(id) => {
-                  setActiveProject(id);
-                  setView("board");
-                }}
+                onOpenTask={(t) => setModalTask(t)}
               />
             )}
             {view === "nbgcr" && (
