@@ -792,6 +792,12 @@ export default function TaskModal({
                 <div className="flex flex-col gap-2 mb-2 max-h-48 overflow-y-auto">
                   {taskComments
                     .filter((c) => c.task_id === savedTaskId)
+                    // Sort explicitly — the fetch is newest-first, but a task's
+                    // own log reads better oldest-first.
+                    .sort(
+                      (a, b) =>
+                        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                    )
                     .map((c) => (
                       <div
                         key={c.id}

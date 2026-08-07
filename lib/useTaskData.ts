@@ -28,10 +28,18 @@ export function useTaskData() {
     if (!hasLoadedOnce.current) setLoading(true);
     setError(null);
     const [tasksRes, resourcesRes, projectsRes, commentsRes] = await Promise.all([
-      supabase.from("tasks").select("*").order("position", { ascending: true }),
+      supabase.from("tasks").select("*").order("position", { ascending: true }).limit(20000),
       supabase.from("resources").select("*").order("created_at", { ascending: true }),
       supabase.from("projects").select("*").order("created_at", { ascending: true }),
-      supabase.from("task_comments").select("*").order("created_at", { ascending: true }),
+      // Newest first with an explicit high limit. Supabase caps rows at 1000 by
+      // default — with oldest-first ordering that silently dropped every recent
+      // comment once the log passed 1000 entries, which looked exactly like
+      // "logging stopped working".
+      supabase
+        .from("task_comments")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20000),
     ]);
 
     if (tasksRes.error || resourcesRes.error || projectsRes.error) {
