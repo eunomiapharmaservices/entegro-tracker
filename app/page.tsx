@@ -12,6 +12,7 @@ import TaskListView from "@/components/TaskListView";
 import CommentLogView from "@/components/CommentLogView";
 import MatrixView from "@/components/MatrixView";
 import NbGcrView from "@/components/NbGcrView";
+import ProjectStatusView from "@/components/ProjectStatusView";
 import TaskModal from "@/components/TaskModal";
 import ImportModal from "@/components/ImportModal";
 import ProjectModal from "@/components/ProjectModal";
@@ -116,6 +117,7 @@ function HomeContent() {
 
   const viewTitles: Record<ViewMode, string> = {
     board: "Board",
+    projectstatus: "Project status",
     calendar: "Calendar",
     nbgcr: "NB & GCR",
     people: "People",
@@ -384,6 +386,17 @@ function HomeContent() {
                 onOpenTask={(t) => setModalTask(t)}
                 onDeleteTask={handleDeleteTaskWithLog}
                 canDelete={isAdminOrAbove}
+              />
+            )}
+            {view === "projectstatus" && isAdminOrAbove && (
+              <ProjectStatusView
+                tasks={tasks}
+                resources={resources}
+                projects={projects}
+                onSelectProject={(id) => {
+                  setActiveProject(id);
+                  setView("board");
+                }}
               />
             )}
             {view === "nbgcr" && (
