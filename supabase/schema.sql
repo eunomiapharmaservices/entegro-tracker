@@ -41,7 +41,7 @@ create table if not exists tasks (
                                                                    -- original task it reviews
   title text not null,
   description text,
-  status text not null default 'todo' check (status in ('todo','in_progress','on_hold','review','done')),
+  status text not null default 'todo' check (status in ('todo','in_progress','on_hold','review','gcr','done')),
   priority text not null default 'medium' check (priority in ('low','medium','high','urgent')),
   assigned_to uuid references resources(id) on delete set null,
   assignee_ids uuid[] default '{}',  -- full set of assignees; assigned_to stays
@@ -286,6 +286,29 @@ as $$
 $$;
 
 grant execute on function view_only_people() to authenticated;
+
+-- Active/completed task counts per project, used by the Manage projects
+-- panel (including its "only delete a project with no tasks" rule).
+-- Excludes soft-deleted tasks and subtasks, matching the rest of the app.
+create or replace function project_task_counts()
+returns table(project_id uuid, active_count bigint, completed_count bigint)
+language sql
+security definer
+set search_path = public
+as $$
+  select
+    p.id as project_id,
+    count(t.id) filter (where t.status <> 'done') as active_count,
+    count(t.id) filter (where t.status = 'done') as completed_count
+  from projects p
+  left join tasks t
+    on t.project_id = p.id
+    and t.deleted_at is null
+    and t.parent_task_id is null
+  group by p.id;
+$$;
+
+grant execute on function project_task_counts() to authenticated;
 
 -- Keep updated_at fresh
 create or replace function set_updated_at()

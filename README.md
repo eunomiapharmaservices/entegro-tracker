@@ -310,22 +310,45 @@ calculation), just not presented as something to fill in.
 ## Manage projects — EID, Site Name, and SDD (Admin/Super)
 
 A **Manage projects** link sits next to "Manage users" at the bottom of the
-sidebar, for Admin/Super only. It opens a table of every project (active and
-archived) where you can set:
+sidebar, visible to Admin/Super only. It opens a table of every project
+where you can edit the **name**, **EID**, **Site name**, and **SDD (Site
+Dark Date)** inline — each row gets a Save button once you've changed
+something in it.
 
-- **EID** — the circuit/EID this project covers
-- **Site name**
-- **SDD (Site Dark Date)**
-
-Each row saves independently — a Save button appears on a row only once
-you've changed something in it.
+Each row also shows that project's **task counts** ("4 active · 12 done"),
+and a delete button that's only enabled once a project has **no tasks at
+all** — active or completed. The button explains why it's disabled on hover
+when there are still tasks attached.
 
 **SDD appears on the task header**: any task belonging to a project with an
-SDD set shows `SDD <date>` in orange under the task ID in the editor, so the
-site's dark date is visible while working on any task for that site.
+SDD set shows `SDD <date>` in orange under the task ID, so the site's dark
+date is visible while working on any task for that site.
 
-If you already had the tracker deployed before this update, run
-`supabase/migration_024_project_eid_site_sdd.sql`.
+## EID and Site name now live on the project
+
+They're no longer entered on each task — the task form just has a
+(now mandatory) **Project** dropdown, and EID/Site name come from whichever
+project you pick, set once in Manage projects. The selected project's
+EID/site shows as a hint under the dropdown, and both values are still
+copied onto the task itself, so board cards, List columns, and exports keep
+displaying them exactly as before.
+
+**Also removed from the task form**: the **Reviewer** field (add a reviewer
+manually on the spawned review task if needed) and **Date added** (still
+recorded automatically for logging, just not something to fill in).
+
+## GCR is now a status
+
+"GCR" is a **task status** in the Status dropdown, alongside New / In
+progress / On hold / In review / Completed — so GCR work shows as its own
+board column, and the old automatic "GCR" lane (which inferred membership
+from task type) is gone, since a real status does the job properly.
+
+## Dependencies are scoped to the same EID
+
+The **Depends on** dropdown only lists tasks from projects sharing the same
+EID as the current task's project (falling back to the same project when no
+EID is set), rather than every task in the system.
 
 ## Comment log entries show who made the change
 
@@ -336,11 +359,16 @@ name if their login email matches one, otherwise their login email — or
 **"System"** if a change happened outside the app entirely (e.g. directly in
 the database).
 
-## On Hold extension is capped
+## On Hold — duration shown, extension capped
 
-The automatic due-date extension while a task sits **On Hold** now stops
-growing after **30 days**. Both the live on-screen figure and the value
-eventually saved when the task leaves On Hold respect the same cap, so they
+A task sitting **On Hold** shows **"On hold Nd"** in orange on its Board
+card, next to the due date, so it's obvious at a glance how long something's
+been stuck. The task editor spells it out in full — "On hold 12 days (since
+3 Jul 2026) — effective due date is currently …" — and says so explicitly
+once the cap below has been reached.
+
+The automatic due-date extension while On Hold stops growing after **30
+days**. Both the live on-screen figure and the value eventually saved when the task leaves On Hold respect the same cap, so they
 never disagree. To change the limit, edit `max_extension_days` in the
 `manage_hold_started_at()` database function *and* `MAX_HOLD_EXTENSION_DAYS`
 in `lib/dateUtils.ts` — they're deliberately kept in sync.

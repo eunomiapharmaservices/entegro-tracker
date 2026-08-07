@@ -2,7 +2,7 @@
 
 import { Flag, ListChecks, Snowflake } from "lucide-react";
 import { Resource, Task, PRIORITY_COLORS } from "@/lib/types";
-import { fmt, isOverdue, effectiveDueDate } from "@/lib/dateUtils";
+import { fmt, isOverdue, effectiveDueDate, daysSince } from "@/lib/dateUtils";
 import TaskTitle from "./TaskTitle";
 import Avatar from "./Avatar";
 
@@ -28,6 +28,8 @@ export default function TaskCard({
   const dueDate = effectiveDueDate(task.due_date, task.status, task.hold_started_at);
   const extended = dueDate !== task.due_date;
   const overdue = isOverdue(dueDate, task.status);
+  const holdDays =
+    task.status === "on_hold" && task.hold_started_at ? daysSince(task.hold_started_at) : 0;
 
   return (
     <div
@@ -92,6 +94,14 @@ export default function TaskCard({
                 )}
               </span>
             )
+          )}
+          {holdDays > 0 && (
+            <span
+              className="text-[var(--c-orange)] font-medium"
+              title={`On hold since ${fmt(task.hold_started_at)}`}
+            >
+              On hold {holdDays}d
+            </span>
           )}
           {subtasks.length > 0 && (
             <span className="flex items-center gap-1">

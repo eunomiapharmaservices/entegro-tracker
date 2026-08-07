@@ -1,4 +1,4 @@
-export type Status = "todo" | "in_progress" | "on_hold" | "review" | "done";
+export type Status = "todo" | "in_progress" | "on_hold" | "review" | "gcr" | "done";
 export type Priority = "low" | "medium" | "high" | "urgent";
 
 export interface Resource {
@@ -111,10 +111,11 @@ export const STATUS_LABELS: Record<Status, string> = {
   in_progress: "In progress",
   on_hold: "On hold",
   review: "In review",
+  gcr: "GCR",
   done: "Completed",
 };
 
-export const STATUS_ORDER: Status[] = ["todo", "in_progress", "on_hold", "review", "done"];
+export const STATUS_ORDER: Status[] = ["todo", "in_progress", "on_hold", "review", "gcr", "done"];
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
   low: "Low",

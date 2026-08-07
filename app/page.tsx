@@ -48,6 +48,7 @@ function HomeContent() {
     restoreTask,
     createProject,
     updateProject,
+    deleteProject,
     createResource,
     updateResource,
     deleteResource,
@@ -475,8 +476,10 @@ function HomeContent() {
       {showManageProjectsModal && isAdminOrAbove && (
         <ManageProjectsModal
           projects={projects}
+          tasks={allTasks}
           onClose={() => setShowManageProjectsModal(false)}
           onUpdate={updateProject}
+          onDelete={deleteProject}
         />
       )}
     </div>

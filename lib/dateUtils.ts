@@ -63,7 +63,7 @@ export function daysSince(dateStr: string): number {
 // Keep in sync with max_extension_days in the manage_hold_started_at()
 // database trigger — the live display and the eventual baked-in value
 // should always agree.
-const MAX_HOLD_EXTENSION_DAYS = 30;
+export const MAX_HOLD_EXTENSION_DAYS = 30;
 
 export function effectiveDueDate(
   dueDate: string | null,

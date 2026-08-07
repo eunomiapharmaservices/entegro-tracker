@@ -17,7 +17,7 @@ import {
 } from "@/lib/types";
 import Avatar from "./Avatar";
 import { colorForIndex } from "@/lib/csvImport";
-import { isoDate, effectiveDueDate, fmt } from "@/lib/dateUtils";
+import { isoDate, effectiveDueDate, fmt, daysSince, MAX_HOLD_EXTENSION_DAYS } from "@/lib/dateUtils";
 import { useViewOnlyEmails } from "@/lib/useViewOnlyEmails";
 import { notifyStatusChange } from "@/lib/notifyAssignment";
 
@@ -129,44 +129,36 @@ export default function TaskModal({
   );
   const [resolvingProject, setResolvingProject] = useState(false);
 
-  const autoProjectName = projectNameForSite(eid, siteName);
-
-  async function resolveProjectId(): Promise<string | null> {
-    if (!autoProjectName) return projectId;
-    const match = knownProjects.find(
-      (p) => p.name.trim().toLowerCase() === autoProjectName.toLowerCase()
-    );
-    if (match) {
-      if (projectId !== match.id) setProjectId(match.id);
-      return match.id;
-    }
-    setResolvingProject(true);
-    try {
-      const created = await createProject(autoProjectName, colorForIndex(knownProjects.length));
-      setKnownProjects((prev) => [...prev, created]);
-      setProjectId(created.id);
-      return created.id;
-    } finally {
-      setResolvingProject(false);
-    }
-  }
-
   const subtasks = savedTaskId
     ? tasks.filter((t) => t.parent_task_id === savedTaskId)
     : [];
 
-  // Exclude this task itself and anything that already depends on it
-  // directly (a simple guard against the most obvious two-task cycle).
-  const dependencyOptions = tasks.filter(
-    (t) => t.id !== task?.id && t.depends_on_task_id !== task?.id
-  );
+  // Dependencies are scoped to the same EID — a task should only be able to
+  // depend on other work at the same site/circuit. EID now lives on the
+  // project, so this matches on the selected project's EID (falling back to
+  // the same project when it has no EID set yet).
+  const selectedProject = projects.find((p) => p.id === projectId);
+  // EID and Site name are no longer entered on the task — they belong to the
+  // project (managed in "Manage projects"), and are copied onto the task so
+  // board cards, List columns, and exports keep showing them. Falls back to
+  // whatever the task already had if its project hasn't been filled in yet.
+  const projectEid = selectedProject?.eid ?? task?.eid ?? null;
+  const projectSiteName = selectedProject?.site_name ?? task?.site_name ?? null;
+  const dependencyOptions = tasks.filter((t) => {
+    if (t.id === task?.id || t.depends_on_task_id === task?.id) return false;
+    if (!projectId) return false;
+    const theirProject = projects.find((p) => p.id === t.project_id);
+    if (selectedProject?.eid) {
+      return theirProject?.eid === selectedProject.eid;
+    }
+    return t.project_id === projectId;
+  });
   const dependencyTask = dependsOnTaskId ? tasks.find((t) => t.id === dependsOnTaskId) : null;
 
   const missingFields: string[] = [];
   if (!title.trim()) missingFields.push("Title");
   if (!taskType.trim()) missingFields.push("Task type");
-  if (!eid.trim()) missingFields.push("EID");
-  if (!siteName.trim()) missingFields.push("Site name");
+  if (!projectId) missingFields.push("Project");
   if (!expectedHours.trim()) missingFields.push("Expected duration");
   const isValid = missingFields.length === 0;
 
@@ -203,11 +195,10 @@ export default function TaskModal({
   async function handleSave() {
     if (!isValid) return;
     setSaving(true);
-    const resolvedProjectId = await resolveProjectId();
     const payload: Partial<Task> = {
       title: title.trim(),
       description: description.trim() || null,
-      project_id: resolvedProjectId,
+      project_id: projectId,
       assigned_to: assigneeIds[0] ?? null,
       assignee_ids: assigneeIds,
       status,
@@ -218,8 +209,8 @@ export default function TaskModal({
       is_milestone: isMilestone,
       milestone_date: isMilestone ? milestoneDate || null : null,
       task_type: taskType.trim() || null,
-      eid: eid.trim() || null,
-      site_name: siteName.trim() || null,
+      eid: projectEid,
+      site_name: projectSiteName,
       raised_by: raisedBy.trim() || null,
       reviewer_id: reviewerId,
       date_added: dateAdded || null,
@@ -287,11 +278,10 @@ export default function TaskModal({
         return;
       }
       // Auto-save parent first so the subtask has something to attach to
-      const resolvedProjectId = await resolveProjectId();
-      const created = await onCreate({
+        const created = await onCreate({
         title: title.trim(),
         description: description.trim() || null,
-        project_id: resolvedProjectId,
+        project_id: projectId,
         assigned_to: assigneeIds[0] ?? null,
         assignee_ids: assigneeIds,
         status,
@@ -302,8 +292,8 @@ export default function TaskModal({
         is_milestone: isMilestone,
         milestone_date: isMilestone ? milestoneDate || null : null,
         task_type: taskType.trim() || null,
-        eid: eid.trim() || null,
-        site_name: siteName.trim() || null,
+        eid: projectEid,
+        site_name: projectSiteName,
         raised_by: raisedBy.trim() || null,
         reviewer_id: reviewerId,
         date_added: dateAdded || null,
@@ -379,8 +369,8 @@ export default function TaskModal({
         is_milestone: isMilestone,
         milestone_date: isMilestone ? milestoneDate || null : null,
         task_type: taskType.trim() || null,
-        eid: eid.trim() || null,
-        site_name: siteName.trim() || null,
+        eid: projectEid,
+        site_name: projectSiteName,
         raised_by: raisedBy.trim() || null,
         reviewer_id: reviewerId,
         date_added: isoDate(new Date()),
@@ -524,45 +514,31 @@ export default function TaskModal({
               </div>
             </div>
             <div>
-              <label className={labelCls}>Project</label>
-              {autoProjectName ? (
-                <div className="w-full rounded-lg border border-dashed border-[var(--c-line)] px-3 py-2 text-sm bg-black/[0.02] text-[#4d574f]">
-                  {resolvingProject ? "Setting up…" : autoProjectName}
-                  <span className="block text-[10px] text-[#a39d8c] mt-0.5">
-                    Auto-set from EID — clear the EID to choose manually
-                  </span>
-                </div>
-              ) : (
-                <select
-                  className={inputCls}
-                  value={projectId ?? ""}
-                  onChange={(e) => {
-                    const id = e.target.value || null;
-                    setProjectId(id);
-                    if (id) {
-                      const p = knownProjects.find((pp) => pp.id === id);
-                      // Existing site projects are named "EID - Site" — parse
-                      // that back out so EID/site don't need retyping, and the
-                      // mandatory EID field is satisfied by picking the project.
-                      const match = p?.name.match(/^(\S+)\s*-\s*(.+)$/);
-                      if (match) {
-                        if (!eid.trim()) setEid(match[1]);
-                        if (!siteName.trim()) setSiteName(match[2]);
-                      }
-                    }
-                  }}
-                >
-                  <option value="">No project</option>
-                  {knownProjects
-                    .filter((p) => !p.archived || p.id === projectId)
-                    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                        {p.archived ? " (archived)" : ""}
-                      </option>
-                    ))}
-                </select>
+              <label className={labelCls}>
+                Project <span className="text-[#C23B3B]">*</span>
+              </label>
+              <select
+                className={inputCls}
+                value={projectId ?? ""}
+                onChange={(e) => setProjectId(e.target.value || null)}
+              >
+                <option value="">Select a project…</option>
+                {knownProjects
+                  .filter((p) => !p.archived || p.id === projectId)
+                  .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                      {p.archived ? " (archived)" : ""}
+                    </option>
+                  ))}
+              </select>
+              {selectedProject && (selectedProject.eid || selectedProject.site_name) && (
+                <p className="text-[10px] text-[#a39d8c] mt-1">
+                  {[selectedProject.site_name, selectedProject.eid ? `#${selectedProject.eid}` : null]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
               )}
             </div>
 
@@ -592,8 +568,13 @@ export default function TaskModal({
               )}
               {status === "on_hold" && task?.hold_started_at && (
                 <p className="text-[11px] text-[var(--c-orange)] mt-1.5">
-                  Extending automatically while on hold — effective due date is currently{" "}
-                  {fmt(effectiveDueDate(dueDate || null, status, task.hold_started_at))}.
+                  On hold {daysSince(task.hold_started_at)} day
+                  {daysSince(task.hold_started_at) === 1 ? "" : "s"} (since{" "}
+                  {fmt(task.hold_started_at)}) — effective due date is currently{" "}
+                  {fmt(effectiveDueDate(dueDate || null, status, task.hold_started_at))}
+                  {daysSince(task.hold_started_at) >= MAX_HOLD_EXTENSION_DAYS
+                    ? `, capped at ${MAX_HOLD_EXTENSION_DAYS} days.`
+                    : "."}
                 </p>
               )}
               {status === "review" && (
@@ -726,65 +707,7 @@ export default function TaskModal({
                   ))}
                 </select>
               </div>
-              <div>
-                <label className={labelCls}>Reviewer</label>
-                <select
-                  className={inputCls}
-                  value={reviewerId ?? ""}
-                  onChange={(e) => setReviewerId(e.target.value || null)}
-                >
-                  <option value="">Unspecified</option>
-                  {resources.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-[#a39d8c] mt-1">
-                  If this task is set to In Review, a "{title.trim() || "…"} Review" task is
-                  created for them automatically — or for whoever's in Raised by, if this is left
-                  unspecified.
-                </p>
-              </div>
-              <div>
-                <label className={labelCls}>
-                  EID <span className="text-[#C23B3B]">*</span>
-                </label>
-                <input
-                  className={inputCls + (!isNew && !canDelete ? " bg-black/[0.04] text-[#8a8578] cursor-not-allowed" : "")}
-                  placeholder="e.g. 8232"
-                  value={eid}
-                  onChange={(e) => setEid(e.target.value)}
-                  disabled={!isNew && !canDelete}
-                  title={!isNew && !canDelete ? "Only Admin/Super can change EID after creation" : undefined}
-                />
-                {!isNew && !canDelete && (
-                  <p className="text-[10px] text-[#a39d8c] mt-1">
-                    Only Admin/Super can change this after a task is created.
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className={labelCls}>
-                  Site name <span className="text-[#C23B3B]">*</span>
-                </label>
-                <input
-                  className={inputCls}
-                  placeholder="e.g. Boston"
-                  value={siteName}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setSiteName(v ? v.charAt(0).toUpperCase() + v.slice(1).toLowerCase() : v);
-                  }}
-                />
-              </div>
             </div>
-            {autoProjectName && (
-              <p className="text-[11px] text-[#a39d8c] mt-1.5">
-                This task's project will be <span className="font-medium">{autoProjectName}</span>{" "}
-                — created automatically if it doesn't exist yet.
-              </p>
-            )}
           </div>
 
           {/* Time & progress */}
