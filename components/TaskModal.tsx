@@ -17,7 +17,7 @@ import {
 } from "@/lib/types";
 import Avatar from "./Avatar";
 import { colorForIndex } from "@/lib/csvImport";
-import { isoDate, effectiveDueDate, fmt, daysSince, MAX_HOLD_EXTENSION_DAYS } from "@/lib/dateUtils";
+import { isoDate, effectiveDueDate, fmt, daysSince, MAX_HOLD_EXTENSION_DAYS, fmtFull } from "@/lib/dateUtils";
 import { useViewOnlyEmails } from "@/lib/useViewOnlyEmails";
 import { notifyStatusChange } from "@/lib/notifyAssignment";
 
@@ -423,7 +423,7 @@ export default function TaskModal({
               const proj = projects.find((p) => p.id === projectId);
               return proj?.site_dark_date ? (
                 <p className="text-[10px] text-[var(--c-orange)] font-mono mt-0.5">
-                  SDD {fmt(proj.site_dark_date)}
+                  SDD {fmtFull(proj.site_dark_date)}
                 </p>
               ) : null;
             })()}
