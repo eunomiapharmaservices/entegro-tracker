@@ -17,6 +17,8 @@ export interface Project {
   eid: string | null;
   site_name: string | null;
   site_dark_date: string | null;
+  mrp_planner: string | null;
+  ip_tech: string | null;
   created_at: string;
 }
 
@@ -109,6 +111,8 @@ export interface TaskComment {
 export interface TaskWithSubtasks extends Task {
   subtasks: Task[];
 }
+
+export const GCR_TITLE_PREFIX = "GCR Support – ";
 
 export const STATUS_LABELS: Record<Status, string> = {
   todo: "New",

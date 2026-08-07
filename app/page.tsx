@@ -25,6 +25,7 @@ import { useUserRole } from "@/lib/useUserRole";
 import { supabase } from "@/lib/supabaseClient";
 import { Status, Task, STATUS_LABELS, Resource, Project } from "@/lib/types";
 import { downloadCSV } from "@/lib/csvImport";
+import { GCR_TITLE_PREFIX } from "@/lib/types";
 import { notifyStatusChange } from "@/lib/notifyAssignment";
 
 export default function Home() {
@@ -152,7 +153,18 @@ function HomeContent() {
 
   async function handleMoveStatus(taskId: string, status: Status) {
     const previous = tasks.find((t) => t.id === taskId);
-    const updated = await updateTask(taskId, { status });
+    // Dragging into the GCR column does the same thing as picking GCR in the
+    // form: sets the task type to GCR and prefixes the title.
+    const patch: Partial<Task> = { status };
+    if (status === "gcr" && previous) {
+      if ((previous.task_type || "").trim().toLowerCase() !== "gcr") {
+        patch.task_type = "GCR";
+      }
+      if (!previous.title.startsWith(GCR_TITLE_PREFIX)) {
+        patch.title = GCR_TITLE_PREFIX + previous.title;
+      }
+    }
+    const updated = await updateTask(taskId, patch);
     if (previous && previous.status !== status) {
       await addComment(
         taskId,
@@ -497,6 +509,7 @@ function HomeContent() {
         <ManageProjectsModal
           projects={projects}
           tasks={allTasks}
+          resources={resources}
           onClose={() => setShowManageProjectsModal(false)}
           onUpdate={updateProject}
           onDelete={deleteProject}

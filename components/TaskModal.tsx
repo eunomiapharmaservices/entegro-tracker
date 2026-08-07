@@ -12,6 +12,7 @@ import {
   Task,
   TaskComment,
   TASK_TYPE_SUGGESTIONS,
+  GCR_TITLE_PREFIX,
   projectNameForSite,
 } from "@/lib/types";
 import Avatar from "./Avatar";
@@ -22,8 +23,6 @@ import { notifyStatusChange } from "@/lib/notifyAssignment";
 
 // Quick-add subtask suggestions — common checklist items across task types,
 // click to add instantly instead of typing them out each time.
-const GCR_TITLE_PREFIX = "GCR Support – ";
-
 const PREDEFINED_SUBTASKS = [
   "Collect supporting documents",
   "Verify configuration",

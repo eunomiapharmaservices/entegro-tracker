@@ -21,6 +21,8 @@ create table if not exists projects (
   eid text,                     -- circuit/EID for this project, managed by Admin/Super
   site_name text,                -- site name for this project
   site_dark_date date,           -- SDD — shown on the header of any task in this project
+  mrp_planner text,              -- who plans MRP for this project
+  ip_tech text,                  -- assigned IP tech
   created_at timestamptz default now()
 );
 
