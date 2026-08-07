@@ -188,6 +188,13 @@ export default function TaskModal({
     } else if (value === "todo" && progress === 100) {
       setProgress(0);
     }
+    // GCR status and GCR task type are kept in step — setting either one sets
+    // the other, so a GCR task is never half-labelled.
+    if (value === "gcr") {
+      setCustomTaskTypeMode(false);
+      setTaskType("GCR");
+      setTitle((prev) => (prev.startsWith(GCR_TITLE_PREFIX) ? prev : GCR_TITLE_PREFIX + prev));
+    }
   }
 
   useEffect(() => {
@@ -652,11 +659,14 @@ export default function TaskModal({
                       setTaskType("");
                     } else {
                       setCustomTaskTypeMode(false);
-                      // Picking GCR prefixes the title automatically.
+                      // Picking GCR prefixes the title and moves the task to
+                      // the GCR status, mirroring the reverse in
+                      // handleStatusChange.
                       if (e.target.value.trim().toLowerCase() === "gcr") {
                         setTitle((prev) =>
                           prev.startsWith(GCR_TITLE_PREFIX) ? prev : GCR_TITLE_PREFIX + prev
                         );
+                        setStatus("gcr");
                       }
                       setTaskType(e.target.value);
                     }
