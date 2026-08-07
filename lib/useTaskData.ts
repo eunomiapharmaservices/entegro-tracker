@@ -262,7 +262,19 @@ export function useTaskData() {
         .insert({ task_id: taskId, body, author: author || null })
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        // Log entries failing silently is how this bug hid before — surface
+        // it loudly instead, but never block the task save itself.
+        console.error("Failed to write log entry:", error);
+        if (typeof window !== "undefined") {
+          window.alert(
+            `Couldn't write to the log: ${error.message}\n\n` +
+              "The task change itself was saved. If this keeps happening, " +
+              "check that migration_028 has been run in Supabase."
+          );
+        }
+        return null;
+      }
       setTaskComments((prev) => [...prev, data as TaskComment]);
       return data as TaskComment;
     },

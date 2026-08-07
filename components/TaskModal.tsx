@@ -45,7 +45,7 @@ interface Props {
   onDelete: (id: string) => Promise<void>;
   onRestore: (id: string) => Promise<void>;
   createProject: (name: string, color: string) => Promise<Project>;
-  addComment: (taskId: string, body: string, author?: string | null) => Promise<TaskComment>;
+  addComment: (taskId: string, body: string, author?: string | null) => Promise<TaskComment | null>;
   authorName: string;
   canDelete: boolean;
   canEdit: boolean;
