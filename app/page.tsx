@@ -11,6 +11,7 @@ import PeopleDashboard from "@/components/PeopleDashboard";
 import TaskListView from "@/components/TaskListView";
 import CommentLogView from "@/components/CommentLogView";
 import MatrixView from "@/components/MatrixView";
+import NbGcrView from "@/components/NbGcrView";
 import TaskModal from "@/components/TaskModal";
 import ImportModal from "@/components/ImportModal";
 import ProjectModal from "@/components/ProjectModal";
@@ -116,6 +117,7 @@ function HomeContent() {
   const viewTitles: Record<ViewMode, string> = {
     board: "Board",
     calendar: "Calendar",
+    nbgcr: "NB & GCR",
     people: "People",
     list: "List",
     matrix: "Matrix",
@@ -382,6 +384,14 @@ function HomeContent() {
                 onOpenTask={(t) => setModalTask(t)}
                 onDeleteTask={handleDeleteTaskWithLog}
                 canDelete={isAdminOrAbove}
+              />
+            )}
+            {view === "nbgcr" && (
+              <NbGcrView
+                tasks={filteredTasks}
+                resources={resources}
+                projects={projects}
+                onOpenTask={(t) => setModalTask(t)}
               />
             )}
             {view === "matrix" && (
