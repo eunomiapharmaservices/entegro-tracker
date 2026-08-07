@@ -73,13 +73,17 @@ export default function CommentLogView({
   // search, since searching implies looking across all history at once.
   const groupedByDate = useMemo(() => {
     const groups = new Map<string, TaskComment[]>();
+    // Always show Today, even when empty — otherwise "nothing happened today"
+    // and "logging is broken" look identical, which is exactly the confusion
+    // this caused before.
+    groups.set(today, []);
     for (const c of filtered) {
       const date = isoDate(new Date(c.created_at));
       if (!groups.has(date)) groups.set(date, []);
       groups.get(date)!.push(c);
     }
     return Array.from(groups.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
-  }, [filtered]);
+  }, [filtered, today]);
 
   const deletedTasks = useMemo(
     () =>
@@ -198,7 +202,13 @@ export default function CommentLogView({
                     </button>
                     {expanded && (
                       <div className="flex flex-col gap-2 mt-1 mb-1">
-                        {comments.map(renderCommentRow)}
+                        {comments.length === 0 ? (
+                          <p className="text-xs text-[#a39d8c] px-2 py-3 border border-dashed border-[var(--c-line)] rounded-lg text-center">
+                            No log entries yet today.
+                          </p>
+                        ) : (
+                          comments.map(renderCommentRow)
+                        )}
                       </div>
                     )}
                   </div>
