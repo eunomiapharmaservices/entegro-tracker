@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Flag, Plus, Trash2, X, Copy, RotateCcw } from "lucide-react";
 import {
-  PRIORITY_LABELS,
   Priority,
   Project,
   Resource,
@@ -23,6 +22,8 @@ import { notifyStatusChange } from "@/lib/notifyAssignment";
 
 // Quick-add subtask suggestions — common checklist items across task types,
 // click to add instantly instead of typing them out each time.
+const GCR_TITLE_PREFIX = "GCR Support – ";
+
 const PREDEFINED_SUBTASKS = [
   "Collect supporting documents",
   "Verify configuration",
@@ -100,16 +101,14 @@ export default function TaskModal({
   );
   const [eid, setEid] = useState(task?.eid ?? "");
   const [siteName, setSiteName] = useState(task?.site_name ?? "");
-  const [raisedBy, setRaisedBy] = useState(task?.raised_by ?? "");
+  // New tasks default Raised by to whoever is signed in; existing tasks keep theirs.
+  const [raisedBy, setRaisedBy] = useState(task?.raised_by ?? (task ? "" : authorName || ""));
   const [reviewerId, setReviewerId] = useState<string | null>(task?.reviewer_id ?? null);
   const [dateAdded, setDateAdded] = useState(task?.date_added ?? (task ? "" : isoDate(new Date())));
-  const [actualCompletion, setActualCompletion] = useState(task?.actual_completion ?? "");
-  const [expectedHours, setExpectedHours] = useState(
-    task?.expected_duration_hours != null ? String(task.expected_duration_hours) : ""
-  );
-  const [actualHours, setActualHours] = useState(
-    task?.actual_time_spent_hours != null ? String(task.actual_time_spent_hours) : ""
-  );
+  const [netbuildId, setNetbuildId] = useState(task?.netbuild_id ?? "");
+  const [siteSurveyId, setSiteSurveyId] = useState(task?.site_survey_id ?? "");
+  const [gcrId, setGcrId] = useState(task?.gcr_id ?? "");
+  const [gcrDate, setGcrDate] = useState(task?.gcr_date ?? "");
   const [progress, setProgress] = useState(task?.progress_percent ?? 0);
   const [lastSavedStatus, setLastSavedStatus] = useState<Status | null>(task?.status ?? null);
   const [newCommentText, setNewCommentText] = useState("");
@@ -146,6 +145,7 @@ export default function TaskModal({
   const projectSiteName = selectedProject?.site_name ?? task?.site_name ?? null;
   const dependencyOptions = tasks.filter((t) => {
     if (t.id === task?.id || t.depends_on_task_id === task?.id) return false;
+    if (t.status === "done") return false; // completed work can't gate anything
     if (!projectId) return false;
     const theirProject = projects.find((p) => p.id === t.project_id);
     if (selectedProject?.eid) {
@@ -155,18 +155,25 @@ export default function TaskModal({
   });
   const dependencyTask = dependsOnTaskId ? tasks.find((t) => t.id === dependsOnTaskId) : null;
 
+  // GCR tasks carry four extra identifiers, all required.
+  const isGcrType = taskType.trim().toLowerCase() === "gcr";
+
   const missingFields: string[] = [];
   if (!title.trim()) missingFields.push("Title");
   if (!taskType.trim()) missingFields.push("Task type");
   if (!projectId) missingFields.push("Project");
-  if (!expectedHours.trim()) missingFields.push("Expected duration");
+  if (isGcrType) {
+    if (!netbuildId.trim()) missingFields.push("Netbuild ID");
+    if (!siteSurveyId.trim()) missingFields.push("Site Survey ID");
+    if (!gcrId.trim()) missingFields.push("GCR ID");
+    if (!gcrDate) missingFields.push("GCR Date");
+  }
   const isValid = missingFields.length === 0;
 
   function handleProgressChange(value: number) {
     setProgress(value);
     if (value >= 100) {
       setStatus("done");
-      setActualCompletion((prev) => prev || isoDate(new Date()));
     } else if (value > 0 && status === "todo") {
       setStatus("in_progress");
     } else if (value === 0 && status === "done") {
@@ -178,7 +185,6 @@ export default function TaskModal({
     setStatus(value);
     if (value === "done") {
       setProgress(100);
-      setActualCompletion((prev) => prev || isoDate(new Date()));
     } else if (value === "todo" && progress === 100) {
       setProgress(0);
     }
@@ -214,9 +220,10 @@ export default function TaskModal({
       raised_by: raisedBy.trim() || null,
       reviewer_id: reviewerId,
       date_added: dateAdded || null,
-      actual_completion: actualCompletion || null,
-      expected_duration_hours: expectedHours.trim() ? Number(expectedHours) : null,
-      actual_time_spent_hours: actualHours.trim() ? Number(actualHours) : null,
+      netbuild_id: isGcrType ? netbuildId.trim() || null : null,
+      site_survey_id: isGcrType ? siteSurveyId.trim() || null : null,
+      gcr_id: isGcrType ? gcrId.trim() || null : null,
+      gcr_date: isGcrType ? gcrDate || null : null,
       progress_percent: progress,
     };
     try {
@@ -297,10 +304,11 @@ export default function TaskModal({
         raised_by: raisedBy.trim() || null,
         reviewer_id: reviewerId,
         date_added: dateAdded || null,
-        actual_completion: actualCompletion || null,
-        expected_duration_hours: expectedHours.trim() ? Number(expectedHours) : null,
-        actual_time_spent_hours: actualHours.trim() ? Number(actualHours) : null,
-        progress_percent: progress,
+              netbuild_id: isGcrType ? netbuildId.trim() || null : null,
+      site_survey_id: isGcrType ? siteSurveyId.trim() || null : null,
+      gcr_id: isGcrType ? gcrId.trim() || null : null,
+      gcr_date: isGcrType ? gcrDate || null : null,
+      progress_percent: progress,
       });
       parentId = created.id;
       setSavedTaskId(created.id);
@@ -375,8 +383,7 @@ export default function TaskModal({
         reviewer_id: reviewerId,
         date_added: isoDate(new Date()),
         actual_completion: null,
-        expected_duration_hours: expectedHours.trim() ? Number(expectedHours) : null,
-        actual_time_spent_hours: null,
+          actual_time_spent_hours: null,
         progress_percent: 0,
       });
       await addComment(copy.id, "Task created", authorName || null);
@@ -463,20 +470,6 @@ export default function TaskModal({
                 {STATUS_ORDER.map((s) => (
                   <option key={s} value={s}>
                     {STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Priority</label>
-              <select
-                className={inputCls}
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as Priority)}
-              >
-                {Object.entries(PRIORITY_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
                   </option>
                 ))}
               </select>
@@ -659,6 +652,12 @@ export default function TaskModal({
                       setTaskType("");
                     } else {
                       setCustomTaskTypeMode(false);
+                      // Picking GCR prefixes the title automatically.
+                      if (e.target.value.trim().toLowerCase() === "gcr") {
+                        setTitle((prev) =>
+                          prev.startsWith(GCR_TITLE_PREFIX) ? prev : GCR_TITLE_PREFIX + prev
+                        );
+                      }
                       setTaskType(e.target.value);
                     }
                   }}
@@ -710,57 +709,62 @@ export default function TaskModal({
             </div>
           </div>
 
-          {/* Time & progress */}
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-[#8a8578] mb-2 font-display">
-              Time &amp; progress
-            </p>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className={labelCls}>Actual completion</label>
-                <input
-                  type="date"
-                  disabled={status !== "done"}
-                  className={
-                    inputCls +
-                    (status !== "done" ? " bg-black/[0.04] text-[#a39d8c] cursor-not-allowed" : "")
-                  }
-                  value={actualCompletion}
-                  onChange={(e) => setActualCompletion(e.target.value)}
-                />
-                {status !== "done" && (
-                  <p className="text-[10px] text-[#a39d8c] mt-1">
-                    Set automatically once status is Done
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className={labelCls}>
-                  Expected duration (h) <span className="text-[#C23B3B]">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  className={inputCls}
-                  placeholder="e.g. 4"
-                  value={expectedHours}
-                  onChange={(e) => setExpectedHours(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className={labelCls}>Actual time spent (h)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  className={inputCls}
-                  placeholder="e.g. 3.5"
-                  value={actualHours}
-                  onChange={(e) => setActualHours(e.target.value)}
-                />
+          {isGcrType && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-[#8a8578] mb-2 font-display">
+                GCR details
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls}>
+                    Netbuild ID <span className="text-[#C23B3B]">*</span>
+                  </label>
+                  <input
+                    className={inputCls}
+                    value={netbuildId}
+                    onChange={(e) => setNetbuildId(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>
+                    Site Survey ID <span className="text-[#C23B3B]">*</span>
+                  </label>
+                  <input
+                    className={inputCls}
+                    value={siteSurveyId}
+                    onChange={(e) => setSiteSurveyId(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>
+                    GCR ID <span className="text-[#C23B3B]">*</span>
+                  </label>
+                  <input
+                    className={inputCls}
+                    value={gcrId}
+                    onChange={(e) => setGcrId(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>
+                    GCR Date <span className="text-[#C23B3B]">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className={inputCls}
+                    value={gcrDate}
+                    onChange={(e) => setGcrDate(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
+          )}
+
+          {/* Progress */}
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-[#8a8578] mb-2 font-display">
+              Progress
+            </p>
             <label className={labelCls}>Progress — {progress}%</label>
             <input
               type="range"

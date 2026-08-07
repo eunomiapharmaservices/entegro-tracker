@@ -130,8 +130,8 @@ export default function ManageProjectsModal({
           </button>
         </div>
         <p className="text-xs text-[#8a8578] mb-4">
-          Name, EID, Site Name, and Site Dark Date (SDD) for each project. SDD shows at the
-          top of every task in that project. A project can only be deleted once it has no
+          Name and Site Dark Date (SDD) for each project. SDD shows at the top of every
+          task in that project. A project can only be deleted once it has no
           tasks left.
         </p>
 
@@ -140,8 +140,6 @@ export default function ManageProjectsModal({
             <thead className="sticky top-0 bg-[var(--c-cream)]">
               <tr className="text-left text-xs text-[#8a8578] font-display">
                 <th className="py-2 pr-2 font-medium">Project</th>
-                <th className="py-2 px-2 font-medium">EID</th>
-                <th className="py-2 px-2 font-medium">Site name</th>
                 <th className="py-2 px-2 font-medium">SDD</th>
                 <th className="py-2 px-2 font-medium whitespace-nowrap">Tasks</th>
                 <th className="py-2 pl-2 font-medium"></th>
@@ -170,22 +168,6 @@ export default function ManageProjectsModal({
                           <span className="text-[10px] text-[#a39d8c] shrink-0">(archived)</span>
                         )}
                       </div>
-                    </td>
-                    <td className="py-2 px-2">
-                      <input
-                        value={d.eid}
-                        onChange={(e) => setDraft(p, "eid", e.target.value)}
-                        placeholder="—"
-                        className={cellInput + " w-20"}
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <input
-                        value={d.site_name}
-                        onChange={(e) => setDraft(p, "site_name", e.target.value)}
-                        placeholder="—"
-                        className={cellInput + " w-28"}
-                      />
                     </td>
                     <td className="py-2 px-2">
                       <input
@@ -233,7 +215,7 @@ export default function ManageProjectsModal({
               })}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[#a39d8c]">
+                  <td colSpan={4} className="py-8 text-center text-[#a39d8c]">
                     No projects yet.
                   </td>
                 </tr>

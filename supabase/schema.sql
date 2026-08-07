@@ -65,6 +65,10 @@ create table if not exists tasks (
   comments text,                -- running notes, separate from the description
   deleted_at timestamptz,       -- soft delete: set instead of removing the row, so
                                  -- the comment log/history is never lost
+  netbuild_id text,             -- GCR-only fields (required when task type is GCR)
+  site_survey_id text,
+  gcr_id text,
+  gcr_date date,
   hold_started_at date,         -- date the task most recently entered On Hold/In Review —
                                  -- used to extend the effective due date while it sits there
   created_at timestamptz default now(),
@@ -660,8 +664,10 @@ drop policy if exists "public_all_task_comments" on task_comments;
 drop policy if exists "authenticated_all_task_comments" on task_comments;
 create policy "task_comments_select_all" on task_comments for select
   using (auth.role() = 'authenticated');
-create policy "task_comments_insert_editors" on task_comments for insert
-  with check (can_edit());
+-- Any signed-in user can write a log entry — RLS must never silently drop
+-- an audit-trail insert. Who can post a comment is gated in the UI.
+create policy "task_comments_insert_authenticated" on task_comments for insert
+  with check (auth.role() = 'authenticated');
 create policy "task_comments_update_editors" on task_comments for update
   using (can_edit()) with check (can_edit());
 create policy "task_comments_delete_editors" on task_comments for delete

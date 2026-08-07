@@ -49,6 +49,10 @@ export interface Task {
   progress_percent: number;
   comments: string | null;
   deleted_at: string | null;
+  netbuild_id: string | null;
+  site_survey_id: string | null;
+  gcr_id: string | null;
+  gcr_date: string | null;
   hold_started_at: string | null;
   reviewer_id: string | null;
   is_review_task: boolean;
