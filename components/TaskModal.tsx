@@ -166,6 +166,8 @@ export default function TaskModal({
     if (!netbuildId.trim()) missingFields.push("Netbuild ID");
     if (!siteSurveyId.trim()) missingFields.push("Site Survey ID");
     if (!gcrId.trim()) missingFields.push("GCR ID");
+    if (!mainNight) missingFields.push("Main night");
+    if (!backupNight) missingFields.push("Backup night");
   }
   const isValid = missingFields.length === 0;
 
@@ -620,7 +622,9 @@ export default function TaskModal({
             {isGcrType ? (
               <>
                 <div>
-                  <label className={labelCls}>Main night</label>
+                  <label className={labelCls}>
+                    Main night <span className="text-[#C23B3B]">*</span>
+                  </label>
                   <input
                     type="date"
                     className={inputCls}
@@ -629,7 +633,9 @@ export default function TaskModal({
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>Backup night</label>
+                  <label className={labelCls}>
+                    Backup night <span className="text-[#C23B3B]">*</span>
+                  </label>
                   <input
                     type="date"
                     className={inputCls}
