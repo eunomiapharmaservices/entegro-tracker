@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Download } from "lucide-react";
-import { Project, Resource, STATUS_LABELS, Task } from "@/lib/types";
+import { Project, Resource, STATUS_LABELS, Task, isGcrTask } from "@/lib/types";
 import { fmtFull } from "@/lib/dateUtils";
 import { downloadCSV } from "@/lib/csvImport";
 import TaskTitle from "./TaskTitle";
@@ -16,6 +16,8 @@ type ColKey =
   | "site_survey_id"
   | "gcr_id"
   | "gcr_date"
+  | "main_night"
+  | "backup_night"
   | "status";
 
 const COLUMNS: { key: ColKey; label: string }[] = [
@@ -27,14 +29,10 @@ const COLUMNS: { key: ColKey; label: string }[] = [
   { key: "site_survey_id", label: "Site Survey ID" },
   { key: "gcr_id", label: "GCR ID" },
   { key: "gcr_date", label: "GCR Date" },
+  { key: "main_night", label: "Main Night" },
+  { key: "backup_night", label: "Backup Night" },
   { key: "status", label: "Status" },
 ];
-
-// A task counts as GCR if either its type or its status says so — the form
-// keeps the two in sync, but older rows may only have one of them set.
-export function isGcrTask(t: Task): boolean {
-  return (t.task_type || "").trim().toLowerCase() === "gcr" || t.status === "gcr";
-}
 
 export default function NbGcrView({
   tasks,
@@ -58,6 +56,8 @@ export default function NbGcrView({
     site_survey_id: "",
     gcr_id: "",
     gcr_date: "",
+    main_night: "",
+    backup_night: "",
     status: "",
   });
 
@@ -89,6 +89,10 @@ export default function NbGcrView({
         return t.gcr_id || "";
       case "gcr_date":
         return t.gcr_date ? fmtFull(t.gcr_date) : "";
+      case "main_night":
+        return t.main_night ? fmtFull(t.main_night) : "";
+      case "backup_night":
+        return t.backup_night ? fmtFull(t.backup_night) : "";
       case "status":
         return STATUS_LABELS[t.status];
       default:
@@ -98,6 +102,8 @@ export default function NbGcrView({
 
   function sortValue(t: Task, key: ColKey): string {
     if (key === "gcr_date") return t.gcr_date || "";
+    if (key === "main_night") return t.main_night || "";
+    if (key === "backup_night") return t.backup_night || "";
     return cellText(t, key).toLowerCase();
   }
 
@@ -238,6 +244,12 @@ export default function NbGcrView({
                 </td>
                 <td className="px-3 py-2.5 whitespace-nowrap text-xs text-[#8a8578]">
                   {t.gcr_date ? fmtFull(t.gcr_date) : "—"}
+                </td>
+                <td className="px-3 py-2.5 whitespace-nowrap text-xs text-[#8a8578]">
+                  {t.main_night ? fmtFull(t.main_night) : "—"}
+                </td>
+                <td className="px-3 py-2.5 whitespace-nowrap text-xs text-[#8a8578]">
+                  {t.backup_night ? fmtFull(t.backup_night) : "—"}
                 </td>
                 <td className="px-3 py-2.5 whitespace-nowrap">
                   <span className="text-[11px] px-2 py-0.5 rounded-full bg-black/5 text-[#4d574f]">

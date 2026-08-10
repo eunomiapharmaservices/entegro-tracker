@@ -55,6 +55,8 @@ export interface Task {
   site_survey_id: string | null;
   gcr_id: string | null;
   gcr_date: string | null;
+  main_night: string | null;
+  backup_night: string | null;
   hold_started_at: string | null;
   reviewer_id: string | null;
   is_review_task: boolean;
@@ -113,6 +115,13 @@ export interface TaskWithSubtasks extends Task {
 }
 
 export const GCR_TITLE_PREFIX = "GCR Support – ";
+
+// GCR tasks are scheduled by Main Night / Backup Night instead of start and
+// due dates — shared so the form, board and calendar all agree on what
+// counts as a GCR task.
+export function isGcrTask(t: Pick<Task, "task_type" | "status">): boolean {
+  return (t.task_type || "").trim().toLowerCase() === "gcr" || t.status === "gcr";
+}
 
 export const STATUS_LABELS: Record<Status, string> = {
   todo: "New",

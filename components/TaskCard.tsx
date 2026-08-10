@@ -1,7 +1,7 @@
 "use client";
 
 import { Flag, ListChecks, Snowflake } from "lucide-react";
-import { Resource, Task, PRIORITY_COLORS } from "@/lib/types";
+import { Resource, Task, PRIORITY_COLORS, isGcrTask } from "@/lib/types";
 import { fmt, isOverdue, effectiveDueDate, daysSince } from "@/lib/dateUtils";
 import TaskTitle from "./TaskTitle";
 import Avatar from "./Avatar";
@@ -73,7 +73,14 @@ export default function TaskCard({
 
       <div className="flex items-center justify-between mt-3">
         <div className="flex items-center gap-2 text-xs text-[#8a8578]">
-          {task.status === "done" ? (
+          {isGcrTask(task) && (task.main_night || task.backup_night) ? (
+            <span title="GCR main / backup night">
+              {task.main_night ? fmt(task.main_night) : "—"}
+              {task.backup_night && (
+                <span className="text-[#a39d8c]"> / {fmt(task.backup_night)}</span>
+              )}
+            </span>
+          ) : task.status === "done" ? (
             task.actual_completion && <span>Completed {fmt(task.actual_completion)}</span>
           ) : (
             task.due_date && (

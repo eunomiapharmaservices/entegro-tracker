@@ -108,6 +108,8 @@ export default function TaskModal({
   const [siteSurveyId, setSiteSurveyId] = useState(task?.site_survey_id ?? "");
   const [gcrId, setGcrId] = useState(task?.gcr_id ?? "");
   const [gcrDate, setGcrDate] = useState(task?.gcr_date ?? "");
+  const [mainNight, setMainNight] = useState(task?.main_night ?? "");
+  const [backupNight, setBackupNight] = useState(task?.backup_night ?? "");
   const [progress, setProgress] = useState(task?.progress_percent ?? 0);
   const [lastSavedStatus, setLastSavedStatus] = useState<Status | null>(task?.status ?? null);
   const [newCommentText, setNewCommentText] = useState("");
@@ -230,6 +232,8 @@ export default function TaskModal({
       site_survey_id: isGcrType ? siteSurveyId.trim() || null : null,
       gcr_id: isGcrType ? gcrId.trim() || null : null,
       gcr_date: isGcrType ? gcrDate || null : null,
+      main_night: isGcrType ? mainNight || null : null,
+      backup_night: isGcrType ? backupNight || null : null,
       progress_percent: progress,
     };
     try {
@@ -314,6 +318,8 @@ export default function TaskModal({
       site_survey_id: isGcrType ? siteSurveyId.trim() || null : null,
       gcr_id: isGcrType ? gcrId.trim() || null : null,
       gcr_date: isGcrType ? gcrDate || null : null,
+      main_night: isGcrType ? mainNight || null : null,
+      backup_night: isGcrType ? backupNight || null : null,
       progress_percent: progress,
       });
       parentId = created.id;
@@ -615,6 +621,32 @@ export default function TaskModal({
                 </p>
               )}
             </div>
+            {isGcrType ? (
+              <>
+                <div>
+                  <label className={labelCls}>Main night</label>
+                  <input
+                    type="date"
+                    className={inputCls}
+                    value={mainNight}
+                    onChange={(e) => setMainNight(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Backup night</label>
+                  <input
+                    type="date"
+                    className={inputCls}
+                    value={backupNight}
+                    onChange={(e) => setBackupNight(e.target.value)}
+                  />
+                  <p className="text-[10px] text-[#a39d8c] mt-1">
+                    GCR tasks show on the calendar on both nights.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
             <div>
               <label className={labelCls}>Start date</label>
               <input
@@ -663,6 +695,8 @@ export default function TaskModal({
                 </p>
               )}
             </div>
+              </>
+            )}
 
             <div className="col-span-2">
               <label className={labelCls}>Depends on</label>

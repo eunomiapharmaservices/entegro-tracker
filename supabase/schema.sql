@@ -71,6 +71,8 @@ create table if not exists tasks (
   site_survey_id text,
   gcr_id text,
   gcr_date date,
+  main_night date,               -- GCR tasks use nights instead of start/due dates
+  backup_night date,
   hold_started_at date,         -- date the task most recently entered On Hold/In Review —
                                  -- used to extend the effective due date while it sits there
   created_at timestamptz default now(),

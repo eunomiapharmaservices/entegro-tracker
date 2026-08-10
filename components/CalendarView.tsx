@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Flag, Download } from "lucide-react";
-import { Resource, Task } from "@/lib/types";
+import { Resource, Task, isGcrTask } from "@/lib/types";
 import {
   addDays,
   endOfMonth,
@@ -23,6 +23,14 @@ function startOfWeek(d: Date): Date {
 
 type TasksOnDayFn = (iso: string) => { milestones: Task[]; due: Task[] };
 
+// Which night a GCR task is showing on, for the label on that day.
+function gcrNightLabel(t: Task, iso: string): string | null {
+  if (!isGcrTask(t)) return null;
+  if (t.main_night === iso) return "Main";
+  if (t.backup_night === iso) return "Backup";
+  return null;
+}
+
 export default function CalendarView({
   tasks,
   resources,
@@ -41,12 +49,15 @@ export default function CalendarView({
 
   function tasksOnDay(iso: string) {
     const milestones = activeTasks.filter((t) => t.is_milestone && t.milestone_date === iso);
-    const due = activeTasks.filter(
-      (t) =>
-        !t.is_milestone && effectiveDueDate(t.due_date, t.status, t.hold_started_at) === iso
-    );
+    const due = activeTasks.filter((t) => {
+      if (t.is_milestone) return false;
+      // GCR tasks are scheduled by nights, and appear on both of them.
+      if (isGcrTask(t)) return t.main_night === iso || t.backup_night === iso;
+      return effectiveDueDate(t.due_date, t.status, t.hold_started_at) === iso;
+    });
     return { milestones, due };
   }
+
 
   function resourceName(id: string | null) {
     return resources.find((r) => r.id === id)?.name || null;
@@ -253,6 +264,11 @@ function MonthGrid({
                     onClick={() => onOpenTask(t)}
                     className="text-[11px] leading-tight text-left bg-black/5 text-[#4d574f] rounded px-1 py-0.5 hover:bg-black/10 truncate"
                   >
+                    {gcrNightLabel(t, iso) && (
+                      <span className="text-[var(--c-green)] font-medium">
+                        {gcrNightLabel(t, iso)}·
+                      </span>
+                    )}
                     {t.title}
                   </button>
                 ))}
@@ -322,6 +338,11 @@ function WeekGrid({
                   onClick={() => onOpenTask(t)}
                   className="text-[11px] leading-tight text-left bg-black/5 text-[#4d574f] rounded px-1.5 py-1 hover:bg-black/10 truncate"
                 >
+                  {gcrNightLabel(t, iso) && (
+                    <span className="text-[var(--c-green)] font-medium">
+                      {gcrNightLabel(t, iso)}·
+                    </span>
+                  )}
                   {t.title}
                 </button>
               ))}
@@ -354,7 +375,7 @@ function DayAgenda({
   const isToday = iso === today;
   const rows: { task: Task; kind: string }[] = [
     ...milestones.map((task) => ({ task, kind: "Milestone" })),
-    ...due.map((task) => ({ task, kind: "Due" })),
+    ...due.map((task) => ({ task, kind: gcrNightLabel(task, iso) ? `${gcrNightLabel(task, iso)} night` : "Due" })),
   ];
 
   return (
