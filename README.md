@@ -677,6 +677,33 @@ If you already had the tracker deployed before this update, run
 `supabase/migration_019_review_workflow.sql` (which narrows the On Hold
 extension to exclude In Review, since In Review now has its own mechanism).
 
+## Auto-generated task chains
+
+Completing certain task types automatically creates the next task in that
+workflow — one at a time, as each predecessor is finished:
+
+**Full Audit** → Stranded X-connects removal → MRP Planning → Circuit Audit
+
+**Circuit/Ring Design and Planning** → Config & MOP Generation → GCR Created
+and Invites Sent → GCR Support
+
+Only the first task in each chain is created by hand. Each auto-created task
+inherits the project, EID, site, assignees, and priority of the task that
+triggered it, starts at status New, and shows a green **Auto** badge on its
+board card (and "Auto-created" in the editor) so it's clear where it came
+from. A comment is logged on the completed task naming what it created.
+
+This runs as a database trigger, so it fires however a task gets completed —
+the editor, dragging a card on the board, or a CSV import.
+
+**Changing the chains** doesn't need a code change. The rules live in a
+`task_type_chain` table (`from_type` → `to_type`); add, edit, or delete rows
+there in Supabase and the behaviour follows. Setting a chain that loops back
+on itself would create tasks indefinitely, so keep the sequences linear.
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_032_auto_task_chains.sql`.
+
 ## Review workflow
 
 Moving a task to **In Review** now does three things automatically:

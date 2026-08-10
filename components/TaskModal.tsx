@@ -422,6 +422,11 @@ export default function TaskModal({
           <div>
             <h2 className="font-display font-semibold text-base">
               {isNew ? "New task" : "Edit task"}
+              {task?.auto_generated_from && (
+                <span className="ml-2 text-[11px] font-normal text-[var(--c-green)] bg-[var(--c-green)]/10 px-2 py-0.5 rounded-full align-middle">
+                  Auto-created
+                </span>
+              )}
               {task?.is_review_task && (
                 <span className="ml-2 text-[11px] font-normal text-[var(--c-orange)] bg-[var(--c-orange)]/10 px-2 py-0.5 rounded-full align-middle">
                   Review task

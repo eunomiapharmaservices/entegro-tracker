@@ -1,6 +1,6 @@
 "use client";
 
-import { Flag, ListChecks, Snowflake } from "lucide-react";
+import { Flag, ListChecks, Snowflake, Sparkles } from "lucide-react";
 import { Resource, Task, PRIORITY_COLORS, isGcrTask } from "@/lib/types";
 import { fmt, isOverdue, effectiveDueDate, daysSince } from "@/lib/dateUtils";
 import TaskTitle from "./TaskTitle";
@@ -44,6 +44,15 @@ export default function TaskCard({
           <Flag size={11} fill="currentColor" />
           MILESTONE
         </div>
+      )}
+      {task.auto_generated_from && (
+        <span
+          className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--c-green)]/10 text-[var(--c-green)] mb-1.5"
+          title="Created automatically when the previous task in this workflow was completed"
+        >
+          <Sparkles size={9} />
+          Auto
+        </span>
       )}
       {statusBadge && (
         <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-black/5 text-[#4d574f] mb-1.5">

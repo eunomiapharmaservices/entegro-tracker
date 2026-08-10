@@ -54,6 +54,7 @@ export interface Task {
   netbuild_id: string | null;
   site_survey_id: string | null;
   gcr_id: string | null;
+  auto_generated_from: string | null;
   main_night: string | null;
   backup_night: string | null;
   hold_started_at: string | null;
@@ -70,7 +71,12 @@ export const TASK_TYPE_SUGGESTIONS = [
   "MRP Planning",
   "Netbuild",
   "Full Audit",
+  "Stranded X-connects removal",
   "Circuit Audit",
+  "Circuit/Ring Design and Planning",
+  "Config & MOP Generation",
+  "GCR Created and Invites Sent",
+  "GCR Support",
   "Config Removal",
   "Config Drop",
   "Config Generation",
