@@ -513,6 +513,25 @@ export default function TaskModal({
               </div>
             </div>
             <div>
+              <label className={labelCls}>Raised by</label>
+              <select
+                className={inputCls}
+                value={raisedBy}
+                onChange={(e) => setRaisedBy(e.target.value)}
+              >
+                <option value="">Unspecified</option>
+                {raisedBy && !resources.some((r) => r.name === raisedBy) && (
+                  <option value={raisedBy}>{raisedBy} (not in People)</option>
+                )}
+                {resources.map((r) => (
+                  <option key={r.id} value={r.name}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div />
+            <div>
               <label className={labelCls}>
                 Project <span className="text-[#C23B3B]">*</span>
               </label>
@@ -541,6 +560,58 @@ export default function TaskModal({
               )}
             </div>
 
+            <div>
+              <label className={labelCls}>
+                Task type <span className="text-[#C23B3B]">*</span>
+              </label>
+              <select
+                className={inputCls + (!isNew && !canDelete ? " bg-black/[0.04] text-[#8a8578] cursor-not-allowed" : "")}
+                value={customTaskTypeMode ? "__custom__" : taskType}
+                onChange={(e) => {
+                  if (e.target.value === "__custom__") {
+                    setCustomTaskTypeMode(true);
+                    setTaskType("");
+                  } else {
+                    setCustomTaskTypeMode(false);
+                    // Picking GCR prefixes the title and moves the task to
+                    // the GCR status, mirroring the reverse in
+                    // handleStatusChange.
+                    if (e.target.value.trim().toLowerCase() === "gcr") {
+                      setTitle((prev) =>
+                        prev.startsWith(GCR_TITLE_PREFIX) ? prev : GCR_TITLE_PREFIX + prev
+                      );
+                      setStatus("gcr");
+                    }
+                    setTaskType(e.target.value);
+                  }
+                }}
+                disabled={!isNew && !canDelete}
+                title={!isNew && !canDelete ? "Only Admin/Super can change task type after creation" : undefined}
+              >
+                <option value="">Select a type…</option>
+                {TASK_TYPE_SUGGESTIONS.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+                <option value="__custom__">Other (type your own)…</option>
+              </select>
+              {customTaskTypeMode && (
+                <input
+                  className={inputCls + " mt-2" + (!isNew && !canDelete ? " bg-black/[0.04] text-[#8a8578] cursor-not-allowed" : "")}
+                  placeholder="Custom task type"
+                  value={taskType}
+                  onChange={(e) => setTaskType(e.target.value)}
+                  disabled={!isNew && !canDelete}
+                  autoFocus
+                />
+              )}
+              {!isNew && !canDelete && (
+                <p className="text-[10px] text-[#a39d8c] mt-1">
+                  Only Admin/Super can change this after a task is created.
+                </p>
+              )}
+            </div>
             <div>
               <label className={labelCls}>Start date</label>
               <input
@@ -639,84 +710,6 @@ export default function TaskModal({
             )}
           </div>
 
-          {/* Network / ops tracker fields */}
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-[#8a8578] mb-2 font-display">
-              Site &amp; task details
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelCls}>
-                  Task type <span className="text-[#C23B3B]">*</span>
-                </label>
-                <select
-                  className={inputCls + (!isNew && !canDelete ? " bg-black/[0.04] text-[#8a8578] cursor-not-allowed" : "")}
-                  value={customTaskTypeMode ? "__custom__" : taskType}
-                  onChange={(e) => {
-                    if (e.target.value === "__custom__") {
-                      setCustomTaskTypeMode(true);
-                      setTaskType("");
-                    } else {
-                      setCustomTaskTypeMode(false);
-                      // Picking GCR prefixes the title and moves the task to
-                      // the GCR status, mirroring the reverse in
-                      // handleStatusChange.
-                      if (e.target.value.trim().toLowerCase() === "gcr") {
-                        setTitle((prev) =>
-                          prev.startsWith(GCR_TITLE_PREFIX) ? prev : GCR_TITLE_PREFIX + prev
-                        );
-                        setStatus("gcr");
-                      }
-                      setTaskType(e.target.value);
-                    }
-                  }}
-                  disabled={!isNew && !canDelete}
-                  title={!isNew && !canDelete ? "Only Admin/Super can change task type after creation" : undefined}
-                >
-                  <option value="">Select a type…</option>
-                  {TASK_TYPE_SUGGESTIONS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                  <option value="__custom__">Other (type your own)…</option>
-                </select>
-                {customTaskTypeMode && (
-                  <input
-                    className={inputCls + " mt-2" + (!isNew && !canDelete ? " bg-black/[0.04] text-[#8a8578] cursor-not-allowed" : "")}
-                    placeholder="Custom task type"
-                    value={taskType}
-                    onChange={(e) => setTaskType(e.target.value)}
-                    disabled={!isNew && !canDelete}
-                    autoFocus
-                  />
-                )}
-                {!isNew && !canDelete && (
-                  <p className="text-[10px] text-[#a39d8c] mt-1">
-                    Only Admin/Super can change this after a task is created.
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className={labelCls}>Raised by</label>
-                <select
-                  className={inputCls}
-                  value={raisedBy}
-                  onChange={(e) => setRaisedBy(e.target.value)}
-                >
-                  <option value="">Unspecified</option>
-                  {raisedBy && !resources.some((r) => r.name === raisedBy) && (
-                    <option value={raisedBy}>{raisedBy} (not in People)</option>
-                  )}
-                  {resources.map((r) => (
-                    <option key={r.id} value={r.name}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
 
           {isGcrType && (
             <div>

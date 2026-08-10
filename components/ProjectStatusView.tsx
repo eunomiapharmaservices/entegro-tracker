@@ -55,7 +55,9 @@ export default function ProjectStatusView({
           !q ||
           p.name.toLowerCase().includes(q) ||
           (p.eid || "").toLowerCase().includes(q) ||
-          (p.site_name || "").toLowerCase().includes(q)
+          (p.site_name || "").toLowerCase().includes(q) ||
+          (p.mrp_planner || "").toLowerCase().includes(q) ||
+          (p.ip_tech || "").toLowerCase().includes(q)
       )
       .map((p) => {
         const mine = countable.filter((t) => t.project_id === p.id);
@@ -93,9 +95,13 @@ export default function ProjectStatusView({
         };
       })
       .sort((a, b) => {
-        // Trouble first: most overdue, then least complete, then by name.
-        if (b.overdue !== a.overdue) return b.overdue - a.overdue;
-        if (a.progress !== b.progress) return a.progress - b.progress;
+        // Soonest Site Dark Date first — projects without an SDD sort last
+        // rather than jumping to the front on an empty string.
+        const aSdd = a.project.site_dark_date || "";
+        const bSdd = b.project.site_dark_date || "";
+        if (aSdd && !bSdd) return -1;
+        if (!aSdd && bSdd) return 1;
+        if (aSdd !== bSdd) return aSdd.localeCompare(bSdd);
         return a.project.name.localeCompare(b.project.name, undefined, { numeric: true });
       });
   }, [projects, countable, search, showArchived, showCompleted]);
@@ -114,13 +120,15 @@ export default function ProjectStatusView({
   function handleExport() {
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
     const rows = [
-      ["Project", "EID", "Site", "SDD", "Total", "Open", "Completed", "Overdue", "Progress %", "Next due"].join(","),
+      ["Project", "EID", "Site", "SDD", "MRP Planner", "IP Tech", "Total", "Open", "Completed", "Overdue", "Progress %", "Next due"].join(","),
       ...cards.map((c) =>
         [
           esc(c.project.name),
           esc(c.project.eid || ""),
           esc(c.project.site_name || ""),
           esc(c.project.site_dark_date || ""),
+          esc(c.project.mrp_planner || ""),
+          esc(c.project.ip_tech || ""),
           c.total,
           c.total - c.done,
           c.done,
@@ -233,6 +241,23 @@ export default function ProjectStatusView({
                           {c.project.site_name || c.project.eid ? " · " : ""}
                           SDD {fmtFull(c.project.site_dark_date)}
                         </span>
+                      )}
+                    </p>
+                  )}
+                  {(c.project.mrp_planner || c.project.ip_tech) && (
+                    <p className="text-[10px] text-[#8a8578] mt-0.5">
+                      {c.project.mrp_planner && (
+                        <>
+                          <span className="text-[#a39d8c]">MRP </span>
+                          {c.project.mrp_planner}
+                        </>
+                      )}
+                      {c.project.mrp_planner && c.project.ip_tech && " · "}
+                      {c.project.ip_tech && (
+                        <>
+                          <span className="text-[#a39d8c]">IP Tech </span>
+                          {c.project.ip_tech}
+                        </>
                       )}
                     </p>
                   )}
