@@ -107,7 +107,6 @@ export default function TaskModal({
   const [netbuildId, setNetbuildId] = useState(task?.netbuild_id ?? "");
   const [siteSurveyId, setSiteSurveyId] = useState(task?.site_survey_id ?? "");
   const [gcrId, setGcrId] = useState(task?.gcr_id ?? "");
-  const [gcrDate, setGcrDate] = useState(task?.gcr_date ?? "");
   const [mainNight, setMainNight] = useState(task?.main_night ?? "");
   const [backupNight, setBackupNight] = useState(task?.backup_night ?? "");
   const [progress, setProgress] = useState(task?.progress_percent ?? 0);
@@ -167,7 +166,6 @@ export default function TaskModal({
     if (!netbuildId.trim()) missingFields.push("Netbuild ID");
     if (!siteSurveyId.trim()) missingFields.push("Site Survey ID");
     if (!gcrId.trim()) missingFields.push("GCR ID");
-    if (!gcrDate) missingFields.push("GCR Date");
   }
   const isValid = missingFields.length === 0;
 
@@ -231,7 +229,6 @@ export default function TaskModal({
       netbuild_id: isGcrType ? netbuildId.trim() || null : null,
       site_survey_id: isGcrType ? siteSurveyId.trim() || null : null,
       gcr_id: isGcrType ? gcrId.trim() || null : null,
-      gcr_date: isGcrType ? gcrDate || null : null,
       main_night: isGcrType ? mainNight || null : null,
       backup_night: isGcrType ? backupNight || null : null,
       progress_percent: progress,
@@ -317,7 +314,6 @@ export default function TaskModal({
               netbuild_id: isGcrType ? netbuildId.trim() || null : null,
       site_survey_id: isGcrType ? siteSurveyId.trim() || null : null,
       gcr_id: isGcrType ? gcrId.trim() || null : null,
-      gcr_date: isGcrType ? gcrDate || null : null,
       main_night: isGcrType ? mainNight || null : null,
       backup_night: isGcrType ? backupNight || null : null,
       progress_percent: progress,
@@ -782,17 +778,6 @@ export default function TaskModal({
                     className={inputCls}
                     value={gcrId}
                     onChange={(e) => setGcrId(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>
-                    GCR Date <span className="text-[#C23B3B]">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    className={inputCls}
-                    value={gcrDate}
-                    onChange={(e) => setGcrDate(e.target.value)}
                   />
                 </div>
               </div>

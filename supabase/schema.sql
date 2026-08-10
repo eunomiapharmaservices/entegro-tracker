@@ -70,7 +70,6 @@ create table if not exists tasks (
   netbuild_id text,             -- GCR-only fields (required when task type is GCR)
   site_survey_id text,
   gcr_id text,
-  gcr_date date,
   main_night date,               -- GCR tasks use nights instead of start/due dates
   backup_night date,
   hold_started_at date,         -- date the task most recently entered On Hold/In Review —

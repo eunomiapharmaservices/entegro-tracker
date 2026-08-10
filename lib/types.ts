@@ -54,7 +54,6 @@ export interface Task {
   netbuild_id: string | null;
   site_survey_id: string | null;
   gcr_id: string | null;
-  gcr_date: string | null;
   main_night: string | null;
   backup_night: string | null;
   hold_started_at: string | null;

@@ -15,7 +15,6 @@ type ColKey =
   | "netbuild_id"
   | "site_survey_id"
   | "gcr_id"
-  | "gcr_date"
   | "main_night"
   | "backup_night"
   | "status";
@@ -28,7 +27,6 @@ const COLUMNS: { key: ColKey; label: string }[] = [
   { key: "netbuild_id", label: "Netbuild ID" },
   { key: "site_survey_id", label: "Site Survey ID" },
   { key: "gcr_id", label: "GCR ID" },
-  { key: "gcr_date", label: "GCR Date" },
   { key: "main_night", label: "Main Night" },
   { key: "backup_night", label: "Backup Night" },
   { key: "status", label: "Status" },
@@ -45,7 +43,7 @@ export default function NbGcrView({
   projects: Project[];
   onOpenTask: (task: Task) => void;
 }) {
-  const [sortKey, setSortKey] = useState<ColKey>("gcr_date");
+  const [sortKey, setSortKey] = useState<ColKey>("main_night");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [filters, setFilters] = useState<Record<ColKey, string>>({
     task_number: "",
@@ -55,7 +53,6 @@ export default function NbGcrView({
     netbuild_id: "",
     site_survey_id: "",
     gcr_id: "",
-    gcr_date: "",
     main_night: "",
     backup_night: "",
     status: "",
@@ -87,8 +84,6 @@ export default function NbGcrView({
         return t.site_survey_id || "";
       case "gcr_id":
         return t.gcr_id || "";
-      case "gcr_date":
-        return t.gcr_date ? fmtFull(t.gcr_date) : "";
       case "main_night":
         return t.main_night ? fmtFull(t.main_night) : "";
       case "backup_night":
@@ -101,7 +96,6 @@ export default function NbGcrView({
   }
 
   function sortValue(t: Task, key: ColKey): string {
-    if (key === "gcr_date") return t.gcr_date || "";
     if (key === "main_night") return t.main_night || "";
     if (key === "backup_night") return t.backup_night || "";
     return cellText(t, key).toLowerCase();
@@ -241,9 +235,6 @@ export default function NbGcrView({
                 </td>
                 <td className="px-3 py-2.5 whitespace-nowrap font-mono text-xs">
                   {t.gcr_id || "—"}
-                </td>
-                <td className="px-3 py-2.5 whitespace-nowrap text-xs text-[#8a8578]">
-                  {t.gcr_date ? fmtFull(t.gcr_date) : "—"}
                 </td>
                 <td className="px-3 py-2.5 whitespace-nowrap text-xs text-[#8a8578]">
                   {t.main_night ? fmtFull(t.main_night) : "—"}
