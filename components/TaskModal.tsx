@@ -465,22 +465,41 @@ export default function TaskModal({
             onChange={(e) => setDescription(e.target.value)}
           />
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>Status</label>
-              <select
-                className={inputCls}
-                value={status}
-                onChange={(e) => handleStatusChange(e.target.value as Status)}
-              >
-                {STATUS_ORDER.map((s) => (
-                  <option key={s} value={s}>
-                    {STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </select>
+          <div className="grid grid-cols-2 gap-3 items-start">
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className={labelCls}>Status</label>
+                <select
+                  className={inputCls}
+                  value={status}
+                  onChange={(e) => handleStatusChange(e.target.value as Status)}
+                >
+                  {STATUS_ORDER.map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Raised by</label>
+                <select
+                  className={inputCls}
+                  value={raisedBy}
+                  onChange={(e) => setRaisedBy(e.target.value)}
+                >
+                  <option value="">Unspecified</option>
+                  {raisedBy && !resources.some((r) => r.name === raisedBy) && (
+                    <option value={raisedBy}>{raisedBy} (not in People)</option>
+                  )}
+                  {resources.map((r) => (
+                    <option key={r.id} value={r.name}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-
             <div>
               <label className={labelCls}>
                 Assigned to
@@ -512,25 +531,9 @@ export default function TaskModal({
                 ))}
               </div>
             </div>
-            <div>
-              <label className={labelCls}>Raised by</label>
-              <select
-                className={inputCls}
-                value={raisedBy}
-                onChange={(e) => setRaisedBy(e.target.value)}
-              >
-                <option value="">Unspecified</option>
-                {raisedBy && !resources.some((r) => r.name === raisedBy) && (
-                  <option value={raisedBy}>{raisedBy} (not in People)</option>
-                )}
-                {resources.map((r) => (
-                  <option key={r.id} value={r.name}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 items-start">
             <div>
               <label className={labelCls}>
                 Project <span className="text-[#C23B3B]">*</span>
