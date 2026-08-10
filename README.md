@@ -693,6 +693,14 @@ triggered it, starts at status New, and shows a green **Auto** badge on its
 board card (and "Auto-created" in the editor) so it's clear where it came
 from. A comment is logged on the completed task naming what it created.
 
+**Naming**: chained tasks are named after whichever task started the chain,
+followed by the step — so a Full Audit called "Audit Rochester ring"
+produces "Audit Rochester ring - Stranded X-connects removal", then
+"Audit Rochester ring - MRP Planning", and so on. The name carried through
+is always the original manually-created task's, not the immediate
+predecessor's, so titles don't compound into "A - B - C - D" down a long
+chain.
+
 This runs as a database trigger, so it fires however a task gets completed —
 the editor, dragging a card on the board, or a CSV import.
 
@@ -702,7 +710,8 @@ there in Supabase and the behaviour follows. Setting a chain that loops back
 on itself would create tasks indefinitely, so keep the sequences linear.
 
 If you already had the tracker deployed before this update, run
-`supabase/migration_032_auto_task_chains.sql`.
+`supabase/migration_032_auto_task_chains.sql`, then
+`supabase/migration_033_chain_task_naming.sql`.
 
 ## Review workflow
 
