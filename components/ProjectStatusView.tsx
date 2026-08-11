@@ -16,6 +16,50 @@ const STATUS_DOT: Record<string, string> = {
   done: "#1F5C4A",
 };
 
+// Overall project progress is a weighted roll-up of five components. Two are
+// read from task status, three from the counters entered in Manage projects.
+const PROGRESS_WEIGHTS = [
+  { key: "audit", label: "Audit", weight: 10, source: "Audit task" },
+  { key: "mrp", label: "MRP Planning", weight: 10, source: "MRP Planning task" },
+  { key: "cleanse", label: "Data Cleanse", weight: 10, source: "Manage projects" },
+  { key: "migration", label: "Migration", weight: 60, source: "Manage projects" },
+  { key: "decom", label: "Node Decom", weight: 10, source: "Manage projects" },
+] as const;
+
+function ratio(done: number, required: number): number {
+  if (!required || required <= 0) return 0;
+  return Math.min(1, Math.max(0, done / required));
+}
+
+// A task-driven component counts as complete when its task is done, and
+// otherwise contributes its own progress figure.
+function taskComponent(tasks: Task[], typeName: string): number {
+  const matches = tasks.filter(
+    (t) => (t.task_type || "").trim().toLowerCase() === typeName.toLowerCase()
+  );
+  if (matches.length === 0) return 0;
+  const total = matches.reduce(
+    (sum, t) => sum + (t.status === "done" ? 100 : t.progress_percent || 0),
+    0
+  );
+  return Math.min(1, total / (matches.length * 100));
+}
+
+function componentBreakdown(project: Project, projectTasks: Task[]) {
+  const values: Record<string, number> = {
+    audit: taskComponent(projectTasks, "Audit"),
+    mrp: taskComponent(projectTasks, "MRP Planning"),
+    cleanse: ratio(project.data_cleanse_complete, project.data_cleanse_required),
+    migration: ratio(project.migration_complete, project.migration_required),
+    decom: ratio(project.total_decommissioned, project.total_devices),
+  };
+  const overall = PROGRESS_WEIGHTS.reduce(
+    (sum, w) => sum + values[w.key] * w.weight,
+    0
+  );
+  return { values, overall: Math.round(overall) };
+}
+
 export default function ProjectStatusView({
   tasks,
   resources,
@@ -89,7 +133,8 @@ export default function ProjectStatusView({
           total: mine.length,
           done,
           overdue,
-          progress: mine.length ? Math.round((done / mine.length) * 100) : 0,
+          progress: componentBreakdown(p, mine).overall,
+          breakdown: componentBreakdown(p, mine).values,
           groups,
           nextDue,
         };
@@ -278,6 +323,30 @@ export default function ProjectStatusView({
                 <span className="text-[11px] text-[#8a8578] font-mono shrink-0">
                   {c.progress}%
                 </span>
+              </div>
+
+              {/* What the overall % is made of */}
+              <div className="flex flex-col gap-1">
+                {PROGRESS_WEIGHTS.map((w) => {
+                  const v = c.breakdown[w.key] ?? 0;
+                  return (
+                    <div key={w.key} className="flex items-center gap-2 text-[11px]">
+                      <span className="text-[#4d574f] w-24 shrink-0 truncate" title={`From ${w.source}`}>
+                        {w.label}
+                      </span>
+                      <span className="text-[#c9c2b2] shrink-0 font-mono">{w.weight}%</span>
+                      <div className="h-1 flex-1 rounded-full bg-black/[0.06] overflow-hidden min-w-[40px]">
+                        <div
+                          className="h-full bg-[var(--c-green)]/60"
+                          style={{ width: `${Math.round(v * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[#a39d8c] font-mono shrink-0 w-8 text-right">
+                        {Math.round(v * 100)}%
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
 
               {c.nextDue && (

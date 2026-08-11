@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { X, Building2, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Project, Resource, Task } from "@/lib/types";
 
 type SortKey = "name" | "site_dark_date" | "mrp_planner" | "ip_tech" | "active" | "completed";
@@ -10,14 +10,12 @@ export default function ManageProjectsModal({
   projects,
   tasks,
   resources,
-  onClose,
   onUpdate,
   onDelete,
 }: {
   projects: Project[];
   tasks: Task[];
   resources: Resource[];
-  onClose: () => void;
   onUpdate: (id: string, input: Partial<Project>) => Promise<Project>;
   onDelete: (id: string) => Promise<void>;
 }) {
@@ -26,7 +24,7 @@ export default function ManageProjectsModal({
   const [drafts, setDrafts] = useState<
     Record<
       string,
-      { name: string; site_dark_date: string; mrp_planner: string; ip_tech: string }
+      { name: string; site_dark_date: string; mrp_planner: string; ip_tech: string } & Record<string, string>
     >
   >({});
 
@@ -61,13 +59,20 @@ export default function ManageProjectsModal({
         site_dark_date: p.site_dark_date ?? "",
         mrp_planner: p.mrp_planner ?? "",
         ip_tech: p.ip_tech ?? "",
+        total_circuits: String(p.total_circuits ?? 0),
+        migration_required: String(p.migration_required ?? 0),
+        migration_complete: String(p.migration_complete ?? 0),
+        data_cleanse_required: String(p.data_cleanse_required ?? 0),
+        data_cleanse_complete: String(p.data_cleanse_complete ?? 0),
+        total_devices: String(p.total_devices ?? 0),
+        total_decommissioned: String(p.total_decommissioned ?? 0),
       }
     );
   }
 
   function setDraft(
     p: Project,
-    field: "name" | "site_dark_date" | "mrp_planner" | "ip_tech",
+    field: string,
     value: string
   ) {
     setDrafts((prev) => ({ ...prev, [p.id]: { ...draftFor(p), ...prev[p.id], [field]: value } }));
@@ -79,7 +84,14 @@ export default function ManageProjectsModal({
       d.name !== p.name ||
       d.site_dark_date !== (p.site_dark_date ?? "") ||
       d.mrp_planner !== (p.mrp_planner ?? "") ||
-      d.ip_tech !== (p.ip_tech ?? "")
+      d.ip_tech !== (p.ip_tech ?? "") ||
+      d.total_circuits !== String(p.total_circuits ?? 0) ||
+      d.migration_required !== String(p.migration_required ?? 0) ||
+      d.migration_complete !== String(p.migration_complete ?? 0) ||
+      d.data_cleanse_required !== String(p.data_cleanse_required ?? 0) ||
+      d.data_cleanse_complete !== String(p.data_cleanse_complete ?? 0) ||
+      d.total_devices !== String(p.total_devices ?? 0) ||
+      d.total_decommissioned !== String(p.total_decommissioned ?? 0)
     );
   }
 
@@ -96,6 +108,13 @@ export default function ManageProjectsModal({
         site_dark_date: d.site_dark_date || null,
         mrp_planner: d.mrp_planner.trim() || null,
         ip_tech: d.ip_tech.trim() || null,
+        total_circuits: Number(d.total_circuits) || 0,
+        migration_required: Number(d.migration_required) || 0,
+        migration_complete: Number(d.migration_complete) || 0,
+        data_cleanse_required: Number(d.data_cleanse_required) || 0,
+        data_cleanse_complete: Number(d.data_cleanse_complete) || 0,
+        total_devices: Number(d.total_devices) || 0,
+        total_decommissioned: Number(d.total_decommissioned) || 0,
       });
       setDrafts((prev) => {
         const next = { ...prev };
@@ -208,25 +227,10 @@ export default function ManageProjectsModal({
   );
 
   return (
-    <div
-      className="fixed inset-0 bg-black/30 flex items-start justify-center z-50 overflow-y-auto py-10"
-      onClick={onClose}
-    >
-      <div
-        className="bg-[var(--c-cream)] rounded-2xl w-full max-w-4xl shadow-2xl border border-[var(--c-line)] p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="font-display font-semibold text-base flex items-center gap-2">
-            <Building2 size={17} className="text-[var(--c-green)]" />
-            Manage projects
-          </h2>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-black/5">
-            <X size={18} />
-          </button>
-        </div>
+    <div className="rounded-xl border border-[var(--c-line)] bg-white h-full flex flex-col overflow-hidden">
+      <div className="p-4 flex flex-col min-h-0 flex-1">
         <p className="text-xs text-[#8a8578] mb-3">
-          Name, SDD, MRP Planner, and IP Tech for each project. SDD shows at the top of
+          Name, SDD, owners, and circuit/migration/decommission counts for each project. SDD shows at the top of
           every task in that project. A project can only be deleted once it has no tasks
           left.
         </p>
@@ -278,14 +282,21 @@ export default function ManageProjectsModal({
           </span>
         </div>
 
-        <div className="max-h-[55vh] overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-auto">
           <table className="w-full text-sm border-collapse">
-            <thead className="sticky top-0 bg-[var(--c-cream)] z-10">
+            <thead className="sticky top-0 bg-white z-10">
               <tr className="text-left text-xs text-[#8a8578] font-display">
                 <SortHead label="Project" k="name" />
                 <SortHead label="SDD" k="site_dark_date" />
                 <SortHead label="MRP Planner" k="mrp_planner" />
                 <SortHead label="IP Tech" k="ip_tech" />
+                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Total Circuits</th>
+                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Migration Req</th>
+                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Migration Done</th>
+                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Cleanse Req</th>
+                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Cleanse Done</th>
+                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Total Devices</th>
+                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Decommissioned</th>
                 <SortHead label="Active" k="active" right />
                 <SortHead label="Done" k="completed" right />
                 <th className="py-2 pl-2 font-medium"></th>
@@ -341,6 +352,69 @@ export default function ManageProjectsModal({
                         className={cellInput + " w-28"}
                       />
                     </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={d.total_circuits}
+                        onChange={(e) => setDraft(p, "total_circuits", e.target.value)}
+                        className={cellInput + " w-16 text-right"}
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={d.migration_required}
+                        onChange={(e) => setDraft(p, "migration_required", e.target.value)}
+                        className={cellInput + " w-16 text-right"}
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={d.migration_complete}
+                        onChange={(e) => setDraft(p, "migration_complete", e.target.value)}
+                        className={cellInput + " w-16 text-right"}
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={d.data_cleanse_required}
+                        onChange={(e) => setDraft(p, "data_cleanse_required", e.target.value)}
+                        className={cellInput + " w-16 text-right"}
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={d.data_cleanse_complete}
+                        onChange={(e) => setDraft(p, "data_cleanse_complete", e.target.value)}
+                        className={cellInput + " w-16 text-right"}
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={d.total_devices}
+                        onChange={(e) => setDraft(p, "total_devices", e.target.value)}
+                        className={cellInput + " w-16 text-right"}
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={d.total_decommissioned}
+                        onChange={(e) => setDraft(p, "total_decommissioned", e.target.value)}
+                        className={cellInput + " w-16 text-right"}
+                      />
+                    </td>
                     <td className="py-2 px-2 text-right font-mono text-xs text-[var(--c-green)]">
                       {c.active}
                     </td>
@@ -381,7 +455,7 @@ export default function ManageProjectsModal({
               })}
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-[#a39d8c]">
+                  <td colSpan={14} className="py-8 text-center text-[#a39d8c]">
                     {projects.length === 0 ? "No projects yet." : "No projects match those filters."}
                   </td>
                 </tr>

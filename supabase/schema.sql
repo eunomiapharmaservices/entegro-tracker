@@ -23,6 +23,13 @@ create table if not exists projects (
   site_dark_date date,           -- SDD — shown on the header of any task in this project
   mrp_planner text,              -- who plans MRP for this project
   ip_tech text,                  -- assigned IP tech
+  total_circuits int default 0,          -- circuit / migration / decom counters,
+  migration_required int default 0,      -- entered in Manage projects and used to
+  migration_complete int default 0,      -- compute the project's overall progress
+  data_cleanse_required int default 0,
+  data_cleanse_complete int default 0,
+  total_devices int default 0,
+  total_decommissioned int default 0,
   created_at timestamptz default now()
 );
 

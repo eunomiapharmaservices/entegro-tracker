@@ -18,7 +18,7 @@ const ROLE_ORDER: Role[] = ["super", "admin", "normal", "view"];
 
 export const UNASSIGNED_FILTER = "__unassigned__";
 
-export type ViewMode = "board" | "projectstatus" | "calendar" | "nbgcr" | "people" | "list" | "matrix" | "log";
+export type ViewMode = "board" | "projectstatus" | "calendar" | "nbgcr" | "people" | "list" | "matrix" | "manageprojects" | "log";
 
 export default function Sidebar({
   view,
@@ -43,7 +43,6 @@ export default function Sidebar({
   currentUserName,
   onSignOut,
   onManageAccess,
-  onManageProjects,
   isAdminOrAbove,
   isSuper,
   canEdit,
@@ -70,7 +69,6 @@ export default function Sidebar({
   currentUserName: string;
   onSignOut: () => void;
   onManageAccess: () => void;
-  onManageProjects: () => void;
   isAdminOrAbove: boolean;
   isSuper: boolean;
   canEdit: boolean;
@@ -158,6 +156,15 @@ export default function Sidebar({
     { key: "list", label: "List", icon: <List size={17} /> },
     { key: "people", label: "People", icon: <Users size={17} /> },
     { key: "matrix", label: "Matrix", icon: <Grid2x2 size={17} /> },
+    ...(isAdminOrAbove
+      ? [
+          {
+            key: "manageprojects" as ViewMode,
+            label: "Manage projects",
+            icon: <Building2 size={17} />,
+          },
+        ]
+      : []),
     ...(isAdminOrAbove
       ? [{ key: "log" as ViewMode, label: "Log", icon: <ScrollText size={17} /> }]
       : []),
@@ -479,13 +486,6 @@ export default function Sidebar({
               >
                 <ShieldCheck size={11} />
                 Manage users
-              </button>
-              <button
-                onClick={onManageProjects}
-                className="flex items-center gap-1 text-[10px] text-[#8a8578] hover:text-[var(--c-ink)]"
-              >
-                <Building2 size={11} />
-                Manage projects
               </button>
             </div>
           ) : (

@@ -79,7 +79,6 @@ function HomeContent() {
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [showManageUsersModal, setShowManageUsersModal] = useState(false);
-  const [showManageProjectsModal, setShowManageProjectsModal] = useState(false);
 
   const filteredTasks = useMemo(() => {
     function isAssignedTo(t: Task, resourceId: string): boolean {
@@ -119,6 +118,7 @@ function HomeContent() {
   const viewTitles: Record<ViewMode, string> = {
     board: "Board",
     projectstatus: "Project status",
+    manageprojects: "Manage projects",
     calendar: "Calendar",
     nbgcr: "NB & GCR",
     people: "People",
@@ -331,7 +331,6 @@ function HomeContent() {
         currentUserName={currentUserName}
         onSignOut={handleSignOut}
         onManageAccess={() => setShowManageUsersModal(true)}
-        onManageProjects={() => setShowManageProjectsModal(true)}
         isAdminOrAbove={isAdminOrAbove}
         isSuper={isSuper}
         canEdit={canEdit}
@@ -437,6 +436,15 @@ function HomeContent() {
                 onOpenTask={(t) => setModalTask(t)}
               />
             )}
+            {view === "manageprojects" && isAdminOrAbove && (
+              <ManageProjectsModal
+                projects={projects}
+                tasks={allTasks}
+                resources={resources}
+                onUpdate={updateProject}
+                onDelete={deleteProject}
+              />
+            )}
             {view === "log" && isAdminOrAbove && (
               <CommentLogView
                 taskComments={taskComments}
@@ -518,16 +526,6 @@ function HomeContent() {
         />
       )}
 
-      {showManageProjectsModal && isAdminOrAbove && (
-        <ManageProjectsModal
-          projects={projects}
-          tasks={allTasks}
-          resources={resources}
-          onClose={() => setShowManageProjectsModal(false)}
-          onUpdate={updateProject}
-          onDelete={deleteProject}
-        />
-      )}
     </div>
   );
 }

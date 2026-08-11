@@ -19,6 +19,13 @@ export interface Project {
   site_dark_date: string | null;
   mrp_planner: string | null;
   ip_tech: string | null;
+  total_circuits: number;
+  migration_required: number;
+  migration_complete: number;
+  data_cleanse_required: number;
+  data_cleanse_complete: number;
+  total_devices: number;
+  total_decommissioned: number;
   created_at: string;
 }
 
