@@ -142,29 +142,13 @@ export default function Sidebar({
 
   const navItems: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
     { key: "board", label: "Board", icon: <LayoutGrid size={17} /> },
-    ...(isAdminOrAbove
-      ? [
-          {
-            key: "projectstatus" as ViewMode,
-            label: "Project status",
-            icon: <ClipboardList size={17} />,
-          },
-        ]
-      : []),
+    { key: "projectstatus", label: "Project status", icon: <ClipboardList size={17} /> },
     { key: "calendar", label: "Calendar", icon: <CalendarIcon size={17} /> },
     { key: "nbgcr", label: "NB & GCR", icon: <Radio size={17} /> },
     { key: "list", label: "List", icon: <List size={17} /> },
     { key: "people", label: "People", icon: <Users size={17} /> },
     { key: "matrix", label: "Matrix", icon: <Grid2x2 size={17} /> },
-    ...(isAdminOrAbove
-      ? [
-          {
-            key: "manageprojects" as ViewMode,
-            label: "Manage projects",
-            icon: <Building2 size={17} />,
-          },
-        ]
-      : []),
+    { key: "manageprojects", label: "Manage projects", icon: <Building2 size={17} /> },
     ...(isAdminOrAbove
       ? [{ key: "log" as ViewMode, label: "Log", icon: <ScrollText size={17} /> }]
       : []),

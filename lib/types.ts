@@ -26,6 +26,8 @@ export interface Project {
   data_cleanse_complete: number;
   total_devices: number;
   total_decommissioned: number;
+  total_rings: number;
+  rings_migrated: number;
   created_at: string;
 }
 
@@ -61,6 +63,7 @@ export interface Task {
   netbuild_id: string | null;
   site_survey_id: string | null;
   gcr_id: string | null;
+  title_suffix: string | null;
   auto_generated_from: string | null;
   main_night: string | null;
   backup_night: string | null;

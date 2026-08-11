@@ -24,13 +24,51 @@ import { notifyStatusChange } from "@/lib/notifyAssignment";
 
 // Quick-add subtask suggestions — common checklist items across task types,
 // click to add instantly instead of typing them out each time.
-const PREDEFINED_SUBTASKS = [
-  "Collect supporting documents",
-  "Verify configuration",
-  "Get approval / sign-off",
-  "Update documentation",
-  "Notify stakeholders",
+// Human-readable description of what changed between the saved task and the
+// payload about to be written. Status and due-date changes are logged
+// elsewhere (status here in the modal, due date by a database trigger), so
+// they're skipped to avoid duplicate entries.
+const LOGGED_FIELDS: { key: keyof Task; label: string }[] = [
+  { key: "title", label: "Title" },
+  { key: "description", label: "Description" },
+  { key: "project_id", label: "Project" },
+  { key: "task_type", label: "Task type" },
+  { key: "start_date", label: "Start date" },
+  { key: "raised_by", label: "Raised by" },
+  { key: "is_milestone", label: "Milestone" },
+  { key: "milestone_date", label: "Milestone date" },
+  { key: "depends_on_task_id", label: "Dependency" },
+  { key: "netbuild_id", label: "Netbuild ID" },
+  { key: "site_survey_id", label: "Site Survey ID" },
+  { key: "gcr_id", label: "GCR ID" },
+  { key: "main_night", label: "Main night" },
+  { key: "backup_night", label: "Backup night" },
 ];
+
+function describeChanges(before: Task | null, after: Partial<Task>): string[] {
+  if (!before) return [];
+  const lines: string[] = [];
+
+  for (const { key, label } of LOGGED_FIELDS) {
+    if (!(key in after)) continue;
+    const oldVal = before[key];
+    const newVal = after[key];
+    if (oldVal === newVal) continue;
+    if (!oldVal && !newVal) continue; // null vs "" — not a real change
+    const fmtVal = (v: unknown) =>
+      v === null || v === undefined || v === "" ? "(empty)" : String(v);
+    lines.push(`${label} changed from ${fmtVal(oldVal)} to ${fmtVal(newVal)}`);
+  }
+
+  // Assignees compare as sets, since order isn't meaningful.
+  if (after.assignee_ids) {
+    const beforeIds = [...(before.assignee_ids ?? [])].sort().join(",");
+    const afterIds = [...after.assignee_ids].sort().join(",");
+    if (beforeIds !== afterIds) lines.push("Assignees changed");
+  }
+
+  return lines;
+}
 
 interface Props {
   task: Task | null; // null = creating a new top-level task
@@ -98,7 +136,7 @@ export default function TaskModal({
   const [taskType, setTaskType] = useState(task?.task_type ?? "");
   // Existing tasks keep whatever title they have; new ones auto-generate
   // until the user types something of their own.
-  const [titleTouched, setTitleTouched] = useState(!!task);
+  const [titleSuffix, setTitleSuffix] = useState(task?.title_suffix ?? "");
   const [customTaskTypeMode, setCustomTaskTypeMode] = useState(
     !!task?.task_type && !TASK_TYPE_SUGGESTIONS.includes(task.task_type)
   );
@@ -138,12 +176,24 @@ export default function TaskModal({
   // A task can't be completed while any of its checklist items are open.
   const openSubtasks = subtasks.filter((s) => s.status !== "done").length;
   const blockedBySubtasks = openSubtasks > 0;
+  // With subtasks present, progress is their completion rate — not a manual
+  // figure. Same for auto-generated tasks, which are driven by their chain.
+  const derivedProgress =
+    subtasks.length > 0
+      ? Math.round(((subtasks.length - openSubtasks) / subtasks.length) * 100)
+      : progress;
+  const progressIsDerived = subtasks.length > 0 || !!task?.auto_generated_from;
 
   // Dependencies are scoped to the same EID — a task should only be able to
   // depend on other work at the same site/circuit. EID now lives on the
   // project, so this matches on the selected project's EID (falling back to
   // the same project when it has no EID set yet).
   const selectedProject = projects.find((p) => p.id === projectId);
+  // Titles are always "EID <project> – <task type>"; anything the user types
+  // is appended after that and stored separately so chained tasks can rebuild
+  // their own title the same way.
+  const titlePrefix = `EID ${selectedProject?.eid?.trim() || selectedProject?.name?.trim() || ""} – ${taskType.trim()}`;
+  const composedTitle = titleSuffix.trim() ? `${titlePrefix} – ${titleSuffix.trim()}` : titlePrefix;
   // EID and Site name are no longer entered on the task — they belong to the
   // project (managed in "Manage projects"), and are copied onto the task so
   // board cards, List columns, and exports keep showing them. Falls back to
@@ -166,7 +216,6 @@ export default function TaskModal({
   const isGcrType = isGcrTaskType(taskType);
 
   const missingFields: string[] = [];
-  if (!title.trim()) missingFields.push("Title");
   if (!taskType.trim()) missingFields.push("Task type");
   if (!projectId) missingFields.push("Project");
   if (status === "done" && blockedBySubtasks)
@@ -179,17 +228,6 @@ export default function TaskModal({
     if (!backupNight) missingFields.push("Backup night");
   }
   const isValid = missingFields.length === 0;
-
-  // Auto title: "EID <project eid or name> – <task type>". Regenerates as the
-  // project or task type changes, and stops as soon as the user edits it.
-  useEffect(() => {
-    if (titleTouched) return;
-    const proj = projects.find((p) => p.id === projectId);
-    const ident = proj?.eid?.trim() || proj?.name?.trim() || "";
-    const type = taskType.trim();
-    if (!ident && !type) return;
-    setTitle(`EID ${ident}${type ? ` – ${type}` : ""}`.trim());
-  }, [projectId, taskType, projects, titleTouched]);
 
   function handleProgressChange(value: number) {
     if (value >= 100 && blockedBySubtasks) {
@@ -226,9 +264,6 @@ export default function TaskModal({
     if (value === "gcr") {
       setCustomTaskTypeMode(false);
       setTaskType("GCR Support");
-      if (titleTouched) {
-        setTitle((prev) => (prev.startsWith(GCR_TITLE_PREFIX) ? prev : GCR_TITLE_PREFIX + prev));
-      }
     }
   }
 
@@ -244,7 +279,8 @@ export default function TaskModal({
     if (!isValid) return;
     setSaving(true);
     const payload: Partial<Task> = {
-      title: title.trim(),
+      title: composedTitle,
+      title_suffix: titleSuffix.trim() || null,
       description: description.trim() || null,
       project_id: projectId,
       assigned_to: assigneeIds[0] ?? null,
@@ -267,11 +303,17 @@ export default function TaskModal({
       gcr_id: isGcrType ? gcrId.trim() || null : null,
       main_night: isGcrType ? mainNight || null : null,
       backup_night: isGcrType ? backupNight || null : null,
-      progress_percent: progress,
+      progress_percent: progressIsDerived ? derivedProgress : progress,
     };
     try {
       if (savedTaskId) {
+        // Log every field the user actually changed, so the comment log is a
+        // full audit trail rather than just status/due-date changes.
+        const changes = describeChanges(task, payload);
         await onUpdate(savedTaskId, payload);
+        for (const line of changes) {
+          await addComment(savedTaskId, line, authorName || null);
+        }
         if (lastSavedStatus && lastSavedStatus !== status) {
           await addComment(
             savedTaskId,
@@ -329,7 +371,8 @@ export default function TaskModal({
       }
       // Auto-save parent first so the subtask has something to attach to
         const created = await onCreate({
-        title: title.trim(),
+        title: composedTitle,
+      title_suffix: titleSuffix.trim() || null,
         description: description.trim() || null,
         project_id: projectId,
         assigned_to: assigneeIds[0] ?? null,
@@ -352,7 +395,7 @@ export default function TaskModal({
       gcr_id: isGcrType ? gcrId.trim() || null : null,
       main_night: isGcrType ? mainNight || null : null,
       backup_night: isGcrType ? backupNight || null : null,
-      progress_percent: progress,
+      progress_percent: progressIsDerived ? derivedProgress : progress,
       });
       parentId = created.id;
       setSavedTaskId(created.id);
@@ -408,7 +451,8 @@ export default function TaskModal({
     setDuplicateMessage(null);
     try {
       const copy = await onCreate({
-        title: title.trim() + " (Copy)",
+        title: composedTitle + " (Copy)",
+        title_suffix: titleSuffix.trim() || null,
         description: description.trim() || null,
         project_id: projectId,
         assigned_to: assigneeIds[0] ?? null,
@@ -519,14 +563,12 @@ export default function TaskModal({
           )}
 
           <div>
+            <p className="text-[11px] text-[#a39d8c] font-mono mb-1">{titlePrefix}</p>
             <input
               className="w-full text-lg font-medium bg-transparent border-b border-[var(--c-line)] pb-2 outline-none focus:border-[var(--c-green)] disabled:opacity-60"
-              placeholder="Task title"
-              value={title}
-              onChange={(e) => {
-                setTitleTouched(true);
-                setTitle(e.target.value);
-              }}
+              placeholder="Add more detail (optional)"
+              value={titleSuffix}
+              onChange={(e) => setTitleSuffix(e.target.value)}
               autoFocus
             />
           </div>
@@ -653,9 +695,6 @@ export default function TaskModal({
                     // the GCR status, mirroring the reverse in
                     // handleStatusChange.
                     if (e.target.value.trim().toLowerCase() === "gcr") {
-                      setTitle((prev) =>
-                        prev.startsWith(GCR_TITLE_PREFIX) ? prev : GCR_TITLE_PREFIX + prev
-                      );
                       setStatus("gcr");
                     }
                     setTaskType(e.target.value);
@@ -864,8 +903,24 @@ export default function TaskModal({
             <p className="text-xs font-medium uppercase tracking-wide text-[#8a8578] mb-2 font-display">
               Progress
             </p>
-            <label className={labelCls}>Progress — {progress}%</label>
-            <input
+            <label className={labelCls}>
+              Progress — {progressIsDerived ? derivedProgress : progress}%
+              {progressIsDerived && (
+                <span className="font-normal text-[#a39d8c]">
+                  {" "}
+                  · {subtasks.length > 0 ? "from subtasks" : "auto-managed"}
+                </span>
+              )}
+            </label>
+            {progressIsDerived ? (
+              <div className="h-2 rounded-full bg-black/[0.06] overflow-hidden">
+                <div
+                  className="h-full bg-[var(--c-green-light)]"
+                  style={{ width: `${derivedProgress}%` }}
+                />
+              </div>
+            ) : (
+              <input
               type="range"
               min={0}
               max={100}
@@ -874,6 +929,7 @@ export default function TaskModal({
               onChange={(e) => handleProgressChange(Number(e.target.value))}
               className="w-full accent-[var(--c-green)]"
             />
+            )}
           </div>
 
           <div>
@@ -994,19 +1050,6 @@ export default function TaskModal({
               ))}
             </div>
 
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {PREDEFINED_SUBTASKS.filter(
-                (label) => !subtasks.some((s) => s.title === label)
-              ).map((label) => (
-                <button
-                  key={label}
-                  onClick={() => handleAddSubtask(label)}
-                  className="text-[11px] px-2 py-1 rounded-full border border-dashed border-[var(--c-line)] text-[#8a8578] hover:border-[var(--c-green)] hover:text-[var(--c-green)] transition-colors"
-                >
-                  + {label}
-                </button>
-              ))}
-            </div>
 
             <div className="flex gap-2">
               <input

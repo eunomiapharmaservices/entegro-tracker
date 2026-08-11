@@ -30,6 +30,8 @@ create table if not exists projects (
   data_cleanse_complete int default 0,
   total_devices int default 0,
   total_decommissioned int default 0,
+  total_rings int default 0,
+  rings_migrated int default 0,
   created_at timestamptz default now()
 );
 
@@ -77,6 +79,8 @@ create table if not exists tasks (
   netbuild_id text,             -- GCR-only fields (required when task type is GCR)
   site_survey_id text,
   gcr_id text,
+  title_suffix text,             -- the free-text part the user adds after the
+                                 -- auto "EID x – Type" title prefix
   auto_generated_from uuid references tasks(id) on delete set null,  -- set when created by a task chain
   main_night date,               -- GCR tasks use nights instead of start/due dates
   backup_night date,

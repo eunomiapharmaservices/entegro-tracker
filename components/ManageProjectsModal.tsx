@@ -12,12 +12,14 @@ export default function ManageProjectsModal({
   resources,
   onUpdate,
   onDelete,
+  canDelete: allowDelete,
 }: {
   projects: Project[];
   tasks: Task[];
   resources: Resource[];
   onUpdate: (id: string, input: Partial<Project>) => Promise<Project>;
   onDelete: (id: string) => Promise<void>;
+  canDelete: boolean;
 }) {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -66,6 +68,8 @@ export default function ManageProjectsModal({
         data_cleanse_complete: String(p.data_cleanse_complete ?? 0),
         total_devices: String(p.total_devices ?? 0),
         total_decommissioned: String(p.total_decommissioned ?? 0),
+        total_rings: String(p.total_rings ?? 0),
+        rings_migrated: String(p.rings_migrated ?? 0),
       }
     );
   }
@@ -91,7 +95,9 @@ export default function ManageProjectsModal({
       d.data_cleanse_required !== String(p.data_cleanse_required ?? 0) ||
       d.data_cleanse_complete !== String(p.data_cleanse_complete ?? 0) ||
       d.total_devices !== String(p.total_devices ?? 0) ||
-      d.total_decommissioned !== String(p.total_decommissioned ?? 0)
+      d.total_decommissioned !== String(p.total_decommissioned ?? 0) ||
+      d.total_rings !== String(p.total_rings ?? 0) ||
+      d.rings_migrated !== String(p.rings_migrated ?? 0)
     );
   }
 
@@ -115,6 +121,8 @@ export default function ManageProjectsModal({
         data_cleanse_complete: Number(d.data_cleanse_complete) || 0,
         total_devices: Number(d.total_devices) || 0,
         total_decommissioned: Number(d.total_decommissioned) || 0,
+        total_rings: Number(d.total_rings) || 0,
+        rings_migrated: Number(d.rings_migrated) || 0,
       });
       setDrafts((prev) => {
         const next = { ...prev };
@@ -297,6 +305,8 @@ export default function ManageProjectsModal({
                 <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Cleanse Done</th>
                 <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Total Devices</th>
                 <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Decommissioned</th>
+                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Total Rings</th>
+                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Rings Migrated</th>
                 <SortHead label="Active" k="active" right />
                 <SortHead label="Done" k="completed" right />
                 <th className="py-2 pl-2 font-medium"></th>
@@ -307,7 +317,7 @@ export default function ManageProjectsModal({
                 const d = draftFor(p);
                 const dirty = isDirty(p);
                 const c = counts(p.id);
-                const canDelete = c.total === 0;
+                const canDelete = allowDelete && c.total === 0;
                 return (
                   <tr key={p.id} className="border-t border-[var(--c-line)]">
                     <td className="py-2 pr-2">
@@ -415,6 +425,24 @@ export default function ManageProjectsModal({
                         className={cellInput + " w-16 text-right"}
                       />
                     </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={d.total_rings}
+                        onChange={(e) => setDraft(p, "total_rings", e.target.value)}
+                        className={cellInput + " w-16 text-right"}
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={d.rings_migrated}
+                        onChange={(e) => setDraft(p, "rings_migrated", e.target.value)}
+                        className={cellInput + " w-16 text-right"}
+                      />
+                    </td>
                     <td className="py-2 px-2 text-right font-mono text-xs text-[var(--c-green)]">
                       {c.active}
                     </td>
@@ -436,7 +464,9 @@ export default function ManageProjectsModal({
                           onClick={() => handleDelete(p)}
                           disabled={!canDelete || deletingId === p.id}
                           title={
-                            canDelete
+                            !allowDelete
+                              ? "Only Admin/Super can delete projects"
+                              : canDelete
                               ? `Delete ${p.name}`
                               : `Can't delete — ${c.total} task${c.total === 1 ? "" : "s"} still in this project`
                           }
@@ -455,7 +485,7 @@ export default function ManageProjectsModal({
               })}
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={14} className="py-8 text-center text-[#a39d8c]">
+                  <td colSpan={16} className="py-8 text-center text-[#a39d8c]">
                     {projects.length === 0 ? "No projects yet." : "No projects match those filters."}
                   </td>
                 </tr>

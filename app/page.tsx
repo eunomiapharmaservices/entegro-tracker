@@ -412,7 +412,7 @@ function HomeContent() {
                 canDelete={isAdminOrAbove}
               />
             )}
-            {view === "projectstatus" && isAdminOrAbove && (
+            {view === "projectstatus" && (
               <ProjectStatusView
                 tasks={tasks}
                 resources={resources}
@@ -436,13 +436,14 @@ function HomeContent() {
                 onOpenTask={(t) => setModalTask(t)}
               />
             )}
-            {view === "manageprojects" && isAdminOrAbove && (
+            {view === "manageprojects" && (
               <ManageProjectsModal
                 projects={projects}
                 tasks={allTasks}
                 resources={resources}
                 onUpdate={updateProject}
                 onDelete={deleteProject}
+                canDelete={isAdminOrAbove}
               />
             )}
             {view === "log" && isAdminOrAbove && (
