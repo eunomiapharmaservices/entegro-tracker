@@ -682,10 +682,15 @@ extension to exclude In Review, since In Review now has its own mechanism).
 Completing certain task types automatically creates the next task in that
 workflow — one at a time, as each predecessor is finished:
 
-**Full Audit** → Stranded X-connects removal → MRP Planning → Circuit Audit
+**Audit** → MRP Planning *and* Stranded X-connects removal
 
-**Circuit/Ring Design and Planning** → Config & MOP Generation → GCR Created
-and Invites Sent → GCR Support
+**Circuit/Ring Design and Planning** → Pre Wires / TPC *and* Config & MOP
+Generation
+
+**Pre Wires / TPC** → GCR creation and invites → GCR Support → Config Removal
+
+A single task type can trigger more than one dependent — completing an Audit
+creates both MRP Planning and Stranded X-connects removal.
 
 Only the first task in each chain is created by hand. Each auto-created task
 inherits the project, EID, site, assignees, and priority of the task that
@@ -711,7 +716,26 @@ on itself would create tasks indefinitely, so keep the sequences linear.
 
 If you already had the tracker deployed before this update, run
 `supabase/migration_032_auto_task_chains.sql`, then
-`supabase/migration_033_chain_task_naming.sql`.
+`supabase/migration_033_chain_task_naming.sql`, then
+`supabase/migration_034_update_task_type_names.sql`.
+
+## Subtask checklists
+
+Each task type carries a checklist, created automatically with the task —
+Audit gets "Gather data into audit sheet", "Complete dispositions", and so
+on. They appear as tickable subtasks in the task editor.
+
+**A task can't be completed until every subtask is ticked.** This is
+enforced in the editor (Status dropdown and progress slider), on the board
+(dragging into Completed), and at the database level, so it holds however
+the change is attempted.
+
+The checklists live in a `task_type_subtask` table (`task_type`, `title`,
+`position`) and the chains in `task_type_chain` (`from_type`, `to_type`) —
+both editable directly in Supabase without a code change.
+
+If you already had the tracker deployed before this update, run
+`supabase/migration_035_workflow_subtasks.sql`.
 
 ## Review workflow
 

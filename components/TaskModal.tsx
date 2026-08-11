@@ -13,6 +13,7 @@ import {
   TaskComment,
   TASK_TYPE_SUGGESTIONS,
   GCR_TITLE_PREFIX,
+  isGcrTaskType,
   projectNameForSite,
 } from "@/lib/types";
 import Avatar from "./Avatar";
@@ -95,6 +96,9 @@ export default function TaskModal({
 
   // Network/ops tracker fields
   const [taskType, setTaskType] = useState(task?.task_type ?? "");
+  // Existing tasks keep whatever title they have; new ones auto-generate
+  // until the user types something of their own.
+  const [titleTouched, setTitleTouched] = useState(!!task);
   const [customTaskTypeMode, setCustomTaskTypeMode] = useState(
     !!task?.task_type && !TASK_TYPE_SUGGESTIONS.includes(task.task_type)
   );
@@ -131,6 +135,9 @@ export default function TaskModal({
   const subtasks = savedTaskId
     ? tasks.filter((t) => t.parent_task_id === savedTaskId)
     : [];
+  // A task can't be completed while any of its checklist items are open.
+  const openSubtasks = subtasks.filter((s) => s.status !== "done").length;
+  const blockedBySubtasks = openSubtasks > 0;
 
   // Dependencies are scoped to the same EID — a task should only be able to
   // depend on other work at the same site/circuit. EID now lives on the
@@ -156,12 +163,14 @@ export default function TaskModal({
   const dependencyTask = dependsOnTaskId ? tasks.find((t) => t.id === dependsOnTaskId) : null;
 
   // GCR tasks carry four extra identifiers, all required.
-  const isGcrType = taskType.trim().toLowerCase() === "gcr";
+  const isGcrType = isGcrTaskType(taskType);
 
   const missingFields: string[] = [];
   if (!title.trim()) missingFields.push("Title");
   if (!taskType.trim()) missingFields.push("Task type");
   if (!projectId) missingFields.push("Project");
+  if (status === "done" && blockedBySubtasks)
+    missingFields.push(`${openSubtasks} subtask${openSubtasks === 1 ? "" : "s"} still open`);
   if (isGcrType) {
     if (!netbuildId.trim()) missingFields.push("Netbuild ID");
     if (!siteSurveyId.trim()) missingFields.push("Site Survey ID");
@@ -171,7 +180,24 @@ export default function TaskModal({
   }
   const isValid = missingFields.length === 0;
 
+  // Auto title: "EID <project eid or name> – <task type>". Regenerates as the
+  // project or task type changes, and stops as soon as the user edits it.
+  useEffect(() => {
+    if (titleTouched) return;
+    const proj = projects.find((p) => p.id === projectId);
+    const ident = proj?.eid?.trim() || proj?.name?.trim() || "";
+    const type = taskType.trim();
+    if (!ident && !type) return;
+    setTitle(`EID ${ident}${type ? ` – ${type}` : ""}`.trim());
+  }, [projectId, taskType, projects, titleTouched]);
+
   function handleProgressChange(value: number) {
+    if (value >= 100 && blockedBySubtasks) {
+      alert(
+        `Complete all ${openSubtasks} subtask${openSubtasks === 1 ? "" : "s"} before marking this task done.`
+      );
+      return;
+    }
     setProgress(value);
     if (value >= 100) {
       setStatus("done");
@@ -183,6 +209,12 @@ export default function TaskModal({
   }
 
   function handleStatusChange(value: Status) {
+    if (value === "done" && blockedBySubtasks) {
+      alert(
+        `Complete all ${openSubtasks} subtask${openSubtasks === 1 ? "" : "s"} before marking this task done.`
+      );
+      return;
+    }
     setStatus(value);
     if (value === "done") {
       setProgress(100);
@@ -193,8 +225,10 @@ export default function TaskModal({
     // the other, so a GCR task is never half-labelled.
     if (value === "gcr") {
       setCustomTaskTypeMode(false);
-      setTaskType("GCR");
-      setTitle((prev) => (prev.startsWith(GCR_TITLE_PREFIX) ? prev : GCR_TITLE_PREFIX + prev));
+      setTaskType("GCR Support");
+      if (titleTouched) {
+        setTitle((prev) => (prev.startsWith(GCR_TITLE_PREFIX) ? prev : GCR_TITLE_PREFIX + prev));
+      }
     }
   }
 
@@ -457,12 +491,42 @@ export default function TaskModal({
 
         <div className="px-6 pb-6 flex flex-col gap-4">
           <fieldset disabled={!canEdit} className="contents">
+          {assigneeIds.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap -mb-1">
+              {assigneeIds.map((id) => {
+                const r = resources.find((x) => x.id === id);
+                if (!r) return null;
+                return (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-white border border-[var(--c-line)] text-xs"
+                  >
+                    <Avatar resource={r} size={18} />
+                    {r.name}
+                    <button
+                      onClick={() =>
+                        setAssigneeIds((prev) => prev.filter((x) => x !== id))
+                      }
+                      className="text-[#c9c2b2] hover:text-[#C23B3B] leading-none"
+                      title={`Unassign ${r.name}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
           <div>
             <input
               className="w-full text-lg font-medium bg-transparent border-b border-[var(--c-line)] pb-2 outline-none focus:border-[var(--c-green)] disabled:opacity-60"
               placeholder="Task title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitleTouched(true);
+                setTitle(e.target.value);
+              }}
               autoFocus
             />
           </div>

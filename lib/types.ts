@@ -68,29 +68,20 @@ export interface Task {
 // Common task types seen in the IP Daily Task Tracker workbook — offered as
 // suggestions in the task type field, but any free text is accepted.
 export const TASK_TYPE_SUGGESTIONS = [
-  "MRP Planning",
-  "Netbuild",
-  "Full Audit",
-  "Stranded X-connects removal",
-  "Circuit Audit",
+  "Audit",
+  "Admin Work",
   "Circuit/Ring Design and Planning",
   "Config & MOP Generation",
-  "GCR Created and Invites Sent",
-  "GCR Support",
   "Config Removal",
-  "Config Drop",
-  "Config Generation",
-  "Transport Requirements",
-  "GCR",
-  "GCR_MOP",
-  "GCR_Support",
-  "Design",
-  "Data-cleanse",
-  "Pre-wire",
-  "Training",
+  "Data Cleanse",
+  "GCR creation and invites",
+  "GCR Support",
+  "MRP Planning",
   "NAT Updates",
-  "Flight Deck",
-  "Admin Work",
+  "Port Reservations",
+  "Pre Wires / TPC",
+  "Stranded X-connects removal",
+  "Training",
 ];
 
 // When a task has an EID (circuit/site ID), its project is derived from that
@@ -125,7 +116,14 @@ export const GCR_TITLE_PREFIX = "GCR Support – ";
 // due dates — shared so the form, board and calendar all agree on what
 // counts as a GCR task.
 export function isGcrTask(t: Pick<Task, "task_type" | "status">): boolean {
-  return (t.task_type || "").trim().toLowerCase() === "gcr" || t.status === "gcr";
+  return isGcrTaskType(t.task_type) || t.status === "gcr";
+}
+
+// "GCR Support" is the current GCR task type; "GCR" is kept so tasks created
+// before the type list was revised still behave as GCR tasks.
+export function isGcrTaskType(taskType: string | null): boolean {
+  const t = (taskType || "").trim().toLowerCase();
+  return t === "gcr support" || t === "gcr";
 }
 
 export const STATUS_LABELS: Record<Status, string> = {

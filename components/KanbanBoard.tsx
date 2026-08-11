@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Project, Resource, Status, STATUS_LABELS, STATUS_ORDER, Task } from "@/lib/types";
-import { daysSince } from "@/lib/dateUtils";
+import { daysSince, effectiveDueDate } from "@/lib/dateUtils";
 import TaskCard from "./TaskCard";
 
 const DONE_VISIBLE_DAYS = 14;
@@ -47,7 +47,16 @@ export default function KanbanBoard({
     <div className="flex flex-col h-full">
       <div className="flex gap-4 overflow-x-auto pb-4 flex-1 min-h-0">
         {STATUS_ORDER.map((status) => {
-          const columnTasks = topLevel.filter((t) => t.status === status);
+          const columnTasks = topLevel
+            .filter((t) => t.status === status)
+            .sort((a, b) => {
+              // Soonest due date first; tasks without one sort to the end.
+              const ad = effectiveDueDate(a.due_date, a.status, a.hold_started_at) || "";
+              const bd = effectiveDueDate(b.due_date, b.status, b.hold_started_at) || "";
+              if (ad && !bd) return -1;
+              if (!ad && bd) return 1;
+              return ad.localeCompare(bd);
+            });
           return (
             <div
               key={status}

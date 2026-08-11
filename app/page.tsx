@@ -153,6 +153,19 @@ function HomeContent() {
 
   async function handleMoveStatus(taskId: string, status: Status) {
     const previous = tasks.find((t) => t.id === taskId);
+    // Mirror the task editor: a task can't be completed while its checklist
+    // still has open items. The database enforces this too.
+    if (status === "done") {
+      const open = tasks.filter(
+        (t) => t.parent_task_id === taskId && t.status !== "done"
+      ).length;
+      if (open > 0) {
+        alert(
+          `Complete all ${open} subtask${open === 1 ? "" : "s"} before marking this task done.`
+        );
+        return;
+      }
+    }
     // Dragging into the GCR column does the same thing as picking GCR in the
     // form: sets the task type to GCR and prefixes the title.
     const patch: Partial<Task> = { status };
