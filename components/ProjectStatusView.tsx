@@ -50,7 +50,10 @@ function componentBreakdown(project: Project, projectTasks: Task[]) {
     audit: taskComponent(projectTasks, "Audit"),
     mrp: taskComponent(projectTasks, "MRP Planning"),
     cleanse: ratio(project.data_cleanse_complete, project.data_cleanse_required),
-    migration: ratio(project.migration_complete, project.migration_required),
+    migration: ratio(
+      (project.migration_complete ?? 0) + (project.rings_migrated ?? 0),
+      (project.migration_required ?? 0) + (project.total_rings ?? 0)
+    ),
     decom: ratio(project.total_decommissioned, project.total_devices),
   };
   const overall = PROGRESS_WEIGHTS.reduce(
@@ -294,14 +297,18 @@ export default function ProjectStatusView({
                       {c.project.mrp_planner && (
                         <>
                           <span className="text-[#a39d8c]">MRP </span>
-                          {c.project.mrp_planner}
+                          <span className="font-semibold text-[#3B6E8F]">
+                            {c.project.mrp_planner}
+                          </span>
                         </>
                       )}
                       {c.project.mrp_planner && c.project.ip_tech && " · "}
                       {c.project.ip_tech && (
                         <>
                           <span className="text-[#a39d8c]">IP Tech </span>
-                          {c.project.ip_tech}
+                          <span className="font-semibold text-[#8A5FB0]">
+                            {c.project.ip_tech}
+                          </span>
                         </>
                       )}
                     </p>
@@ -337,11 +344,17 @@ export default function ProjectStatusView({
                       <span className="text-[#c9c2b2] shrink-0 font-mono">{w.weight}%</span>
                       <div className="h-1 flex-1 rounded-full bg-black/[0.06] overflow-hidden min-w-[40px]">
                         <div
-                          className="h-full bg-[var(--c-green)]/60"
+                          className={v >= 1 ? "h-full bg-[var(--c-green)]" : "h-full bg-[var(--c-green)]/60"}
                           style={{ width: `${Math.round(v * 100)}%` }}
                         />
                       </div>
-                      <span className="text-[#a39d8c] font-mono shrink-0 w-8 text-right">
+                      <span
+                        className={`font-mono shrink-0 w-8 text-right ${
+                          v >= 1
+                            ? "text-[var(--c-green)] font-semibold"
+                            : "text-[#a39d8c]"
+                        }`}
+                      >
                         {Math.round(v * 100)}%
                       </span>
                     </div>

@@ -603,7 +603,6 @@ export default function TaskModal({
                   value={raisedBy}
                   onChange={(e) => setRaisedBy(e.target.value)}
                 >
-                  <option value="">Unspecified</option>
                   {raisedBy && !resources.some((r) => r.name === raisedBy) && (
                     <option value={raisedBy}>{raisedBy} (not in People)</option>
                   )}
@@ -1026,6 +1025,15 @@ export default function TaskModal({
                           `Status changed from "${STATUS_LABELS[oldStatus]}" to "${STATUS_LABELS[newStatus]}"`,
                           authorName || null
                         );
+                        // Also log on the parent, so the task's own log shows
+                        // its checklist being worked through.
+                        if (savedTaskId) {
+                          await addComment(
+                            savedTaskId,
+                            `Subtask ${newStatus === "done" ? "completed" : "reopened"}: "${st.title}"`,
+                            authorName || null
+                          );
+                        }
                       }
                     }}
                     className="accent-[var(--c-green)]"

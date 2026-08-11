@@ -108,6 +108,14 @@ export function projectNameForSite(
   return s ? `${e} - ${s}` : e;
 }
 
+export interface ProjectChangeLog {
+  id: string;
+  project_id: string;
+  body: string;
+  author: string | null;
+  created_at: string;
+}
+
 export interface TaskComment {
   id: string;
   task_id: string;

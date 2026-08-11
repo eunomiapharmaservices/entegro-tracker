@@ -444,6 +444,7 @@ function HomeContent() {
                 onUpdate={updateProject}
                 onDelete={deleteProject}
                 canDelete={isAdminOrAbove}
+                currentUserName={currentUserName}
               />
             )}
             {view === "log" && isAdminOrAbove && (

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Project, Resource, Task } from "@/lib/types";
+import { useProjectChangeLog } from "@/lib/useProjectChangeLog";
 
 type SortKey = "name" | "site_dark_date" | "mrp_planner" | "ip_tech" | "active" | "completed";
 
@@ -13,6 +14,7 @@ export default function ManageProjectsModal({
   onUpdate,
   onDelete,
   canDelete: allowDelete,
+  currentUserName,
 }: {
   projects: Project[];
   tasks: Task[];
@@ -20,7 +22,9 @@ export default function ManageProjectsModal({
   onUpdate: (id: string, input: Partial<Project>) => Promise<Project>;
   onDelete: (id: string) => Promise<void>;
   canDelete: boolean;
+  currentUserName: string;
 }) {
+  const { addEntry } = useProjectChangeLog();
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<
@@ -124,6 +128,37 @@ export default function ManageProjectsModal({
         total_rings: Number(d.total_rings) || 0,
         rings_migrated: Number(d.rings_migrated) || 0,
       });
+      // Record exactly what changed, so the project has an audit trail too.
+      const labels: Record<string, string> = {
+        name: "Name",
+        site_dark_date: "SDD",
+        mrp_planner: "MRP Planner",
+        ip_tech: "IP Tech",
+        total_circuits: "Total Circuits",
+        migration_required: "Migration Required",
+        migration_complete: "Migration Complete",
+        total_rings: "Total Rings",
+        rings_migrated: "Rings Migrated",
+        data_cleanse_required: "Cleanse Required",
+        data_cleanse_complete: "Cleanse Complete",
+        total_devices: "Total Devices",
+        total_decommissioned: "Decommissioned",
+      };
+      for (const [field, label] of Object.entries(labels)) {
+        const before =
+          field === "name" || field === "site_dark_date" || field === "mrp_planner" || field === "ip_tech"
+            ? String((p as unknown as Record<string, unknown>)[field] ?? "")
+            : String((p as unknown as Record<string, number>)[field] ?? 0);
+        const after = String((d as Record<string, string>)[field] ?? "");
+        if (before !== after) {
+          await addEntry(
+            p.id,
+            `${label} changed from ${before || "(empty)"} to ${after || "(empty)"}`,
+            currentUserName || null
+          );
+        }
+      }
+
       setDrafts((prev) => {
         const next = { ...prev };
         delete next[p.id];
@@ -301,12 +336,12 @@ export default function ManageProjectsModal({
                 <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Total Circuits</th>
                 <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Migration Req</th>
                 <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Migration Done</th>
+                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Total Rings</th>
+                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Rings Migrated</th>
                 <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Cleanse Req</th>
                 <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Cleanse Done</th>
                 <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Total Devices</th>
                 <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Decommissioned</th>
-                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Total Rings</th>
-                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Rings Migrated</th>
                 <SortHead label="Active" k="active" right />
                 <SortHead label="Done" k="completed" right />
                 <th className="py-2 pl-2 font-medium"></th>
@@ -393,6 +428,24 @@ export default function ManageProjectsModal({
                       <input
                         type="number"
                         min={0}
+                        value={d.total_rings}
+                        onChange={(e) => setDraft(p, "total_rings", e.target.value)}
+                        className={cellInput + " w-16 text-right"}
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={d.rings_migrated}
+                        onChange={(e) => setDraft(p, "rings_migrated", e.target.value)}
+                        className={cellInput + " w-16 text-right"}
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="number"
+                        min={0}
                         value={d.data_cleanse_required}
                         onChange={(e) => setDraft(p, "data_cleanse_required", e.target.value)}
                         className={cellInput + " w-16 text-right"}
@@ -422,24 +475,6 @@ export default function ManageProjectsModal({
                         min={0}
                         value={d.total_decommissioned}
                         onChange={(e) => setDraft(p, "total_decommissioned", e.target.value)}
-                        className={cellInput + " w-16 text-right"}
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <input
-                        type="number"
-                        min={0}
-                        value={d.total_rings}
-                        onChange={(e) => setDraft(p, "total_rings", e.target.value)}
-                        className={cellInput + " w-16 text-right"}
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <input
-                        type="number"
-                        min={0}
-                        value={d.rings_migrated}
-                        onChange={(e) => setDraft(p, "rings_migrated", e.target.value)}
                         className={cellInput + " w-16 text-right"}
                       />
                     </td>
