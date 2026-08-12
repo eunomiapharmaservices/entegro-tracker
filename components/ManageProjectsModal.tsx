@@ -5,7 +5,23 @@ import { Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Project, Resource, Task } from "@/lib/types";
 import { useProjectChangeLog } from "@/lib/useProjectChangeLog";
 
-type SortKey = "name" | "site_dark_date" | "mrp_planner" | "ip_tech" | "active" | "completed";
+type SortKey =
+  | "name"
+  | "site_dark_date"
+  | "project_manager"
+  | "mrp_planner"
+  | "ip_tech"
+  | "active"
+  | "completed"
+  | "total_circuits"
+  | "migration_required"
+  | "migration_complete"
+  | "total_rings"
+  | "rings_migrated"
+  | "data_cleanse_required"
+  | "data_cleanse_complete"
+  | "total_devices"
+  | "total_decommissioned";
 
 export default function ManageProjectsModal({
   projects,
@@ -63,6 +79,7 @@ export default function ManageProjectsModal({
       drafts[p.id] ?? {
         name: p.name,
         site_dark_date: p.site_dark_date ?? "",
+        project_manager: p.project_manager ?? "",
         mrp_planner: p.mrp_planner ?? "",
         ip_tech: p.ip_tech ?? "",
         total_circuits: String(p.total_circuits ?? 0),
@@ -91,6 +108,7 @@ export default function ManageProjectsModal({
     return (
       d.name !== p.name ||
       d.site_dark_date !== (p.site_dark_date ?? "") ||
+      d.project_manager !== (p.project_manager ?? "") ||
       d.mrp_planner !== (p.mrp_planner ?? "") ||
       d.ip_tech !== (p.ip_tech ?? "") ||
       d.total_circuits !== String(p.total_circuits ?? 0) ||
@@ -116,6 +134,7 @@ export default function ManageProjectsModal({
       await onUpdate(p.id, {
         name: d.name.trim(),
         site_dark_date: d.site_dark_date || null,
+        project_manager: d.project_manager.trim() || null,
         mrp_planner: d.mrp_planner.trim() || null,
         ip_tech: d.ip_tech.trim() || null,
         total_circuits: Number(d.total_circuits) || 0,
@@ -132,6 +151,7 @@ export default function ManageProjectsModal({
       const labels: Record<string, string> = {
         name: "Name",
         site_dark_date: "SDD",
+        project_manager: "PM",
         mrp_planner: "MRP Planner",
         ip_tech: "IP Tech",
         total_circuits: "Total Circuits",
@@ -146,7 +166,7 @@ export default function ManageProjectsModal({
       };
       for (const [field, label] of Object.entries(labels)) {
         const before =
-          field === "name" || field === "site_dark_date" || field === "mrp_planner" || field === "ip_tech"
+          ["name", "site_dark_date", "project_manager", "mrp_planner", "ip_tech"].includes(field)
             ? String((p as unknown as Record<string, unknown>)[field] ?? "")
             : String((p as unknown as Record<string, number>)[field] ?? 0);
         const after = String((d as Record<string, string>)[field] ?? "");
@@ -208,12 +228,21 @@ export default function ManageProjectsModal({
         case "ip_tech":
           cmp = (a.ip_tech || "").localeCompare(b.ip_tech || "");
           break;
+        case "project_manager":
+          cmp = (a.project_manager || "").localeCompare(b.project_manager || "");
+          break;
         case "active":
           cmp = counts(a.id).active - counts(b.id).active;
           break;
         case "completed":
           cmp = counts(a.id).completed - counts(b.id).completed;
           break;
+        default: {
+          // The numeric metric columns all compare the same way.
+          const key = sortKey as keyof Project;
+          cmp = Number(a[key] ?? 0) - Number(b[key] ?? 0);
+          break;
+        }
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
@@ -331,17 +360,18 @@ export default function ManageProjectsModal({
               <tr className="text-left text-xs text-[#8a8578] font-display">
                 <SortHead label="Project" k="name" />
                 <SortHead label="SDD" k="site_dark_date" />
+                <SortHead label="PM" k="project_manager" />
                 <SortHead label="MRP Planner" k="mrp_planner" />
                 <SortHead label="IP Tech" k="ip_tech" />
-                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Total Circuits</th>
-                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Migration Req</th>
-                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Migration Done</th>
-                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Total Rings</th>
-                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Rings Migrated</th>
-                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Cleanse Req</th>
-                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Cleanse Done</th>
-                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Total Devices</th>
-                <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Decommissioned</th>
+                <SortHead label="Total Circuits" k="total_circuits" right />
+                <SortHead label="Migration Req" k="migration_required" right />
+                <SortHead label="Migration Done" k="migration_complete" right />
+                <SortHead label="Total Rings" k="total_rings" right />
+                <SortHead label="Rings Migrated" k="rings_migrated" right />
+                <SortHead label="Cleanse Req" k="data_cleanse_required" right />
+                <SortHead label="Cleanse Done" k="data_cleanse_complete" right />
+                <SortHead label="Total Devices" k="total_devices" right />
+                <SortHead label="Decommissioned" k="total_decommissioned" right />
                 <SortHead label="Active" k="active" right />
                 <SortHead label="Done" k="completed" right />
                 <th className="py-2 pl-2 font-medium"></th>
@@ -377,6 +407,15 @@ export default function ManageProjectsModal({
                         value={d.site_dark_date}
                         onChange={(e) => setDraft(p, "site_dark_date", e.target.value)}
                         className={cellInput}
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        list="people-names"
+                        value={d.project_manager}
+                        onChange={(e) => setDraft(p, "project_manager", e.target.value)}
+                        placeholder="—"
+                        className={cellInput + " w-28"}
                       />
                     </td>
                     <td className="py-2 px-2">
@@ -520,7 +559,7 @@ export default function ManageProjectsModal({
               })}
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={16} className="py-8 text-center text-[#a39d8c]">
+                  <td colSpan={17} className="py-8 text-center text-[#a39d8c]">
                     {projects.length === 0 ? "No projects yet." : "No projects match those filters."}
                   </td>
                 </tr>

@@ -187,7 +187,7 @@ export default function TaskListView({
   return (
     <div className="flex flex-col h-full gap-2">
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--c-green)]/10 text-sm">
+        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[rgb(var(--c-green-rgb)/0.1)] text-sm">
           <span className="font-medium text-[var(--c-green)]">
             {selected.size} selected
           </span>
@@ -272,7 +272,7 @@ export default function TaskListView({
               <tr
                 key={t.id}
                 className={`border-b border-[var(--c-line)] last:border-0 hover:bg-black/[0.02] cursor-pointer ${
-                  selected.has(t.id) ? "bg-[var(--c-green)]/[0.04]" : ""
+                  selected.has(t.id) ? "bg-[rgb(var(--c-green-rgb)/0.04)]" : ""
                 }`}
               >
                 <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>

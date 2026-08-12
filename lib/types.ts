@@ -18,6 +18,7 @@ export interface Project {
   site_name: string | null;
   site_dark_date: string | null;
   mrp_planner: string | null;
+  project_manager: string | null;
   ip_tech: string | null;
   total_circuits: number;
   migration_required: number;

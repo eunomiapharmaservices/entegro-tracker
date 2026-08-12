@@ -183,7 +183,7 @@ export default function Sidebar({
             onClick={() => setView(item.key)}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
               view === item.key
-                ? "bg-[var(--c-green)]/10 text-[var(--c-green)] font-medium"
+                ? "bg-[rgb(var(--c-green-rgb)/0.1)] text-[var(--c-green)] font-medium"
                 : "text-[#4d574f] hover:bg-black/5"
             }`}
           >
@@ -369,14 +369,14 @@ export default function Sidebar({
                       setDragOverRole(null);
                     }}
                     className={`rounded-lg p-1 -m-1 transition-colors ${
-                      dragOverRole === role ? "bg-[var(--c-green)]/10 ring-2 ring-[var(--c-green)]/30" : ""
+                      dragOverRole === role ? "bg-[rgb(var(--c-green-rgb)/0.1)] ring-2 ring-[rgb(var(--c-green-rgb)/0.3)]" : ""
                     }`}
                   >
                     <p className="text-[10px] font-medium text-[#a39d8c] uppercase tracking-wide px-1 mb-1">
                       {label} ({group.length})
                     </p>
                     {group.length === 0 && dragOverRole === role && (
-                      <div className="text-[11px] text-[var(--c-green)] border border-dashed border-[var(--c-green)]/40 rounded-lg px-2.5 py-2 text-center mb-1">
+                      <div className="text-[11px] text-[var(--c-green)] border border-dashed border-[rgb(var(--c-green-rgb)/0.4)] rounded-lg px-2.5 py-2 text-center mb-1">
                         Drop here to make {label}
                       </div>
                     )}

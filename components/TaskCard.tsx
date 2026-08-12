@@ -47,7 +47,7 @@ export default function TaskCard({
       )}
       {task.auto_generated_from && (
         <span
-          className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--c-green)]/10 text-[var(--c-green)] mb-1.5"
+          className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-[rgb(var(--c-green-rgb)/0.1)] text-[var(--c-green)] mb-1.5"
           title="Created automatically when the previous task in this workflow was completed"
         >
           <Sparkles size={9} />

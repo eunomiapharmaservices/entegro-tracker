@@ -204,7 +204,7 @@ export default function MatrixView({
             disabled={m.value === 0}
             className={`text-left rounded-xl border bg-white p-4 transition-colors ${
               drill?.label === m.label && !drill?.groupKey
-                ? "border-[var(--c-green)] ring-1 ring-[var(--c-green)]/30"
+                ? "border-[var(--c-green)] ring-1 ring-[rgb(var(--c-green-rgb)/0.3)]"
                 : "border-[var(--c-line)]"
             } ${m.value > 0 ? "hover:bg-black/[0.015] cursor-pointer" : "cursor-default"}`}
           >
@@ -355,7 +355,7 @@ export default function MatrixView({
                 key={g}
                 onClick={() => selectGroupDrill(g)}
                 className={`text-left py-3 px-1 hover:bg-black/[0.02] ${
-                  drill?.groupKey === g ? "bg-[var(--c-green)]/5" : ""
+                  drill?.groupKey === g ? "bg-[rgb(var(--c-green-rgb)/0.05)]" : ""
                 }`}
               >
                 <div className="flex items-center justify-between gap-3 mb-1.5">
@@ -367,7 +367,7 @@ export default function MatrixView({
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full ${
                         hasActive
-                          ? "bg-[var(--c-green)]/10 text-[var(--c-green)]"
+                          ? "bg-[rgb(var(--c-green-rgb)/0.1)] text-[var(--c-green)]"
                           : "bg-black/5 text-[#4d574f]"
                       }`}
                     >

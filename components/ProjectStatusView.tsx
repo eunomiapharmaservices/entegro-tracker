@@ -18,6 +18,10 @@ const STATUS_DOT: Record<string, string> = {
 
 // Overall project progress is a weighted roll-up of five components. Two are
 // read from task status, three from the counters entered in Manage projects.
+// A milestone counts as complete — and shows green — once it reaches this
+// percentage, rather than requiring an exact 100%.
+const COMPLETION_THRESHOLD = 90;
+
 const PROGRESS_WEIGHTS = [
   { key: "audit", label: "Audit", weight: 10, source: "Audit task" },
   { key: "mrp", label: "MRP Planning", weight: 10, source: "MRP Planning task" },
@@ -374,18 +378,21 @@ export default function ProjectStatusView({
                       <span className="text-[#4d574f] w-24 shrink-0 truncate" title={`From ${w.source}`}>
                         {w.label}
                       </span>
-                      <span className="text-[#c9c2b2] shrink-0 font-mono">{w.weight}%</span>
-                      <div className="h-1 flex-1 rounded-full bg-black/[0.06] overflow-hidden min-w-[40px]">
+                      <div className="h-1.5 flex-1 rounded-full bg-black/[0.06] overflow-hidden min-w-[40px]">
                         <div
-                          className={v >= 1 ? "h-full bg-[var(--c-green)]" : "h-full bg-[var(--c-green)]/60"}
-                          style={{ width: `${Math.round(v * 100)}%` }}
+                          className={
+                            Math.round(v * 100) >= COMPLETION_THRESHOLD
+                              ? "h-full rounded-full bg-[var(--c-green)]"
+                              : "h-full rounded-full bg-[var(--c-green-light)]"
+                          }
+                          style={{ width: `${Math.max(v > 0 ? 2 : 0, Math.round(v * 100))}%` }}
                         />
                       </div>
                       <span
-                        className={`font-mono shrink-0 w-8 text-right ${
-                          v >= 1
+                        className={`font-mono shrink-0 w-9 text-right ${
+                          Math.round(v * 100) >= COMPLETION_THRESHOLD
                             ? "text-[var(--c-green)] font-semibold"
-                            : "text-[#a39d8c]"
+                            : "text-[#8a8578]"
                         }`}
                       >
                         {Math.round(v * 100)}%

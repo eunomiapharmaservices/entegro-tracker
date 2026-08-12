@@ -22,6 +22,7 @@ create table if not exists projects (
   site_name text,                -- site name for this project
   site_dark_date date,           -- SDD — shown on the header of any task in this project
   mrp_planner text,              -- who plans MRP for this project
+  project_manager text,          -- PM
   ip_tech text,                  -- assigned IP tech
   total_circuits int default 0,          -- circuit / migration / decom counters,
   migration_required int default 0,      -- entered in Manage projects and used to

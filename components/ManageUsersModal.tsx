@@ -192,7 +192,7 @@ export default function ManageUsersModal({
             </div>
 
             {selected.size > 0 && (
-              <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-[var(--c-green)]/10 mb-2 flex-wrap">
+              <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-[rgb(var(--c-green-rgb)/0.1)] mb-2 flex-wrap">
                 <span className="text-xs font-medium text-[var(--c-green)]">
                   {selected.size} selected
                 </span>
@@ -251,7 +251,7 @@ export default function ManageUsersModal({
                       setDragOverRole(null);
                     }}
                     className={`rounded-lg p-1.5 -m-1.5 transition-colors ${
-                      dragOverRole === r ? "bg-[var(--c-green)]/10 ring-2 ring-[var(--c-green)]/30" : ""
+                      dragOverRole === r ? "bg-[rgb(var(--c-green-rgb)/0.1)] ring-2 ring-[rgb(var(--c-green-rgb)/0.3)]" : ""
                     }`}
                   >
                     <p className="text-[10px] font-medium text-[#a39d8c] uppercase tracking-wide mb-1">
@@ -259,7 +259,7 @@ export default function ManageUsersModal({
                     </p>
                     <div className="flex flex-col gap-1.5 min-h-[6px]">
                       {group.length === 0 && dragOverRole === r && (
-                        <div className="text-[11px] text-[var(--c-green)] border border-dashed border-[var(--c-green)]/40 rounded-lg px-2.5 py-2 text-center">
+                        <div className="text-[11px] text-[var(--c-green)] border border-dashed border-[rgb(var(--c-green-rgb)/0.4)] rounded-lg px-2.5 py-2 text-center">
                           Drop here to make {ROLE_LABELS[r]}
                         </div>
                       )}

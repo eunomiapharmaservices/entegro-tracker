@@ -253,7 +253,7 @@ export default function CommentLogView({
                 <button
                   onClick={() => handleRestore(t.id)}
                   disabled={restoringId === t.id}
-                  className="shrink-0 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-[var(--c-line)] text-[var(--c-green)] hover:bg-[var(--c-green)]/5 disabled:opacity-50"
+                  className="shrink-0 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-[var(--c-line)] text-[var(--c-green)] hover:bg-[rgb(var(--c-green-rgb)/0.05)] disabled:opacity-50"
                 >
                   <RotateCcw size={12} />
                   {restoringId === t.id ? "Restoring…" : "Restore"}

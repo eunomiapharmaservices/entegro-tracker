@@ -74,7 +74,7 @@ export default function KanbanBoard({
                 setDragOverCol(null);
               }}
               className={`w-72 shrink-0 rounded-xl flex flex-col h-full ${
-                dragOverCol === status ? "bg-[var(--c-green)]/5 ring-2 ring-[var(--c-green)]/20" : ""
+                dragOverCol === status ? "bg-[rgb(var(--c-green-rgb)/0.05)] ring-2 ring-[rgb(var(--c-green-rgb)/0.2)]" : ""
               }`}
             >
               <div className="flex items-center justify-between px-1 py-2 shrink-0">

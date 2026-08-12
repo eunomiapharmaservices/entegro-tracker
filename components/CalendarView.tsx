@@ -236,7 +236,7 @@ function MonthGrid({
               key={i}
               className={`rounded-lg border p-1.5 flex flex-col gap-1 min-h-[80px] overflow-hidden ${
                 isToday
-                  ? "border-[var(--c-green)] bg-[var(--c-green)]/[0.04]"
+                  ? "border-[var(--c-green)] bg-[rgb(var(--c-green-rgb)/0.04)]"
                   : "border-[var(--c-line)]"
               }`}
             >
@@ -252,7 +252,7 @@ function MonthGrid({
                   <button
                     key={t.id}
                     onClick={() => onOpenTask(t)}
-                    className="flex items-center gap-1 text-[11px] leading-tight text-left bg-[var(--c-orange)]/10 text-[#8a4a1f] rounded px-1 py-0.5 hover:bg-[var(--c-orange)]/20"
+                    className="flex items-center gap-1 text-[11px] leading-tight text-left bg-[rgb(var(--c-orange-rgb)/0.1)] text-[#8a4a1f] rounded px-1 py-0.5 hover:bg-[rgb(var(--c-orange-rgb)/0.2)]"
                   >
                     <Flag size={9} fill="currentColor" className="shrink-0" />
                     <span className="truncate">{t.title}</span>
@@ -305,7 +305,7 @@ function WeekGrid({
             key={iso}
             className={`rounded-lg border p-2 flex flex-col gap-1.5 overflow-hidden ${
               isToday
-                ? "border-[var(--c-green)] bg-[var(--c-green)]/[0.04]"
+                ? "border-[var(--c-green)] bg-[rgb(var(--c-green-rgb)/0.04)]"
                 : "border-[var(--c-line)]"
             }`}
           >
@@ -326,7 +326,7 @@ function WeekGrid({
                 <button
                   key={t.id}
                   onClick={() => onOpenTask(t)}
-                  className="flex items-center gap-1 text-[11px] leading-tight text-left bg-[var(--c-orange)]/10 text-[#8a4a1f] rounded px-1.5 py-1 hover:bg-[var(--c-orange)]/20"
+                  className="flex items-center gap-1 text-[11px] leading-tight text-left bg-[rgb(var(--c-orange-rgb)/0.1)] text-[#8a4a1f] rounded px-1.5 py-1 hover:bg-[rgb(var(--c-orange-rgb)/0.2)]"
                 >
                   <Flag size={9} fill="currentColor" className="shrink-0" />
                   <span className="truncate">{t.title}</span>
@@ -396,10 +396,10 @@ function DayAgenda({
               <span
                 className={`text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0 ${
                   kind === "Milestone"
-                    ? "bg-[var(--c-orange)]/10 text-[#8a4a1f]"
+                    ? "bg-[rgb(var(--c-orange-rgb)/0.1)] text-[#8a4a1f]"
                     : kind === "Due"
                     ? "bg-black/5 text-[#4d574f]"
-                    : "bg-[var(--c-green)]/10 text-[var(--c-green)]"
+                    : "bg-[rgb(var(--c-green-rgb)/0.1)] text-[var(--c-green)]"
                 }`}
               >
                 {kind}
