@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Flag, AlertTriangle, Download } from "lucide-react";
+import { Flag, AlertTriangle, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { Project, Resource, STATUS_LABELS, Status, Task } from "@/lib/types";
 import { fmt, fmtFull, isOverdue, effectiveDueDate } from "@/lib/dateUtils";
 import { downloadCSV } from "@/lib/csvImport";
@@ -77,6 +77,7 @@ export default function ProjectStatusView({
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Top-level, non-deleted tasks only — matching how totals are counted
   // everywhere else in the app.
@@ -258,7 +259,13 @@ export default function ProjectStatusView({
               className="rounded-xl border border-[var(--c-line)] bg-white p-4 flex flex-col gap-3"
             >
               {/* Header */}
-              <div className="flex items-start gap-3">
+              <button
+                onClick={() =>
+                  setExpandedId((prev) => (prev === c.project.id ? null : c.project.id))
+                }
+                className="flex items-start gap-3 text-left w-full"
+                title="Show project figures"
+              >
                 <span
                   className="w-3 h-3 rounded-full shrink-0 mt-1"
                   style={{ background: c.project.color }}
@@ -317,7 +324,33 @@ export default function ProjectStatusView({
                 {c.overdue > 0 && (
                   <AlertTriangle size={15} className="text-[#C23B3B] shrink-0 mt-0.5" />
                 )}
-              </div>
+                {expandedId === c.project.id ? (
+                  <ChevronUp size={15} className="text-[#a39d8c] shrink-0 mt-0.5" />
+                ) : (
+                  <ChevronDown size={15} className="text-[#a39d8c] shrink-0 mt-0.5" />
+                )}
+              </button>
+
+              {expandedId === c.project.id && (
+                <div className="grid grid-cols-3 gap-x-3 gap-y-2 rounded-lg bg-black/[0.02] p-3 -mt-1">
+                  {[
+                    { label: "Total Circuits", value: c.project.total_circuits },
+                    { label: "Migration Req", value: c.project.migration_required },
+                    { label: "Migration Done", value: c.project.migration_complete },
+                    { label: "Total Rings", value: c.project.total_rings },
+                    { label: "Rings Migrated", value: c.project.rings_migrated },
+                    { label: "Cleanse Req", value: c.project.data_cleanse_required },
+                    { label: "Cleanse Done", value: c.project.data_cleanse_complete },
+                    { label: "Total Devices", value: c.project.total_devices },
+                    { label: "Decommissioned", value: c.project.total_decommissioned },
+                  ].map((m) => (
+                    <div key={m.label}>
+                      <p className="text-[10px] text-[#a39d8c] truncate">{m.label}</p>
+                      <p className="font-mono text-sm text-[#4d574f]">{m.value ?? 0}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Progress */}
               <div className="flex items-center gap-2">
