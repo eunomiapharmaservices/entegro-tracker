@@ -411,7 +411,6 @@ export default function ManageProjectsModal({
                     </td>
                     <td className="py-2 px-2">
                       <input
-                        list="people-names"
                         value={d.project_manager}
                         onChange={(e) => setDraft(p, "project_manager", e.target.value)}
                         placeholder="—"
