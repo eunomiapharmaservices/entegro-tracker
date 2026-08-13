@@ -80,6 +80,8 @@ export default function ProjectStatusView({
 }) {
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [mrpFilter, setMrpFilter] = useState("");
+  const [ipFilter, setIpFilter] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -102,12 +104,15 @@ export default function ProjectStatusView({
     const q = search.trim().toLowerCase();
     return projects
       .filter((p) => showArchived || !p.archived)
+      .filter((p) => !mrpFilter || (p.mrp_planner ?? "") === mrpFilter)
+      .filter((p) => !ipFilter || (p.ip_tech ?? "") === ipFilter)
       .filter(
         (p) =>
           !q ||
           p.name.toLowerCase().includes(q) ||
           (p.eid || "").toLowerCase().includes(q) ||
           (p.site_name || "").toLowerCase().includes(q) ||
+          (p.project_manager || "").toLowerCase().includes(q) ||
           (p.mrp_planner || "").toLowerCase().includes(q) ||
           (p.ip_tech || "").toLowerCase().includes(q)
       )
@@ -157,7 +162,16 @@ export default function ProjectStatusView({
         if (aSdd !== bSdd) return aSdd.localeCompare(bSdd);
         return a.project.name.localeCompare(b.project.name, undefined, { numeric: true });
       });
-  }, [projects, countable, search, showArchived, showCompleted]);
+  }, [projects, countable, search, showArchived, showCompleted, mrpFilter, ipFilter]);
+
+  const mrpValues = useMemo(
+    () => [...new Set(projects.map((p) => p.mrp_planner).filter((v): v is string => !!v))].sort(),
+    [projects]
+  );
+  const ipValues = useMemo(
+    () => [...new Set(projects.map((p) => p.ip_tech).filter((v): v is string => !!v))].sort(),
+    [projects]
+  );
 
   const totals = useMemo(
     () => ({
@@ -173,13 +187,14 @@ export default function ProjectStatusView({
   function handleExport() {
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
     const rows = [
-      ["Project", "EID", "Site", "SDD", "MRP Planner", "IP Tech", "Total", "Open", "Completed", "Overdue", "Progress %", "Next due"].join(","),
+      ["Project", "EID", "Site", "SDD", "PM", "MRP Planner", "IP Tech", "Total", "Open", "Completed", "Overdue", "Progress %", "Next due"].join(","),
       ...cards.map((c) =>
         [
           esc(c.project.name),
           esc(c.project.eid || ""),
           esc(c.project.site_name || ""),
           esc(c.project.site_dark_date || ""),
+          esc(c.project.project_manager || ""),
           esc(c.project.mrp_planner || ""),
           esc(c.project.ip_tech || ""),
           c.total,
@@ -227,6 +242,30 @@ export default function ProjectStatusView({
           placeholder="Search project, EID, site…"
           className="flex-1 min-w-[180px] max-w-xs rounded-lg border border-[var(--c-line)] px-3 py-1.5 text-sm bg-white outline-none focus:border-[var(--c-green)]"
         />
+        <select
+          value={mrpFilter}
+          onChange={(e) => setMrpFilter(e.target.value)}
+          className="rounded-lg border border-[var(--c-line)] px-2 py-1.5 text-xs bg-white outline-none focus:border-[var(--c-green)]"
+        >
+          <option value="">All MRP Planners</option>
+          {mrpValues.map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
+        </select>
+        <select
+          value={ipFilter}
+          onChange={(e) => setIpFilter(e.target.value)}
+          className="rounded-lg border border-[var(--c-line)] px-2 py-1.5 text-xs bg-white outline-none focus:border-[var(--c-green)]"
+        >
+          <option value="">All IP Techs</option>
+          {ipValues.map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
+        </select>
         <label className="flex items-center gap-1.5 text-xs text-[#8a8578] cursor-pointer">
           <input
             type="checkbox"
@@ -303,8 +342,17 @@ export default function ProjectStatusView({
                       )}
                     </p>
                   )}
-                  {(c.project.mrp_planner || c.project.ip_tech) && (
+                  {(c.project.project_manager || c.project.mrp_planner || c.project.ip_tech) && (
                     <p className="text-[10px] text-[#8a8578] mt-0.5">
+                      {c.project.project_manager && (
+                        <>
+                          <span className="text-[#a39d8c]">PM </span>
+                          <span className="font-semibold text-[var(--c-orange)]">
+                            {c.project.project_manager}
+                          </span>
+                        </>
+                      )}
+                      {c.project.project_manager && (c.project.mrp_planner || c.project.ip_tech) && " · "}
                       {c.project.mrp_planner && (
                         <>
                           <span className="text-[#a39d8c]">MRP </span>
