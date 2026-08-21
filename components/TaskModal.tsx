@@ -14,6 +14,7 @@ import {
   TASK_TYPE_SUGGESTIONS,
   GCR_TITLE_PREFIX,
   isGcrTaskType,
+  isProjectClosure,
   projectNameForSite,
 } from "@/lib/types";
 import Avatar from "./Avatar";
@@ -214,6 +215,7 @@ export default function TaskModal({
 
   // GCR tasks carry four extra identifiers, all required.
   const isGcrType = isGcrTaskType(taskType);
+  const isClosureType = isProjectClosure(taskType);
 
   const missingFields: string[] = [];
   if (!taskType.trim()) missingFields.push("Task type");
@@ -290,7 +292,7 @@ export default function TaskModal({
       start_date: startDate || null,
       due_date: dueDate || null,
       depends_on_task_id: dependsOnTaskId,
-      is_milestone: isMilestone,
+      is_milestone: isClosureType ? true : isMilestone,
       milestone_date: isMilestone ? milestoneDate || null : null,
       task_type: taskType.trim() || null,
       eid: projectEid,
@@ -382,7 +384,7 @@ export default function TaskModal({
         start_date: startDate || null,
         due_date: dueDate || null,
         depends_on_task_id: dependsOnTaskId,
-        is_milestone: isMilestone,
+        is_milestone: isClosureType ? true : isMilestone,
         milestone_date: isMilestone ? milestoneDate || null : null,
         task_type: taskType.trim() || null,
         eid: projectEid,
@@ -462,7 +464,7 @@ export default function TaskModal({
         start_date: startDate || null,
         due_date: dueDate || null,
         depends_on_task_id: null,
-        is_milestone: isMilestone,
+        is_milestone: isClosureType ? true : isMilestone,
         milestone_date: isMilestone ? milestoneDate || null : null,
         task_type: taskType.trim() || null,
         eid: projectEid,
@@ -834,6 +836,7 @@ export default function TaskModal({
             </div>
           </div>
 
+            {!isClosureType && (
           <div className="rounded-lg border border-[var(--c-line)] px-3 py-2.5 bg-white">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
@@ -855,6 +858,7 @@ export default function TaskModal({
               />
             )}
           </div>
+            )}
 
 
           {isGcrType && (

@@ -50,15 +50,25 @@ function taskComponent(tasks: Task[], typeName: string): number {
 }
 
 function componentBreakdown(project: Project, projectTasks: Task[]) {
+  const audit = taskComponent(projectTasks, "Audit");
+  const mrp = taskComponent(projectTasks, "MRP Planning");
+
+  // Once Audit and MRP are both complete, a counter-based milestone with
+  // nothing required ("0 out of 0") means no work was needed — so it counts
+  // as complete rather than sitting at 0% forever.
+  const surveyDone = audit >= 1 && mrp >= 1;
+  const counterRatio = (done: number, required: number) =>
+    !required || required <= 0 ? (surveyDone ? 1 : 0) : ratio(done, required);
+
   const values: Record<string, number> = {
-    audit: taskComponent(projectTasks, "Audit"),
-    mrp: taskComponent(projectTasks, "MRP Planning"),
-    cleanse: ratio(project.data_cleanse_complete, project.data_cleanse_required),
-    migration: ratio(
+    audit,
+    mrp,
+    cleanse: counterRatio(project.data_cleanse_complete, project.data_cleanse_required),
+    migration: counterRatio(
       (project.migration_complete ?? 0) + (project.rings_migrated ?? 0),
       (project.migration_required ?? 0) + (project.total_rings ?? 0)
     ),
-    decom: ratio(project.total_decommissioned, project.total_devices),
+    decom: counterRatio(project.total_decommissioned, project.total_devices),
   };
   const overall = PROGRESS_WEIGHTS.reduce(
     (sum, w) => sum + values[w.key] * w.weight,

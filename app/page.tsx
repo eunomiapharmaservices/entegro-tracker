@@ -25,7 +25,7 @@ import { useUserRole } from "@/lib/useUserRole";
 import { supabase } from "@/lib/supabaseClient";
 import { Status, Task, STATUS_LABELS, Resource, Project } from "@/lib/types";
 import { downloadCSV } from "@/lib/csvImport";
-import { GCR_TITLE_PREFIX } from "@/lib/types";
+import { GCR_TITLE_PREFIX, isProjectClosure } from "@/lib/types";
 import { notifyStatusChange } from "@/lib/notifyAssignment";
 
 export default function Home() {
@@ -200,7 +200,24 @@ function HomeContent() {
     await addComment(id, "Task restored", currentUserName || null);
   }
 
-  function handleArchiveProject(id: string, _name: string) {
+  function handleArchiveProject(id: string, name: string) {
+    // A project can only be archived once its work is genuinely finished:
+    // every task completed, and a Project Closure task present.
+    const projectTasks = tasks.filter((t) => t.project_id === id && !t.parent_task_id);
+    const open = projectTasks.filter((t) => t.status !== "done");
+    const hasClosure = projectTasks.some((t) => isProjectClosure(t.task_type));
+
+    const problems: string[] = [];
+    if (open.length > 0) {
+      problems.push(`${open.length} task${open.length === 1 ? " is" : "s are"} not yet Completed`);
+    }
+    if (!hasClosure) {
+      problems.push('there is no "Project Closure" task');
+    }
+    if (problems.length > 0) {
+      alert(`Can't archive "${name}" — ${problems.join(" and ")}.`);
+      return;
+    }
     updateProject(id, { archived: true });
   }
 

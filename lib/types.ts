@@ -90,6 +90,7 @@ export const TASK_TYPE_SUGGESTIONS = [
   "MRP Planning",
   "NAT Updates",
   "Port Reservations",
+  "Project Closure",
   "Pre Wires / TPC",
   "Stranded X-connects removal",
   "Training",
@@ -127,6 +128,14 @@ export interface TaskComment {
 
 export interface TaskWithSubtasks extends Task {
   subtasks: Task[];
+}
+
+// Project Closure tasks are always milestones — set automatically, with no
+// milestone field shown in the form.
+export const PROJECT_CLOSURE_TYPE = "Project Closure";
+
+export function isProjectClosure(taskType: string | null): boolean {
+  return (taskType || "").trim().toLowerCase() === PROJECT_CLOSURE_TYPE.toLowerCase();
 }
 
 export const GCR_TITLE_PREFIX = "GCR Support – ";
